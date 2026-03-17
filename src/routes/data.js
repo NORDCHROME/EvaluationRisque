@@ -300,14 +300,35 @@ router.get('/validations/pending-count', auth, async (req, res) => {
 // POST — soumettre un rapport pour validation
 router.post('/validations', auth, async (req, res) => {
   try {
+    const mongoose = require('mongoose');
+    const { managerId } = req.body;
+
+    // Valider que managerId est un ObjectId MongoDB valide
+    if (!managerId || !mongoose.Types.ObjectId.isValid(managerId)) {
+      return res.status(400).json({
+        error: 'managerId invalide : "' + managerId + '". Vérifiez que le responsable est correctement configuré dans le panel admin.'
+      });
+    }
+
+    // Vérifier que le responsable existe
+    const { User } = require('../models');
+    const manager = await User.findById(managerId);
+    if (!manager) {
+      return res.status(404).json({ error: 'Responsable introuvable en base de données.' });
+    }
+
     const v = await Validation.create({
       ...req.body,
-      submittedBy: req.user._id,
+      managerId,
+      submittedBy:   req.user._id,
       submitterName: req.body.submitterName || req.user.name,
       submitterSite: req.body.submitterSite || req.user.site || '—'
     });
     res.status(201).json(v);
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    console.error('Erreur création validation:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // PUT /validations/:id — valider ou refuser

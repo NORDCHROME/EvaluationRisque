@@ -1387,10 +1387,11 @@ async function loadAllDataFromAPI(){
     }
     // Pour tous : récupérer les infos du responsable via /manager-info
     const managerInfo = await api('GET','/users/manager-info');
-    if(managerInfo){
+    if(managerInfo && (managerInfo._id||managerInfo.id)){
       _cache['managerInfo'] = managerInfo;
-      currentUser.managerId = String(managerInfo._id||'');
-      currentUser.managerName = managerInfo.name;
+      const mgrId = String(managerInfo._id||managerInfo.id||'');
+      currentUser.managerId    = mgrId;
+      currentUser.managerName  = managerInfo.name;
     }
     // Synchroniser currentUser avec les données fraîches du serveur
     if(currentUser && users){
@@ -3225,10 +3226,19 @@ function getReportRiskLevel(){
 
 // ── Handler principal du bouton "Générer PDF" ─────────────────────────────
 async function handleGeneratePDF(){
-  const settings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
+  const settings=_cache['signatureSettings']||{autoLow:true,requireManager:true};
   const level=getReportRiskLevel();
-  const users=_cache['users']||[];
-  const manager=_cache['managerInfo']?{id:String(_cache['managerInfo']._id||''),name:_cache['managerInfo'].name}:((_cache['users']||[]).find(u=>String(u._id||u.id)===String(currentUser.managerId)));
+
+  // Récupérer le responsable — toujours depuis l'API pour avoir l'_id MongoDB exact
+  let manager=null;
+  const mgrRaw=_cache['managerInfo']||await api('GET','/users/manager-info');
+  if(mgrRaw){
+    _cache['managerInfo']=mgrRaw;
+    const mgrId=String(mgrRaw._id||mgrRaw.id||'');
+    if(mgrId && mgrId!=='undefined' && mgrId!=='null' && mgrId.length>=12){
+      manager={id:mgrId, name:mgrRaw.name||'Responsable'};
+    }
+  }
 
   // Risque faible + signature auto activée → PDF direct
   if(level==='low' && settings.autoLow!==false){
@@ -3288,16 +3298,23 @@ async function buildAutoSignature(){
 
 // ── Envoi au responsable pour validation ─────────────────────────────────
 async function sendToManagerForValidation(sigDataURL, level, manager){
-  if(!manager || !manager.id){
-    showToast('Erreur : responsable introuvable','error');
+  // Valider que les IDs sont des ObjectId MongoDB valides (24 hex chars)
+  const isValidId = id => id && String(id).length>=12 && String(id)!=='undefined' && String(id)!=='null';
+  if(!manager || !isValidId(manager.id)){
+    showToast('Erreur : ID responsable invalide — vérifiez sa configuration','error');
+    console.error('manager.id invalide:', manager);
+    return;
+  }
+  if(!isValidId(currentUser.id)){
+    showToast('Erreur : session invalide, reconnectez-vous','error');
     return;
   }
   const reportId='rep'+Date.now();
   const selected=getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
   const pendingPayload={
     id:reportId,
-    managerId: manager.id,
-    submittedBy: currentUser.id,
+    managerId: String(manager.id),
+    submittedBy: String(currentUser.id),
     submitterName: currentUser.name,
     submitterSite: currentUser.site||'—',
     level,
