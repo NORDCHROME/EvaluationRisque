@@ -1443,6 +1443,9 @@ async function _restoreSession(){
       role: user.role, site: user.site,
       managerId: user.managerId?._id||user.managerId
     };
+    // Nettoyer avant de charger
+    Object.keys(_cache).forEach(k=>delete _cache[k]);
+    Object.keys(epiState).forEach(k=>delete epiState[k]);
     await loadAllDataFromAPI();
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('appContainer').style.display='block';
@@ -1481,6 +1484,11 @@ async function doLogin(){
       ...data.user,
       id: String(data.user.id||data.user._id||'')
     };
+    // Nettoyer le cache et l'état de la session précédente avant de charger
+    Object.keys(_cache).forEach(k=>delete _cache[k]);
+    Object.keys(epiState).forEach(k=>delete epiState[k]);
+    appState={step:0,operator:'',location:'',date:'',mission:'',missionSteps:[],
+      selectedInterventions:new Set(),selectedRisks:new Set(),activeRiskId:null};
     // Charger toutes les données depuis l'API
     await loadAllDataFromAPI();
     document.getElementById('loginScreen').style.display='none';
@@ -1498,17 +1506,61 @@ document.addEventListener('keydown',function(e){
 });
 
 function doLogout(){
+  // 1. Effacer l'authentification
   currentUser=null;
   _authToken=null;
   localStorage.removeItem('evalrisque_token');
-  // Vider le cache
+
+  // 2. Vider entièrement le cache API
   Object.keys(_cache).forEach(k=>delete _cache[k]);
+
+  // 3. Réinitialiser l'état de l'évaluation
+  appState={step:0,operator:'',location:'',date:'',mission:'',missionSteps:[],
+    selectedInterventions:new Set(),selectedRisks:new Set(),activeRiskId:null};
+
+  // 4. Réinitialiser les EPI
+  Object.keys(epiState).forEach(k=>delete epiState[k]);
+
+  // 5. Remettre l'app à l'étape 0 et masquer tout
+  [0,1,2,3].forEach(i=>{
+    const s=document.getElementById('screen'+i);
+    if(s){ s.classList.add('hidden'); }
+    const step=document.getElementById('step'+i);
+    if(step){ step.classList.remove('active','done'); if(i===0) step.classList.add('active'); }
+  });
+  const s0=document.getElementById('screen0');
+  if(s0) s0.classList.remove('hidden');
+
+  // 6. Vider les champs du formulaire
+  ['operator','location'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  // Vider les étapes de mission
+  const stepsBody=document.getElementById('missionStepsBody');
+  if(stepsBody){
+    stepsBody.innerHTML=`<tr data-step="1">
+      <td class="step-num-cell">1</td>
+      <td><textarea class="step-desc-input" rows="2" placeholder="ex: Consignation électrique HTA, pose des cadenas LOTO…" oninput="onStepInput(this)"></textarea></td>
+      <td><div class="step-risks-zone" id="step-risks-1"><span class="step-risks-placeholder">Décrivez l'étape pour détecter les risques…</span></div></td>
+      <td><button class="pp-del-btn" onclick="delMissionStep(this)" title="Supprimer l'étape">×</button></td>
+    </tr>`;
+  }
+
+  // 7. Masquer les boutons header
+  const btnAdmin=document.getElementById('btnAdmin');
+  const btnValid=document.getElementById('btnValidation');
+  const headerInfo=document.getElementById('headerUserInfo');
+  const btnLogout=document.getElementById('btnLogout');
+  if(btnAdmin) btnAdmin.style.display='none';
+  if(btnValid) btnValid.style.display='none';
+  if(headerInfo) headerInfo.style.display='none';
+  if(btnLogout) btnLogout.style.display='none';
+
+  // 8. Afficher l'écran de connexion
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('appContainer').style.display='none';
   document.getElementById('loginUser').value='';
   document.getElementById('loginPass').value='';
-  appState={step:0,operator:'',location:'',date:'',mission:'',missionSteps:[],
-    selectedInterventions:new Set(),selectedRisks:new Set(),activeRiskId:null};
 }
 
 function initUI(){
@@ -1520,11 +1572,11 @@ function initUI(){
   const csSel=document.getElementById('companySociety'); if(csSel) csSel.value=co.name;
   document.getElementById('pp-eu').value = co.name;
   if(co.instructions) document.getElementById('pp-instructions').value=co.instructions;
-  // Pre-fill intervenant name and site from user profile
+  // Toujours pré-remplir depuis le profil utilisateur (écrase les valeurs précédentes)
   const opEl=document.getElementById('operator');
-  if(opEl && !opEl.value) opEl.value=currentUser.name||'';
+  if(opEl) opEl.value=currentUser.name||'';
   const locEl=document.getElementById('location');
-  if(locEl && !locEl.value && currentUser.site) locEl.value=currentUser.site;
+  if(locEl) locEl.value=currentUser.site||'';
   // Bouton Admin UNIQUEMENT pour les admins
   if(currentUser.role==='admin'){
     document.getElementById('btnAdmin').style.display='inline-flex';
