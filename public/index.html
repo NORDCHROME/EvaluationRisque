@@ -1337,10 +1337,11 @@ async function _apiSync(key, val){
 // ── Chargement initial de toutes les données depuis l'API ─────────────────
 async function loadAllDataFromAPI(){
   try{
-    // Charger en parallèle
-    const [co, companies, workers, ppList, hiddenRisks,
+    // Charger en parallèle — users inclus car nécessaires partout
+    const [users, co, companies, workers, ppList, hiddenRisks,
            customRisks, customKWs, customTypes,
            sigSettings, features, hiddenTypes] = await Promise.all([
+      api('GET','/users'),
       api('GET','/data/company'),
       api('GET','/data/companies'),
       api('GET','/data/workers'),
@@ -1354,12 +1355,13 @@ async function loadAllDataFromAPI(){
       api('GET','/data/settings/hiddenInterventionTypes'),
     ]);
 
-    // Mettre en cache
+    // Mettre en cache — normaliser _id → id partout
+    if(users) _cache['users'] = users;
     if(co) _cache['company'] = co;
-    if(companies) _cache['companies'] = companies;
-    if(workers) _cache['workers'] = workers;
+    if(companies) _cache['companies'] = companies.map(c=>({...c,id:c._id||c.id}));
+    if(workers)   _cache['workers']   = workers.map(w=>({...w,id:w._id||w.id}));
     if(ppList) _cache['ppList'] = ppList.map(p=>({
-      id: p._id, name: p.name, isTemplate: p.isTemplate,
+      id: String(p._id||p.id), name: p.name, isTemplate: p.isTemplate,
       createdBy: p.createdBy, updatedAt: p.updatedAt,
       createdAt: p.createdAt, data: p.data, evalState: p.evalState
     }));
@@ -1367,7 +1369,6 @@ async function loadAllDataFromAPI(){
     if(customRisks) _cache['customRisks'] = customRisks;
     if(customKWs){
       _cache['customKeywords'] = customKWs;
-      // Injecter les mots-clés custom dans AI_KW
       customKWs.forEach(rule=>{
         if(!AI_KW[rule.type]) AI_KW[rule.type]=[];
         if(!AI_KW[rule.type].find(r=>r._customId===rule.id))
@@ -1379,11 +1380,26 @@ async function loadAllDataFromAPI(){
     _cache['features'] = features || {};
     _cache['hiddenInterventionTypes'] = hiddenTypes || [];
 
-    // Rapports (admin seulement, ignorer l'erreur 403)
+    // Synchroniser currentUser avec les données fraîches du serveur
+    if(currentUser && users){
+      const me = users.find(u=>String(u._id||u.id)===String(currentUser.id));
+      if(me){
+        currentUser = {
+          ...currentUser,
+          id:       String(me._id||me.id),
+          name:     me.name,
+          site:     me.site||'',
+          managerId:me.managerId?String(me.managerId._id||me.managerId):'',
+          role:     me.role
+        };
+      }
+    }
+
+    // Rapports (admin seulement)
     if(currentUser && currentUser.role==='admin'){
       const reports = await api('GET','/data/reports');
       if(reports) _cache['reports'] = reports.map(r=>({
-        id:r._id, type:r.type, label:r.label,
+        id:String(r._id||r.id), type:r.type, label:r.label,
         createdBy:r.createdBy, createdAt:r.createdAt, summary:r.summary
       }));
     }
@@ -1449,7 +1465,10 @@ async function doLogin(){
     }
     _authToken = data.token;
     localStorage.setItem('evalrisque_token', _authToken);
-    currentUser = {...data.user};
+    currentUser = {
+      ...data.user,
+      id: String(data.user.id||data.user._id||'')
+    };
     // Charger toutes les données depuis l'API
     await loadAllDataFromAPI();
     document.getElementById('loginScreen').style.display='none';
@@ -2500,10 +2519,17 @@ async function duplicatePP(id){
 // ══════════════════════════════════════════════════════════════════════════
 // ADMIN PANEL v2
 // ══════════════════════════════════════════════════════════════════════════
-function openAdmin(){
-  const co=_cache['company']||{};
+async function openAdmin(){
+  // Recharger les données fraîches depuis l'API
+  const [users, co] = await Promise.all([
+    api('GET','/users'),
+    api('GET','/data/company')
+  ]);
+  if(users) _cache['users'] = users;
+  if(co)    _cache['company'] = co;
+  const coData = _cache['company']||{};
   ['name','siret','addr','tel','email','resp','instructions'].forEach(k=>{
-    const el=document.getElementById('admin-co-'+k); if(el) el.value=co[k]||'';
+    const el=document.getElementById('admin-co-'+k); if(el) el.value=coData[k]||'';
   });
   switchAdminTab('company');
   document.getElementById('adminPanel').style.display='flex';
@@ -2532,14 +2558,18 @@ async function saveCompanyInfo(){
   showToast('Informations société enregistrées','success');
 }
 async function renderAdminUsers(){
-  const users=_cache['users']||[];
-  const sigSettings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
+  // Toujours recharger depuis l'API pour avoir les données fraîches
+  const freshUsers = await api('GET','/users');
+  if(freshUsers) _cache['users'] = freshUsers;
+  // Normaliser : MongoDB retourne _id, on veut id
+  const users = (_cache['users']||[]).map(u=>({...u, id: u._id||u.id}));
+  const sigSettings=_cache['signatureSettings']||{autoLow:true,requireManager:true};
   // Remplir le select responsable pour le formulaire
   const mgrSel=document.getElementById('new-user-manager');
   if(mgrSel){
     const prev=mgrSel.value;
     mgrSel.innerHTML='<option value="">— Aucun —</option>'+
-      users.map(u=>`<option value="${u.login}" ${prev===u.login?'selected':''}>${u.name} (${u.login})</option>`).join('');
+      users.map(u=>`<option value="${u.id}" ${prev===u.id?'selected':''}>${u.name} (${u.login})</option>`).join('');
   }
   // Charger les paramètres de signature
   const cbLow=document.getElementById('sig-auto-low');
@@ -2548,7 +2578,10 @@ async function renderAdminUsers(){
   if(cbMgr) cbMgr.checked=sigSettings.requireManager!==false;
   // Rendu tableau
   document.getElementById('usersBody').innerHTML=users.map(u=>{
-    const managerName=u.managerId?users.find(x=>x.id===u.managerId)?.name||u.managerId:'—';
+    const uid=u._id||u.id;
+    const managerId=u.managerId?._id||u.managerId||'';
+    const managerUser=users.find(x=>(x._id||x.id)===managerId);
+    const managerName=managerUser?managerUser.name:(managerId?managerId:'—');
     return `<tr>
       <td><strong>${u.login}</strong></td>
       <td>${u.name}</td>
@@ -2557,18 +2590,21 @@ async function renderAdminUsers(){
       <td><span class="role-badge role-${u.role}">${u.role}</span></td>
       <td style="color:#6b7280;font-size:11px">${u.lastLogin?new Date(u.lastLogin).toLocaleDateString('fr-FR'):'—'}</td>
       <td><div style="display:flex;gap:5px">
-        <button class="adm-btn-edit" onclick="editUser('${u.id}')">✎ Éditer</button>
-        <button class="adm-btn-edit" onclick="resetPassword('${u.id}')">🔑</button>
-        ${u.id!=='u1'?`<button class="adm-btn-danger" onclick="deleteUser('${u.id}')">✕</button>`:''}
+        <button class="adm-btn-edit" onclick="editUser('${uid}')">✎ Éditer</button>
+        <button class="adm-btn-edit" onclick="resetPassword('${uid}')">🔑</button>
+        ${u.login!=='admin'?`<button class="adm-btn-danger" onclick="deleteUser('${uid}')">✕</button>`:''}
       </div></td>
     </tr>`;
-  }).join('');
+  }).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:#9ca3af;font-style:italic">Aucun utilisateur</td></tr>';
 }
 function editUser(id){
-  const users=_cache['users']||[];
-  const u=users.find(x=>x.id===id); if(!u) return;
-  const otherUsers=users.filter(x=>x.id!==id);
-  const mgrOptions='<option value="">— Aucun —</option>'+otherUsers.map(x=>`<option value="${x.id}"${u.managerId===x.id?' selected':''}>${x.name} (${x.login})</option>`).join('');
+  const users=(_cache['users']||[]).map(u=>({...u,id:u._id||u.id}));
+  const u=users.find(x=>String(x.id)===String(id)||String(x._id)===String(id)); 
+  if(!u){showToast('Utilisateur introuvable','error');return;}
+  const uid=u._id||u.id;
+  const currentMgrId=u.managerId?._id||u.managerId||'';
+  const otherUsers=users.filter(x=>String(x.id)!==String(id));
+  const mgrOptions='<option value="">— Aucun —</option>'+otherUsers.map(x=>`<option value="${x._id||x.id}"${String(currentMgrId)===String(x._id||x.id)?' selected':''}>${x.name} (${x.login})</option>`).join('');
   const html=`<div style="background:#fff;border:1.5px solid var(--border);border-radius:6px;padding:20px;margin-top:10px;box-shadow:0 4px 20px rgba(0,0,0,.08)" id="editUserForm-${id}">
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2);margin-bottom:12px">Éditer : ${u.name}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
@@ -2593,16 +2629,17 @@ function editUser(id){
   if(existing){existing.remove();return;}
   document.getElementById('adm-users-table-wrap').insertAdjacentHTML('afterend',html);
 }
-function saveEditUser(id){
-  const users=_cache['users']||[];
-  const u=users.find(x=>x.id===id); if(!u) return;
-  u.name=document.getElementById(`eu-name-${id}`)?.value.trim()||u.name;
-  u.site=document.getElementById(`eu-site-${id}`)?.value.trim()||'';
-  u.managerId=document.getElementById(`eu-mgr-${id}`)?.value||'';
-  u.role=document.getElementById(`eu-role-${id}`)?.value||u.role;
-  // users updated via API above
-  document.getElementById(`editUserForm-${id}`)?.remove();
-  renderAdminUsers(); showToast('Utilisateur mis à jour','success');
+async function saveEditUser(id){
+  const name=document.getElementById('eu-name-'+id)?.value.trim();
+  const site=document.getElementById('eu-site-'+id)?.value.trim()||'';
+  const managerId=document.getElementById('eu-mgr-'+id)?.value||null;
+  const role=document.getElementById('eu-role-'+id)?.value;
+  if(!name){showToast('Le nom est requis','error');return;}
+  const result=await api('PUT','/users/'+id,{name,site,managerId:managerId||null,role});
+  if(!result) return;
+  document.getElementById('editUserForm-'+id)?.remove();
+  await renderAdminUsers();
+  showToast('Utilisateur mis à jour','success');
 }
 async function addUser(){
   const login=document.getElementById('new-user-login').value.trim();
@@ -3246,7 +3283,7 @@ async function refreshValidationBadge(){
 
   // Vérifier si l'utilisateur est responsable de quelqu'un
   const users=_cache['users']||[];
-  const hasSubs=(_cache['users']||[]).some(u=>String(u.managerId)===String(currentUser.id));
+  const hasSubs=(_cache['users']||[]).some(u=>String(u.managerId?._id||u.managerId||'')===String(currentUser.id||''));
 
   if(count>0 || hasSubs){
     btn.style.display='inline-flex';
