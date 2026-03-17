@@ -2383,7 +2383,7 @@ async function savePP(){
   document.getElementById('pp-save-name').value='';
   document.getElementById('pp-is-template').checked=false;
 }
-function loadPP(id){
+async function loadPP(id){
   const list=_cache['ppList']||[];
   const entry=list.find(p=>(p._id||p.id)===id); if(!entry) return;
   const pp=entry.data;
@@ -2485,7 +2485,7 @@ function renderPPLibrary(){
     </div>`;
   }).join('');
 }
-function duplicatePP(id){
+async function duplicatePP(id){
   const list=_cache['ppList']||[];
   const entry=list.find(p=>(p._id||p.id)===id); if(!entry) return;
   const copy={...entry, id:'pp_'+Date.now(), name:entry.name+' (copie)', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString()};
@@ -2531,7 +2531,7 @@ async function saveCompanyInfo(){
   const pi=document.getElementById('pp-instructions'); if(pi&&co.instructions) pi.value=co.instructions;
   showToast('Informations société enregistrées','success');
 }
-function renderAdminUsers(){
+async function renderAdminUsers(){
   const users=_cache['users']||[];
   const sigSettings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
   // Remplir le select responsable pour le formulaire
@@ -2632,8 +2632,7 @@ async function resetPassword(id){
   await api('PUT','/users/'+id,{password:p});
   showToast('Mot de passe modifié','success');
 }
-}
-function saveSignatureSettings(){
+async function saveSignatureSettings(){
   const autoLow=document.getElementById('sig-auto-low')?.checked!==false;
   const requireManager=document.getElementById('sig-require-manager')?.checked!==false;
   dbSet('signatureSettings',{autoLow,requireManager});
@@ -2642,7 +2641,7 @@ function saveSignatureSettings(){
 }
 // ── Risques ──────────────────────────────────────────────────────────────
 function getCustomRisks(){ return _cache['customRisks']||({}); }
-function renderAdminRisks(){
+async function renderAdminRisks(){
   const filterType=document.getElementById('adm-risk-filter-type')?.value||'';
   const filterSev=document.getElementById('adm-risk-filter-sev')?.value||'';
   // Peupler le filtre type
@@ -2770,7 +2769,7 @@ function adminEditRisk(type,id,isCustom){
   const row=document.getElementById('risk-row-'+id);
   if(row) row.after(form); else document.getElementById('adm-risks-list').appendChild(form);
 }
-function saveEditRisk(type,id,isCustom){
+async function saveEditRisk(type,id,isCustom){
   const name=document.getElementById('er-name-'+id)?.value.trim();
   const sev=document.getElementById('er-sev-'+id)?.value;
   const newType=document.getElementById('er-type-'+id)?.value||type;
@@ -2803,7 +2802,7 @@ function saveEditRisk(type,id,isCustom){
   const tf=document.getElementById('adm-risk-filter-type'); if(tf) tf.innerHTML='<option value="">Tous les types</option>';
   renderAdminRisks(); showToast('Risque mis à jour','success');
 }
-function adminAddRisk(){
+async function adminAddRisk(){
   const type=document.getElementById('adm-new-risk-type').value;
   const name=document.getElementById('adm-new-risk-name').value.trim();
   const sev=document.getElementById('adm-new-risk-sev').value;
@@ -2820,7 +2819,7 @@ function adminAddRisk(){
   const tf=document.getElementById('adm-risk-filter-type'); if(tf) tf.innerHTML='<option value="">Tous les types</option>';
   renderAdminRisks(); showToast('Risque "'+name+'" ajouté','success');
 }
-function renameInterventionType(oldType, btn){
+async function renameInterventionType(oldType, btn){
   const newName=prompt('Nouveau nom pour ce type :', oldType);
   if(!newName||newName===oldType) return;
   // Déplacer les risques custom vers le nouveau nom
@@ -2834,14 +2833,14 @@ function renameInterventionType(oldType, btn){
   const tf=document.getElementById('adm-risk-filter-type'); if(tf) tf.innerHTML='<option value="">Tous les types</option>';
   renderAdminRisks(); showToast('Type renommé','success');
 }
-function deleteInterventionType(type, btn){
+async function deleteInterventionType(type, btn){
   if(!confirm('Supprimer le type "'+type+'" et tous ses risques custom ?')) return;
   const c=getCustomRisks(); delete c[type]; dbSet('customRisks',c);
   const ct=_cache['customTypes']||([]); dbSet('customTypes',ct.filter(t=>t!==type));
   const tf=document.getElementById('adm-risk-filter-type'); if(tf) tf.innerHTML='<option value="">Tous les types</option>';
   renderAdminRisks(); showToast('Type supprimé','success');
 }
-function adminAddInterventionType(){
+async function adminAddInterventionType(){
   const name=document.getElementById('adm-new-itype-name')?.value.trim();
   if(!name){showToast('Renseignez le nom du type','error');return;}
   const ct=_cache['customTypes']||([]); if(ct.includes(name)||RISKS[name]){showToast('Ce type existe déjà','error');return;}
@@ -2852,7 +2851,7 @@ function adminAddInterventionType(){
 }
 // ── Mots-clés IA ──────────────────────────────────────────────────────────
 function getCustomKeywords(){ return _cache['customKeywords']||([]); }
-function renderAdminKeywords(){
+async function renderAdminKeywords(){
   const filterType=document.getElementById('adm-kw-filter')?.value||'';
   const kwFilter=document.getElementById('adm-kw-filter');
   if(kwFilter && kwFilter.options.length<=1){
@@ -2894,7 +2893,7 @@ function renderAdminKeywords(){
   }
   container.innerHTML=html||'<div style="padding:24px;color:#9ca3af;text-align:center;font-style:italic">Aucune règle</div>';
 }
-function adminAddKeyword(){
+async function adminAddKeyword(){
   const type=document.getElementById('adm-new-kw-type').value;
   const words=document.getElementById('adm-new-kw-words').value.trim().split(',').map(w=>w.trim()).filter(Boolean);
   const risks=document.getElementById('adm-new-kw-risks').value.trim().split(',').map(r=>r.trim()).filter(Boolean);
@@ -2942,7 +2941,7 @@ function adminEditKeyword(idx){
   if(kwRow) kwRow.after(form);
   else document.getElementById('adm-kw-list').appendChild(form);
 }
-function saveEditKeyword(idx){
+async function saveEditKeyword(idx){
   const list=getCustomKeywords(); const rule=list[idx]; if(!rule) return;
   const type=document.getElementById('ek-type')?.value||rule.type;
   const words=document.getElementById('ek-words')?.value.trim().split(',').map(w=>w.trim()).filter(Boolean)||rule.w;
@@ -2960,7 +2959,7 @@ function saveEditKeyword(idx){
   const kf=document.getElementById('adm-kw-filter'); if(kf) kf.innerHTML='<option value="">Tous les types</option>';
   renderAdminKeywords(); showToast('Règle mise à jour','success');
 }
-function adminDeleteKeyword(idx){
+async function adminDeleteKeyword(idx){
   if(!confirm('Supprimer cette règle ?')) return;
   const list=getCustomKeywords(); const rule=list[idx];
   if(rule && AI_KW[rule.type]) AI_KW[rule.type]=AI_KW[rule.type].filter(r=>r._customId!==rule.id);
@@ -2996,7 +2995,7 @@ function renderAdminFeatures(){
     </label>`;
   }).join('');
 }
-function saveFeatures(){
+async function saveFeatures(){
   const feats={};
   FEATURES_DEF.forEach(f=>{const cb=document.getElementById('ft-'+f.id);if(cb)feats[f.id]=cb.checked;});
   dbSet('features',feats);
@@ -3011,7 +3010,7 @@ async function saveReport(type,data){
   const label=type==='eval'?('Eval. '+(data.operator||'?')+' — '+(data.location||'')):('PP — '+(data.ee||'EE?'));
   await api('POST','/data/reports',{type,label,summary:data});
 }
-function renderAdminReports(){
+async function renderAdminReports(){
   const search=(document.getElementById('adm-report-search')?.value||'').toLowerCase();
   const filter=document.getElementById('adm-report-filter')?.value||'';
   let list=_cache['reports']||[];
@@ -3048,14 +3047,14 @@ function adminViewReport(id){
     d.selectedRisksCount?'Risques sélectionnés : '+d.selectedRisksCount:'',
   ].filter(Boolean).join('\n'));
 }
-function adminDeleteReport(id){
+async function adminDeleteReport(id){
   if(!confirm('Supprimer ce rapport ?')) return;
   await api('DELETE','/data/reports/'+id);
   if(_cache['reports']) _cache['reports']=_cache['reports'].filter(r=>(r._id||r.id)!==id);
   renderAdminReports(); showToast('Rapport supprimé','success');
 }
 // ── Carnet ─────────────────────────────────────────────────────────────────
-function renderAdminCarnet(){
+async function renderAdminCarnet(){
   const cos=_cache['companies']||[];
   document.getElementById('admin-co-list').innerHTML=cos.length?cos.map((co,i)=>`
     <div class="carnet-item" style="margin-bottom:6px">
@@ -3118,7 +3117,7 @@ function getReportRiskLevel(){
 }
 
 // ── Handler principal du bouton "Générer PDF" ─────────────────────────────
-function handleGeneratePDF(){
+async function handleGeneratePDF(){
   const settings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
   const level=getReportRiskLevel();
   const users=_cache['users']||[];
@@ -3144,7 +3143,7 @@ function handleGeneratePDF(){
             <strong>Responsable :</strong> ${manager.name}<br>
             <strong>Risques :</strong> ${appState.selectedRisks.size} identifié(s)<br>
             <em style="color:var(--warn)">Après votre signature, une notification sera envoyée à votre responsable pour validation.</em>`,
-      onSign:(sigDataURL)=>{
+      onSign:async (sigDataURL)=>{
         sendToManagerForValidation(sigDataURL, level, manager);
       }
     });
@@ -3157,14 +3156,14 @@ function handleGeneratePDF(){
     subtitle:'Niveau de risque '+(level==='high'?'🔴 Critique':'level'==='medium'?'🟠 Modéré':'🟢 Faible'),
     info:`<strong>Intervenant :</strong> ${currentUser.name}<br>
           <strong>Risques :</strong> ${appState.selectedRisks.size} identifié(s)`,
-    onSign:(sigDataURL)=>{
+    onSign:async (sigDataURL)=>{
       generatePDF({operator:currentUser.name, sigDataURL});
     }
   });
 }
 
 // ── Signature automatique (risque faible) ────────────────────────────────
-function buildAutoSignature(){
+async function buildAutoSignature(){
   // Créer une "signature" textuelle automatique avec nom + date + timestamp
   const canvas=document.createElement('canvas');
   canvas.width=300; canvas.height=80;
@@ -3181,7 +3180,7 @@ function buildAutoSignature(){
 }
 
 // ── Envoi au responsable pour validation ─────────────────────────────────
-function sendToManagerForValidation(sigDataURL, level, manager){
+async function sendToManagerForValidation(sigDataURL, level, manager){
   if(!manager || !manager.id){
     showToast('Erreur : responsable introuvable','error');
     return;
@@ -3234,7 +3233,7 @@ function sendToManagerForValidation(sigDataURL, level, manager){
 }
 
 // ── Badge notifications ───────────────────────────────────────────────────
-function refreshValidationBadge(){
+async function refreshValidationBadge(){
   const btn=document.getElementById('btnValidation');
   const badge=document.getElementById('validationBadge');
   if(!btn||!currentUser) return;
@@ -3266,14 +3265,14 @@ function refreshValidationBadge(){
 }
 
 // ── Panel de validation ───────────────────────────────────────────────────
-function openValidationPanel(){
+async function openValidationPanel(){
   renderValidationList();
   document.getElementById('validationPanel').style.display='flex';
 }
 function closeValidationPanel(){
   document.getElementById('validationPanel').style.display='none';
 }
-function renderValidationList(){
+async function renderValidationList(){
   // Recharger depuis l'API
   const freshValidations=await api('GET','/data/validations')||[];
   _cache['pendingValidations']=freshValidations;
@@ -3372,7 +3371,7 @@ function toggleReportDetail(id){
   const el=document.getElementById(id); if(!el) return;
   el.style.display=el.style.display==='none'?'block':'none';
 }
-function validateReport(id, decision){
+async function validateReport(id, decision){
   if(decision==='rejected'){
     const comment=document.getElementById('val-comment-'+id)?.value.trim()||'';
     const updated=await api('PUT','/data/validations/'+id,{status:'rejected',comment});
@@ -3387,7 +3386,7 @@ function validateReport(id, decision){
     subtitle:'Validation du rapport — '+decision,
     info:`<strong>Vous validez le rapport de :</strong> ${_cache['pendingValidations']||[].find(x=>x.id===id)?.submitterName||'—'}<br>
           <strong>Votre signature :</strong> ${currentUser.name}`,
-    onSign:(sigDataURL)=>{
+    onSign:async (sigDataURL)=>{
       const comment=document.getElementById('val-comment-'+id)?.value.trim()||'';
       const updated=await api('PUT','/data/validations/'+id,{
         status:'approved',sigManager:sigDataURL,comment,managerName:currentUser.name
@@ -3690,7 +3689,7 @@ async function saveWorkerCarnet(){
   ['new-wk-name','new-wk-co','new-wk-qual','new-wk-role'].forEach(id=>document.getElementById(id).value='');
   renderCarnet(); showToast('Intervenant enregistré','success');
 }
-function useCompany(i){
+async function useCompany(i){
   const co=(_cache['companies']||[])[i]; if(!co) return;
   const ee=document.getElementById('pp-ee'), eeRep=document.getElementById('pp-ee-rep');
   if(ee) ee.value=co.name; if(eeRep) eeRep.value=co.rep||'';
