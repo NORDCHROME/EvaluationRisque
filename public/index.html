@@ -1337,11 +1337,10 @@ async function _apiSync(key, val){
 // ── Chargement initial de toutes les données depuis l'API ─────────────────
 async function loadAllDataFromAPI(){
   try{
-    // Charger en parallèle — users inclus car nécessaires partout
-    const [users, co, companies, workers, ppList, hiddenRisks,
+    // Charger en parallèle
+    const [co, companies, workers, ppList, hiddenRisks,
            customRisks, customKWs, customTypes,
            sigSettings, features, hiddenTypes] = await Promise.all([
-      api('GET','/users'),
       api('GET','/data/company'),
       api('GET','/data/companies'),
       api('GET','/data/workers'),
@@ -1356,7 +1355,7 @@ async function loadAllDataFromAPI(){
     ]);
 
     // Mettre en cache — normaliser _id → id partout
-    if(users) _cache['users'] = users;
+    // Users chargés séparément (admin seulement) — voir ci-dessous
     if(co) _cache['company'] = co;
     if(companies) _cache['companies'] = companies.map(c=>({...c,id:c._id||c.id}));
     if(workers)   _cache['workers']   = workers.map(w=>({...w,id:w._id||w.id}));
@@ -1380,17 +1379,30 @@ async function loadAllDataFromAPI(){
     _cache['features'] = features || {};
     _cache['hiddenInterventionTypes'] = hiddenTypes || [];
 
+    // Charger la liste des users si admin
+    let users = null;
+    if(currentUser && currentUser.role==='admin'){
+      users = await api('GET','/users');
+      if(users) _cache['users'] = users;
+    }
+    // Pour tous : récupérer les infos du responsable via /manager-info
+    const managerInfo = await api('GET','/users/manager-info');
+    if(managerInfo){
+      _cache['managerInfo'] = managerInfo;
+      currentUser.managerId = String(managerInfo._id||'');
+      currentUser.managerName = managerInfo.name;
+    }
     // Synchroniser currentUser avec les données fraîches du serveur
     if(currentUser && users){
       const me = users.find(u=>String(u._id||u.id)===String(currentUser.id));
       if(me){
         currentUser = {
           ...currentUser,
-          id:       String(me._id||me.id),
-          name:     me.name,
-          site:     me.site||'',
-          managerId:me.managerId?String(me.managerId._id||me.managerId):'',
-          role:     me.role
+          id:        String(me._id||me.id),
+          name:      me.name,
+          site:      me.site||'',
+          managerId: me.managerId?String(me.managerId._id||me.managerId):'',
+          role:      me.role
         };
       }
     }
@@ -1774,7 +1786,7 @@ function updateSignatureZone(selected){
   const zone=document.getElementById('signatureZone'); if(!zone) return;
   const settings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
   const users=_cache['users']||[];
-  const manager=users.find(u=>u.id===currentUser.managerId);
+  const manager=_cache['managerInfo']?{id:String(_cache['managerInfo']._id||''),name:_cache['managerInfo'].name}:((_cache['users']||[]).find(u=>String(u._id||u.id)===String(currentUser.managerId)));
   const highCount=(selected||[]).filter(r=>r.sev==='high').length;
   const level=highCount>0?'high':((selected||[]).some(r=>r.sev==='medium')?'medium':'low');
 
@@ -2521,10 +2533,11 @@ async function duplicatePP(id){
 // ══════════════════════════════════════════════════════════════════════════
 async function openAdmin(){
   // Recharger les données fraîches depuis l'API
-  const [users, co] = await Promise.all([
-    api('GET','/users'),
-    api('GET','/data/company')
-  ]);
+  const promises = [api('GET','/data/company')];
+  if(currentUser?.role==='admin') promises.unshift(api('GET','/users'));
+  const results = await Promise.all(promises);
+  const co = currentUser?.role==='admin' ? results[1] : results[0];
+  const users = currentUser?.role==='admin' ? results[0] : null;
   if(users) _cache['users'] = users;
   if(co)    _cache['company'] = co;
   const coData = _cache['company']||{};
@@ -2559,6 +2572,11 @@ async function saveCompanyInfo(){
 }
 async function renderAdminUsers(){
   // Toujours recharger depuis l'API pour avoir les données fraîches
+  // Cet appel est réservé aux admins (vérification côté serveur)
+  if(currentUser?.role !== 'admin'){
+    document.getElementById('usersBody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--danger)">Accès réservé aux administrateurs</td></tr>';
+    return;
+  }
   const freshUsers = await api('GET','/users');
   if(freshUsers) _cache['users'] = freshUsers;
   // Normaliser : MongoDB retourne _id, on veut id
@@ -3158,7 +3176,7 @@ async function handleGeneratePDF(){
   const settings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
   const level=getReportRiskLevel();
   const users=_cache['users']||[];
-  const manager=users.find(u=>u.id===currentUser.managerId);
+  const manager=_cache['managerInfo']?{id:String(_cache['managerInfo']._id||''),name:_cache['managerInfo'].name}:((_cache['users']||[]).find(u=>String(u._id||u.id)===String(currentUser.managerId)));
 
   // Risque faible + signature auto activée → PDF direct
   if(level==='low' && settings.autoLow!==false){
@@ -3275,29 +3293,25 @@ async function refreshValidationBadge(){
   const badge=document.getElementById('validationBadge');
   if(!btn||!currentUser) return;
 
-  // Toujours lire les données fraîches depuis l'API
-  const allValidations=await api('GET','/data/validations')||[];
-  const pending=allValidations.filter(r=>r.status==='pending');
-  _cache['pendingValidations']=allValidations;
-  const count=pending.length;
+  // Vérifier subordonnés via route accessible à tous
+  const subs=await api('GET','/users/subordinates')||[];
+  const hasSubs=subs.length>0;
 
-  // Vérifier si l'utilisateur est responsable de quelqu'un
-  const users=_cache['users']||[];
-  const hasSubs=(_cache['users']||[]).some(u=>String(u.managerId?._id||u.managerId||'')===String(currentUser.id||''));
-
-  if(count>0 || hasSubs){
-    btn.style.display='inline-flex';
-    if(badge){
-      if(count>0){
-        badge.style.display='flex';
-        badge.textContent=count>9?'9+':String(count);
-      } else {
-        badge.style.display='none';
-      }
-    }
-  } else {
+  if(!hasSubs){
     btn.style.display='none';
     if(badge) badge.style.display='none';
+    return;
+  }
+
+  // Charger les validations en attente
+  const allValidations=await api('GET','/data/validations')||[];
+  _cache['pendingValidations']=allValidations;
+  const count=allValidations.filter(r=>r.status==='pending').length;
+
+  btn.style.display='inline-flex';
+  if(badge){
+    badge.style.display=count>0?'flex':'none';
+    if(count>0) badge.textContent=count>9?'9+':String(count);
   }
 }
 

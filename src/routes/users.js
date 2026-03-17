@@ -4,10 +4,41 @@ const bcrypt  = require('bcryptjs');
 const { auth, adminOnly } = require('../middleware/auth');
 const { User } = require('../models');
 
-// GET /api/users — liste (admin seulement)
+// GET /api/users/me — profil courant (tous)
+router.get('/me', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('-password')
+      .populate('managerId', 'name login site _id');
+    res.json(user);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/users/manager-info — responsable de l'utilisateur connecté (tous)
+router.get('/manager-info', auth, async (req, res) => {
+  try {
+    const me = await User.findById(req.user._id).select('managerId');
+    if (!me?.managerId) return res.json(null);
+    const manager = await User.findById(me.managerId).select('name login site _id');
+    res.json(manager);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/users/subordinates — subordonnés de l'utilisateur connecté (tous)
+router.get('/subordinates', auth, async (req, res) => {
+  try {
+    const subs = await User.find({ managerId: req.user._id }).select('name login site _id');
+    res.json(subs);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/users — liste complète (admin seulement)
 router.get('/', auth, adminOnly, async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort('name');
+    const users = await User.find()
+      .select('-password')
+      .populate('managerId', 'name login _id')
+      .sort('name');
     res.json(users);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -18,14 +49,12 @@ router.post('/', auth, adminOnly, async (req, res) => {
     const { login, name, password, role, site, managerId } = req.body;
     if (!login || !name || !password)
       return res.status(400).json({ error: 'Champs obligatoires manquants' });
-    const exists = await User.findOne({ login });
-    if (exists) return res.status(409).json({ error: 'Identifiant déjà utilisé' });
+    if (await User.findOne({ login }))
+      return res.status(409).json({ error: 'Identifiant déjà utilisé' });
     const hash = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      login, name, password: hash, role: role||'user',
-      site: site||'', managerId: managerId||null
-    });
-    res.status(201).json({ ...user.toObject(), password: undefined });
+    const user = await User.create({ login, name, password: hash, role: role||'user', site: site||'', managerId: managerId||null });
+    const obj = user.toObject(); delete obj.password;
+    res.status(201).json(obj);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -33,15 +62,16 @@ router.post('/', auth, adminOnly, async (req, res) => {
 router.put('/:id', auth, adminOnly, async (req, res) => {
   try {
     const { name, role, site, managerId, password } = req.body;
-    const update = { name, role, site, managerId: managerId||null };
+    const update = { name, role, site: site||'', managerId: managerId||null };
     if (password) update.password = await bcrypt.hash(password, 10);
-    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
+    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true })
+      .select('-password').populate('managerId', 'name login _id');
     if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
     res.json(user);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// DELETE /api/users/:id (admin, pas l'admin principal)
+// DELETE /api/users/:id (admin seulement)
 router.delete('/:id', auth, adminOnly, async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -49,14 +79,6 @@ router.delete('/:id', auth, adminOnly, async (req, res) => {
     if (user.login === 'admin') return res.status(403).json({ error: 'Impossible de supprimer l\'admin principal' });
     await user.deleteOne();
     res.json({ ok: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// GET /api/users/me — profil courant
-router.get('/me', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).select('-password').populate('managerId','name login site');
-    res.json(user);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
