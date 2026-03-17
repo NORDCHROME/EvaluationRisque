@@ -70,8 +70,8 @@ const ValidationSchema = new Schema({
   submitterSite:  { type: String, default: '—' },
   level:          { type: String, enum: ['low','medium','high'] },
   status:         { type: String, enum: ['pending','approved','rejected'], default: 'pending' },
-  evalSnapshot:   { type: Schema.Types.Mixed },
-  sigIntervenant: { type: String, default: null }, // base64 DataURL
+  evalSnapshot:   { type: Schema.Types.Mixed, default: {} },
+  sigIntervenant: { type: String, default: null },
   sigManager:     { type: String, default: null },
   managerName:    { type: String, default: '' },
   comment:        { type: String, default: '' },

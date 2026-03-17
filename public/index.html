@@ -3311,30 +3311,22 @@ async function sendToManagerForValidation(sigDataURL, level, manager){
   }
   const reportId='rep'+Date.now();
   const selected=getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
-  const pendingPayload={
-    id:reportId,
-    managerId: String(manager.id),
-    submittedBy: String(currentUser.id),
-    submitterName: currentUser.name,
-    submitterSite: currentUser.site||'—',
+  // Construire le payload — NE PAS inclure submittedBy (le backend utilise req.user._id depuis le JWT)
+  const payload={
+    managerId:     String(manager.id),
     level,
-    createdAt: new Date().toISOString(),
-    status:'pending',
     evalSnapshot:{
-      operator:appState.operator||currentUser.name,
-      location:appState.location||'—',
-      date:appState.date||new Date().toISOString().split('T')[0],
-      mission:appState.mission||'',
-      missionSteps:appState.missionSteps||[],
+      operator:     appState.operator||currentUser.name,
+      location:     appState.location||'—',
+      date:         appState.date||new Date().toISOString().split('T')[0],
+      mission:      appState.mission||'',
+      missionSteps: appState.missionSteps||[],
       interventions:[...appState.selectedInterventions],
-      risks:selected.map(r=>({id:r.id,name:r.name,sev:r.sev,type:r.interventionType})),
+      risks:        selected.map(r=>({id:r.id,name:r.name,sev:r.sev,type:r.interventionType})),
     },
     sigIntervenant: sigDataURL,
-    sigManager: null,
-    managerName: manager.name,
-    comment:''
   };
-  const saved=await api('POST','/data/validations',{...pendingPayload,managerId:manager.id});
+  const saved=await api('POST','/data/validations', payload);
   if(!saved){showToast('Erreur de sauvegarde','error');return;}
 
   // Rafraîchir le badge (utile si même navigateur)
