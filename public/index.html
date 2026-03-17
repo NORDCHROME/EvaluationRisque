@@ -3229,16 +3229,23 @@ async function handleGeneratePDF(){
   const settings=_cache['signatureSettings']||{autoLow:true,requireManager:true};
   const level=getReportRiskLevel();
 
-  // Récupérer le responsable — toujours depuis l'API pour avoir l'_id MongoDB exact
+  // Récupérer le responsable TOUJOURS depuis l'API (jamais depuis le cache)
   let manager=null;
-  const mgrRaw=_cache['managerInfo']||await api('GET','/users/manager-info');
-  if(mgrRaw){
-    _cache['managerInfo']=mgrRaw;
-    const mgrId=String(mgrRaw._id||mgrRaw.id||'');
-    if(mgrId && mgrId!=='undefined' && mgrId!=='null' && mgrId.length>=12){
+  try{
+    const mgrRaw=await api('GET','/users/manager-info');
+    console.log('[handleGeneratePDF] manager-info API response:', JSON.stringify(mgrRaw));
+    if(mgrRaw && mgrRaw._id){
+      const mgrId=String(mgrRaw._id);
+      console.log('[handleGeneratePDF] managerId extrait:', mgrId, 'longueur:', mgrId.length);
+      _cache['managerInfo']=mgrRaw;
       manager={id:mgrId, name:mgrRaw.name||'Responsable'};
+    } else {
+      console.warn('[handleGeneratePDF] Pas de responsable (manager-info retourne null ou sans _id)');
     }
+  }catch(e){
+    console.error('[handleGeneratePDF] Erreur récupération manager:', e);
   }
+  console.log('[handleGeneratePDF] manager final:', manager, '| currentUser.id:', currentUser.id, '| level:', level);
 
   // Risque faible + signature auto activée → PDF direct
   if(level==='low' && settings.autoLow!==false){
@@ -3326,7 +3333,9 @@ async function sendToManagerForValidation(sigDataURL, level, manager){
     },
     sigIntervenant: sigDataURL,
   };
+  console.log('[sendToManager] payload envoyé:', JSON.stringify({...payload, sigIntervenant:'[BASE64]'}));
   const saved=await api('POST','/data/validations', payload);
+  console.log('[sendToManager] réponse:', JSON.stringify(saved));
   if(!saved){showToast('Erreur de sauvegarde','error');return;}
 
   // Rafraîchir le badge (utile si même navigateur)
@@ -3387,8 +3396,9 @@ function closeValidationPanel(){
 async function renderValidationList(){
   // Recharger depuis l'API
   const freshValidations=await api('GET','/data/validations')||[];
-  _cache['pendingValidations']=freshValidations;
-  const mine=freshValidations;
+  // Normaliser _id → id (MongoDB retourne _id)
+  const mine=freshValidations.map(v=>({...v, id:String(v._id||v.id||'')}));
+  _cache['pendingValidations']=mine;
   const pending=mine.filter(r=>r.status==='pending');
   const done=mine.filter(r=>r.status!=='pending');
   const cntEl=document.getElementById('validPanelCount');
@@ -3512,8 +3522,12 @@ async function validateReport(id, decision){
 }
 
 async function downloadValidatedReport(id){
-  const all=_cache['pendingValidations']||await api('GET','/data/validations')||[];
-  const r=all.find(x=>(x._id||x.id)===id); if(!r) return;
+  const all=_cache['pendingValidations']||[];
+  const r=all.find(x=>String(x._id||x.id)===String(id));
+  if(!r){
+    showToast('Rapport introuvable dans le cache','error');
+    return;
+  }
   generateValidatedPDF(r, r.evalSnapshot||{});
 }
 

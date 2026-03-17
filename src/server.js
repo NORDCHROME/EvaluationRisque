@@ -8,6 +8,9 @@ const path      = require('path');
 
 const app = express();
 
+// Railway est derrière un reverse proxy — nécessaire pour express-rate-limit
+app.set('trust proxy', 1);
+
 // ── Middlewares ──────────────────────────────────────────────
 app.use(cors({ origin: '*', credentials: true }));
 app.use(express.json({ limit: '10mb' }));
