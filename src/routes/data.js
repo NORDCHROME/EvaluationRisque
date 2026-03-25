@@ -247,11 +247,25 @@ router.post('/validations', auth, async (req, res) => {
     const cleanSnapshot = JSON.parse(JSON.stringify(evalSnapshot || {}));
     if (cleanSnapshot.risks) {
       cleanSnapshot.risks = cleanSnapshot.risks.map(r => ({
-        name: String(r.name || ''),
-        sev:  String(r.sev  || 'medium'),
-        type: String(r.type || '')
-        // PAS de champ id/riskId ici — évite le cast ObjectId
+        id:       String(r.id || ''),   // conservé pour lier aux dérogations
+        name:     String(r.name || ''),
+        sev:      String(r.sev  || 'medium'),
+        type:     String(r.type || ''),
+        isManual: r.isManual || false
       }));
+    }
+    // Conserver les dérogations telles quelles (objet clé=riskId)
+    if (cleanSnapshot.derogations && typeof cleanSnapshot.derogations === 'object') {
+      // Sanity check : garder seulement les dérogations actives avec justification string
+      Object.keys(cleanSnapshot.derogations).forEach(k => {
+        const d = cleanSnapshot.derogations[k];
+        if (!d || !d.active) { delete cleanSnapshot.derogations[k]; return; }
+        cleanSnapshot.derogations[k] = {
+          active:        true,
+          justification: String(d.justification || ''),
+          signataire:    String(d.signataire || '')
+        };
+      });
     }
 
     const v = await Validation.create({

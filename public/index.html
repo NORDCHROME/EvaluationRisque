@@ -1378,6 +1378,8 @@ async function loadAllDataFromAPI(){
     _cache['signatureSettings'] = sigSettings || {autoLow:true,requireManager:true};
     _cache['features'] = features || {};
     _cache['hiddenInterventionTypes'] = hiddenTypes || [];
+    // Appliquer les flags de fonctionnalités dès le chargement
+    setTimeout(applyFeatureFlags, 0);
 
     // Charger la liste des users si admin
     let users = null;
@@ -1489,7 +1491,8 @@ async function doLogin(){
     Object.keys(_cache).forEach(k=>delete _cache[k]);
     Object.keys(epiState).forEach(k=>delete epiState[k]);
     appState={step:0,operator:'',location:'',date:'',mission:'',missionSteps:[],
-      selectedInterventions:new Set(),selectedRisks:new Set(),activeRiskId:null};
+      selectedInterventions:new Set(),selectedRisks:new Set(),activeRiskId:null,
+      manualRisks:[],derogations:{}};
     // Charger toutes les données depuis l'API
     await loadAllDataFromAPI();
     document.getElementById('loginScreen').style.display='none';
@@ -1517,7 +1520,8 @@ function doLogout(){
 
   // 3. Réinitialiser l'état de l'évaluation
   appState={step:0,operator:'',location:'',date:'',mission:'',missionSteps:[],
-    selectedInterventions:new Set(),selectedRisks:new Set(),activeRiskId:null};
+    selectedInterventions:new Set(),selectedRisks:new Set(),activeRiskId:null,
+    manualRisks:[],derogations:{}};
 
   // 4. Réinitialiser les EPI
   Object.keys(epiState).forEach(k=>delete epiState[k]);
@@ -1598,7 +1602,9 @@ function initUI(){
 const epiState = {};
 let appState = {
   step:0, operator:'', location:'', date:'', mission:'', missionSteps:[],
-  selectedInterventions:new Set(), selectedRisks:new Set(), activeRiskId:null
+  selectedInterventions:new Set(), selectedRisks:new Set(), activeRiskId:null,
+  manualRisks: [],        // risques saisis manuellement dans l'évaluation
+  derogations: {}         // { riskId: { active: bool, justification: '', signataire: '' } }
 };
 
 function getInterventionType(riskId){
@@ -1666,10 +1672,15 @@ function toggleIntervention(el,type){
 function getAllRisks(){
   const all=[];
   appState.selectedInterventions.forEach(t=>{ (RISKS[t]||[]).forEach(r=>all.push({...r,interventionType:t})); });
+  // Ajouter les risques saisis manuellement
+  (appState.manualRisks||[]).forEach(r=>all.push(r));
   return all;
 }
 function findRisk(id){
   for(const t of appState.selectedInterventions){ const r=(RISKS[t]||[]).find(x=>x.id===id); if(r) return {...r,interventionType:t}; }
+  // Chercher dans les risques manuels
+  const manual=(appState.manualRisks||[]).find(r=>r.id===id);
+  if(manual) return manual;
   return null;
 }
 
@@ -1697,6 +1708,25 @@ function buildRiskList(){
       </div>`;
     });
   });
+  // Risques manuels
+  if((appState.manualRisks||[]).length){
+    html+=`<div class="risk-group-label" style="color:var(--accent2)">✏️ Risques personnalisés</div>`;
+    appState.manualRisks.forEach(r=>{
+      const isSel=appState.selectedRisks.has(r.id), isAct=appState.activeRiskId===r.id;
+      html+=`<div class="risk-row${isSel?' selected':''}${isAct?' active-detail':''}" id="row-${r.id}" style="display:flex;align-items:center">
+        <div class="risk-chk" onclick="toggleRisk(event,'${r.id}')">${isSel?'✓':''}</div>
+        <div class="risk-sev-dot sev-dot-${r.sev}"></div>
+        <div class="risk-row-name" onclick="showRiskDetail('${r.id}')" style="flex:1">${r.name}</div>
+        <div onclick="deleteManualRisk('${r.id}')" title="Supprimer" style="padding:2px 8px;color:#9ca3af;cursor:pointer;font-size:14px;line-height:1">×</div>
+      </div>`;
+    });
+  }
+  // Bouton ajout risque personnalisé
+  html+=`<div style="padding:8px 10px;margin-top:4px">
+    <button onclick="openAddManualRiskModal()" style="width:100%;padding:8px 10px;border:1.5px dashed var(--accent2);background:transparent;border-radius:4px;color:var(--accent2);font-size:11.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px" onmouseover="this.style.background='#f0f7ff'" onmouseout="this.style.background='transparent'">
+      ✏️ Ajouter un risque personnalisé
+    </button>
+  </div>`;
   document.getElementById('riskListLeft').innerHTML=html||'<div style="padding:20px;color:#9ca3af;font-size:13px">Aucun risque</div>';
   document.getElementById('riskCountBadge').textContent=appState.selectedRisks.size+' sélectionné(s)';
 }
@@ -1752,6 +1782,7 @@ function showRiskDetail(id){
         <div class="epi-custom-row"><input type="text" id="customI-${id}" placeholder="Ajouter un EPI…"/><button onclick="addCustomEPI('${id}','i')">+ Ajouter</button></div>
       </div>
     </div>
+    ${buildDerogationSection(id)}
   </div>`;
 }
 function switchEpiTab(id,t){
@@ -1799,8 +1830,144 @@ function suggestAllEPI(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// SUMMARY
+// DÉROGATION
 // ══════════════════════════════════════════════════════════════════════════
+function buildDerogationSection(riskId){
+  const d = appState.derogations[riskId] || {active:false, justification:'', signataire:''};
+  const activeStyle = d.active ? 'border-color:#c0392b;background:#fff8f7' : 'border-color:var(--border);background:var(--paper)';
+  return `<div class="epi-section" style="margin-top:14px;border-top:2px solid var(--cream);padding-top:14px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:${d.active?'10px':'0'}">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;padding:10px 12px;border:1.5px solid;border-radius:4px;transition:all .2s;${activeStyle}">
+        <input type="checkbox" id="derog-check-${riskId}" ${d.active?'checked':''} onchange="toggleDerogation('${riskId}',this.checked)" style="accent-color:#c0392b;width:15px;height:15px">
+        <span style="font-size:12px;font-weight:700;color:#c0392b">⚠ Dérogation accordée</span>
+        <span style="font-size:10.5px;color:#9ca3af;margin-left:auto">Risque accepté avec conditions particulières</span>
+      </label>
+    </div>
+    ${d.active ? `<div style="display:flex;flex-direction:column;gap:8px;padding:10px;background:#fff8f7;border:1.5px solid #f5a9a0;border-radius:4px">
+      <div>
+        <label style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Justification / Conditions de la dérogation</label>
+        <textarea id="derog-justif-${riskId}" rows="2" placeholder="Ex: Travaux urgents de maintenance, échelle sécurisée par haubans, présence d'un second homme…" style="width:100%;padding:7px 9px;border:1.5px solid #f5a9a0;border-radius:3px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box" oninput="saveDerogation('${riskId}')">${d.justification}</textarea>
+      </div>
+      <div>
+        <label style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Nom du signataire de la dérogation</label>
+        <input type="text" id="derog-sig-${riskId}" value="${d.signataire}" placeholder="Prénom Nom — Fonction" style="width:100%;padding:7px 9px;border:1.5px solid #f5a9a0;border-radius:3px;font-size:12px;font-family:inherit;box-sizing:border-box" oninput="saveDerogation('${riskId}')">
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+function toggleDerogation(riskId, active){
+  if(!appState.derogations[riskId]) appState.derogations[riskId]={active:false,justification:'',signataire:''};
+  appState.derogations[riskId].active=active;
+  showRiskDetail(riskId);
+}
+function saveDerogation(riskId){
+  if(!appState.derogations[riskId]) appState.derogations[riskId]={active:true,justification:'',signataire:''};
+  const justifEl=document.getElementById('derog-justif-'+riskId);
+  const sigEl=document.getElementById('derog-sig-'+riskId);
+  if(justifEl) appState.derogations[riskId].justification=justifEl.value;
+  if(sigEl) appState.derogations[riskId].signataire=sigEl.value;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// RISQUES PERSONNALISÉS (saisie manuelle dans l'évaluation)
+// ══════════════════════════════════════════════════════════════════════════
+function openAddManualRiskModal(){
+  // Créer ou réutiliser la modale
+  let modal=document.getElementById('addManualRiskModal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='addManualRiskModal';
+    modal.style.cssText='display:none;position:fixed;inset:0;background:rgba(10,18,26,.7);z-index:1010;align-items:center;justify-content:center;';
+    modal.innerHTML=`<div style="background:#fff;border-radius:8px;width:460px;max-width:95vw;box-shadow:0 8px 48px rgba(10,18,26,.3);overflow:hidden">
+      <div style="background:var(--ink);padding:18px 24px;display:flex;align-items:center;justify-content:space-between">
+        <span style="color:#fff;font-size:16px;font-weight:700">✏️ Ajouter un risque personnalisé</span>
+        <button onclick="closeAddManualRiskModal()" style="background:none;border:none;color:#8a9aaa;font-size:20px;cursor:pointer;line-height:1">✕</button>
+      </div>
+      <div style="padding:22px 24px;display:flex;flex-direction:column;gap:14px">
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">Nom du risque <span style="color:var(--danger)">*</span></label>
+          <input id="manualRiskName" type="text" placeholder="Ex: Travaux sur échelle, Utilisation meule Ø>125mm…" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;box-sizing:border-box">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">Sévérité</label>
+            <select id="manualRiskSev" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;background:#fff">
+              <option value="high">🔴 Critique</option>
+              <option value="medium" selected>🟠 Modéré</option>
+              <option value="low">🟢 Faible</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">Type d'intervention</label>
+            <select id="manualRiskType" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;background:#fff">
+              ${[...appState.selectedInterventions].map(t=>`<option value="${t}">${t}</option>`).join('')}
+              <option value="Autre">Autre</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:5px">Mesures de prévention (optionnel)</label>
+          <textarea id="manualRiskSolutions" rows="2" placeholder="Une mesure par ligne…" style="width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:4px;font-size:12.5px;font-family:inherit;resize:vertical;box-sizing:border-box"></textarea>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">
+          <button onclick="closeAddManualRiskModal()" style="padding:9px 18px;background:var(--paper);border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-weight:600;cursor:pointer;color:#6b7280">Annuler</button>
+          <button onclick="confirmAddManualRisk()" style="padding:9px 22px;background:var(--accent2);color:#fff;border:none;border-radius:4px;font-size:13px;font-weight:700;cursor:pointer">✓ Ajouter</button>
+        </div>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  }
+  // Reset fields
+  const nameEl=document.getElementById('manualRiskName');
+  const solEl=document.getElementById('manualRiskSolutions');
+  if(nameEl) nameEl.value='';
+  if(solEl) solEl.value='';
+  // Refresh type options
+  const typeEl=document.getElementById('manualRiskType');
+  if(typeEl){
+    typeEl.innerHTML=[...appState.selectedInterventions].map(t=>`<option value="${t}">${t}</option>`).join('')+'<option value="Autre">Autre</option>';
+  }
+  modal.style.display='flex';
+  setTimeout(()=>{ const n=document.getElementById('manualRiskName'); if(n) n.focus(); },50);
+}
+function closeAddManualRiskModal(){
+  const modal=document.getElementById('addManualRiskModal');
+  if(modal) modal.style.display='none';
+}
+function confirmAddManualRisk(){
+  const name=(document.getElementById('manualRiskName')?.value||'').trim();
+  if(!name){ showToast('Le nom du risque est requis','error'); return; }
+  const sev=document.getElementById('manualRiskSev')?.value||'medium';
+  const type=document.getElementById('manualRiskType')?.value||'Autre';
+  const solRaw=(document.getElementById('manualRiskSolutions')?.value||'').trim();
+  const solutions=solRaw?solRaw.split('\n').map(s=>s.trim()).filter(Boolean):[];
+  const newRisk={
+    id: 'manual_'+Date.now(),
+    name, sev,
+    interventionType: type,
+    causes: [], consequences: [],
+    solutions,
+    isManual: true
+  };
+  if(!appState.manualRisks) appState.manualRisks=[];
+  appState.manualRisks.push(newRisk);
+  appState.selectedRisks.add(newRisk.id);
+  closeAddManualRiskModal();
+  buildRiskList();
+  showRiskDetail(newRisk.id);
+  showToast('Risque "'+name+'" ajouté','success');
+}
+function deleteManualRisk(id){
+  appState.manualRisks=(appState.manualRisks||[]).filter(r=>r.id!==id);
+  appState.selectedRisks.delete(id);
+  delete appState.derogations[id];
+  if(appState.activeRiskId===id){
+    appState.activeRiskId=null;
+    document.getElementById('riskPanelRight').innerHTML='';
+  }
+  buildRiskList();
+  showToast('Risque supprimé','success');
+}
 function buildSummary(){
   const all=getAllRisks(), selected=all.filter(r=>appState.selectedRisks.has(r.id));
   const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}):'—';
@@ -1824,11 +1991,14 @@ function buildSummary(){
     const sevLabel=r.sev==='high'?'Critique':r.sev==='medium'?'Modéré':'Faible';
     const epcHtml=epcAll.length?epcAll.map(e=>`<div class="src-sol-line c">${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af">Non renseigné</div>';
     const epiHtml=epiAll.length?epiAll.map(e=>`<div class="src-sol-line i">${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af">Non renseigné</div>';
-    return `<div class="summary-risk-card"><div class="src-head"><span class="src-name">${r.name}</span><span class="src-int-tag">${r.interventionType}</span><span class="sev-badge sev-${r.sev}">${sevLabel}</span></div>
+    const derog=appState.derogations[r.id];
+    const derogHtml=derog&&derog.active?`<div style="margin-top:10px;padding:8px 12px;background:#fff8f7;border:1.5px solid #f5a9a0;border-radius:4px;font-size:11.5px"><span style="font-weight:700;color:#c0392b">⚠ DÉROGATION ACCORDÉE</span>${derog.justification?' — '+derog.justification:''}${derog.signataire?'<span style="color:#9ca3af;margin-left:8px">Signataire : '+derog.signataire+'</span>':''}</div>`:'';
+    const manualBadge=r.isManual?`<span style="padding:2px 8px;background:#e8f0fe;color:var(--accent2);border-radius:10px;font-size:10px;font-weight:700;margin-left:4px">✏️ Personnalisé</span>`:'';
+    return `<div class="summary-risk-card"><div class="src-head"><span class="src-name">${r.name}</span><span class="src-int-tag">${r.interventionType}</span><span class="sev-badge sev-${r.sev}">${sevLabel}</span>${manualBadge}</div>
     <div class="src-body"><div class="src-col-grid">
       <div><div class="src-col-title s">Mesures de prévention</div>${r.solutions.map(s=>`<div class="src-sol-line s">${s}</div>`).join('')}</div>
       <div><div class="src-col-title c">EPC collectif</div>${epcHtml}<div class="src-col-title i" style="margin-top:12px">EPI individuel</div>${epiHtml}</div>
-    </div></div></div>`;
+    </div>${derogHtml}</div></div>`;
   }).join('');
 
   // Afficher la zone de signature selon le niveau de risque
@@ -3107,11 +3277,43 @@ async function saveFeatures(){
   const feats={};
   FEATURES_DEF.forEach(f=>{const cb=document.getElementById('ft-'+f.id);if(cb)feats[f.id]=cb.checked;});
   dbSet('features',feats);
+  _cache['features']=feats;
   api('PUT','/data/settings/features',{value:feats});
   const hiddenTypes=[]; document.querySelectorAll('input[name="itype"]').forEach(cb=>{if(!cb.checked)hiddenTypes.push(cb.value);});
   dbSet('hiddenInterventionTypes',hiddenTypes);
   api('PUT','/data/settings/hiddenInterventionTypes',{value:hiddenTypes});
+  applyFeatureFlags();
   showToast('Paramètres enregistrés','success');
+}
+
+// ── Application des flags de fonctionnalités ─────────────────────────────
+function applyFeatureFlags(){
+  const feats=_cache['features']||{};
+  const isEnabled=id=>feats[id]!==false; // true par défaut si non défini
+
+  // feat_ai — Détection IA : masquer les zones de détection par étape
+  document.querySelectorAll('.step-risks-zone').forEach(el=>{
+    el.closest('td') && (el.closest('td').style.display=isEnabled('feat_ai')?'':'none');
+  });
+
+  // feat_pp — Plan de Prévention : masquer le panneau PP entier
+  const ppPanel=document.getElementById('ppPanel');
+  if(ppPanel) ppPanel.style.display=isEnabled('feat_pp')?'':'none';
+
+  // feat_epi — EPI/EPC : masquer la section EPI dans le détail risque
+  // (appliqué dynamiquement dans showRiskDetail via flag)
+
+  // feat_carnet — Carnet d'adresses : masquer les boutons carnet dans PP
+  document.querySelectorAll('.pp-carnet-btn').forEach(el=>{ el.style.display=isEnabled('feat_carnet')?'':'none'; });
+
+  // feat_pdf — Export PDF : masquer le bouton PDF principal
+  document.querySelectorAll('.btn-pdf,.btn-pp-pdf').forEach(el=>{ el.style.display=isEnabled('feat_pdf')?'':'none'; });
+
+  // feat_savepp — Sauvegarde PP : masquer le bouton de sauvegarde du PP
+  const savePPBtn=document.querySelector('#ppPanel button[onclick="savePP()"]');
+  if(savePPBtn) savePPBtn.style.display=isEnabled('feat_savepp')?'':'none';
+  const loadPPSection=document.getElementById('loadPPSection');
+  if(loadPPSection) loadPPSection.style.display=isEnabled('feat_savepp')?'':'none';
 }
 // ── Rapports ──────────────────────────────────────────────────────────────
 async function saveReport(type,data){
@@ -3329,7 +3531,8 @@ async function sendToManagerForValidation(sigDataURL, level, manager){
       mission:      appState.mission||'',
       missionSteps: appState.missionSteps||[],
       interventions:[...appState.selectedInterventions],
-      risks:        selected.map(r=>({id:r.id,name:r.name,sev:r.sev,type:r.interventionType})),
+      risks:        selected.map(r=>({id:r.id,name:r.name,sev:r.sev,type:r.interventionType,isManual:r.isManual||false})),
+      derogations:  Object.fromEntries(Object.entries(appState.derogations||{}).filter(([,d])=>d.active)),
     },
     sigIntervenant: sigDataURL,
   };
@@ -3522,10 +3725,23 @@ async function validateReport(id, decision){
 }
 
 async function downloadValidatedReport(id){
-  const all=_cache['pendingValidations']||[];
-  const r=all.find(x=>String(x._id||x.id)===String(id));
+  // BUGFIX: on re-fetch depuis l'API pour avoir le statut à jour (approved + sigManager)
+  // et ne pas utiliser le cache périmé (qui avait encore status='pending')
+  let r = null;
+  try {
+    const fresh = await api('GET', '/data/validations');
+    if(fresh && Array.isArray(fresh)){
+      r = fresh.find(x=>String(x._id||x.id)===String(id));
+      // Mettre à jour le cache avec les données fraîches
+      _cache['pendingValidations'] = fresh;
+    }
+  } catch(e){ /* fallback cache */ }
   if(!r){
-    showToast('Rapport introuvable dans le cache','error');
+    const all=_cache['pendingValidations']||[];
+    r=all.find(x=>String(x._id||x.id)===String(id));
+  }
+  if(!r){
+    showToast('Rapport introuvable','error');
     return;
   }
   generateValidatedPDF(r, r.evalSnapshot||{});
@@ -3613,13 +3829,28 @@ function generateValidatedPDF(r, ev){
     doc.setFillColor(250,248,245);doc.rect(mg+3,y,IW-3,13,'F');
     doc.setDrawColor(200,192,181);doc.rect(mg,y,IW,13,'S');
     doc.setTextColor(rc,gc,bc);doc.setFontSize(7);doc.setFont('helvetica','bold');
-    doc.text('RISQUE '+(idx+1)+' — '+r3.type.toUpperCase(),mg+7,y+4.5);
+    const typeLabel=(r3.type||'').toUpperCase()+(r3.isManual?' — ✏️ PERSONNALISÉ':'');
+    doc.text('RISQUE '+(idx+1)+' — '+typeLabel,mg+7,y+4.5);
     doc.setTextColor(15,25,35);doc.setFontSize(9);doc.setFont('helvetica','bold');
     doc.text(r3.name,mg+7,y+10);
     doc.setFillColor(rc,gc,bc);doc.roundedRect(W-mg-26,y+2.5,24,7,1,1,'F');
     doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
     doc.text(sevLbl(r3.sev),W-mg-14,y+7.5,{align:'center'});
     y+=16;
+    // Dérogation si présente dans le snapshot
+    const derogations=ev.derogations||{};
+    const d3=derogations[r3.id];
+    if(d3&&d3.active){
+      checkY(12);
+      doc.setFillColor(255,240,238);doc.rect(mg,y,IW,10,'F');
+      doc.setDrawColor(192,57,43);doc.setLineWidth(0.6);doc.rect(mg,y,IW,10,'S');doc.setLineWidth(0.2);
+      doc.setFillColor(192,57,43);doc.rect(mg,y,3,10,'F');
+      doc.setTextColor(192,57,43);doc.setFontSize(7);doc.setFont('helvetica','bold');
+      const derogText='⚠ DÉROGATION'+(d3.justification?' — '+d3.justification.substring(0,80):'');
+      doc.text(derogText,mg+6,y+4);
+      if(d3.signataire){ doc.setTextColor(120,60,60);doc.setFontSize(6.5);doc.setFont('helvetica','italic');doc.text('Signataire : '+d3.signataire,mg+6,y+8); }
+      y+=12;
+    }
   });
 
   y+=6;
@@ -4047,6 +4278,28 @@ function generatePDF(sigData){
       drawBlock(xEPC,y,colH,hRow3,'EPC — Protection collective',[91,63,181],epcAll,'✓ ',null,[252,250,255]);
       drawBlock(xEPI,y,colH,hRow3,'EPI — Protection individuelle',[14,116,144],epiAll,'✓ ',null,[240,253,255]);
       y+=hRow3+GAP+4;
+
+      // ── Dérogation (si active) ──────────────────────────────────────────
+      const derog=appState.derogations[r.id];
+      if(derog&&derog.active){
+        checkY(16);
+        doc.setFillColor(255,240,238);doc.rect(mg,y,INNER,12,'F');
+        doc.setDrawColor(192,57,43);doc.setLineWidth(0.8);doc.rect(mg,y,INNER,12,'S');doc.setLineWidth(0.2);
+        doc.setFillColor(192,57,43);doc.rect(mg,y,3,12,'F');
+        doc.setTextColor(192,57,43);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+        doc.text('⚠ DÉROGATION ACCORDÉE',mg+7,y+5);
+        if(derog.justification){
+          const jLines=doc.splitTextToSize(derog.justification,INNER-14);
+          doc.setTextColor(60,40,40);doc.setFontSize(7);doc.setFont('helvetica','normal');
+          doc.text(jLines,mg+7,y+9.5);
+          y+=Math.max(12, 9+jLines.length*3.8)+3;
+        } else { y+=15; }
+        if(derog.signataire){
+          doc.setTextColor(120,100,100);doc.setFontSize(7);doc.setFont('helvetica','italic');
+          doc.text('Signataire dérogation : '+derog.signataire,mg+7,y);
+          y+=6;
+        }
+      }
     });
   }
   // SIGNATURE
