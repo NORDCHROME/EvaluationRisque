@@ -442,19 +442,8 @@ textarea{resize:vertical;min-height:80px;}
     <div class="card-eyebrow">Étape 2 — Nature des interventions</div>
     <div class="card-title">Sélectionnez vos types d'intervention</div>
     <div class="card-desc">Cochez <strong>une ou plusieurs</strong> natures d'intervention.</div>
-    <div class="option-grid">
-      <div class="option-card" onclick="toggleIntervention(this,'Travaux en hauteur')"><div class="opt-check"></div><span class="opt-icon">🏗️</span><span class="opt-label">Travaux en hauteur</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Travaux électriques')"><div class="opt-check"></div><span class="opt-icon">⚡</span><span class="opt-label">Travaux électriques</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Manutention & levage')"><div class="opt-check"></div><span class="opt-icon">🏋️</span><span class="opt-label">Manutention & levage</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Travaux en espace confiné')"><div class="opt-check"></div><span class="opt-icon">🕳️</span><span class="opt-label">Espace confiné</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Produits chimiques & dangereux')"><div class="opt-check"></div><span class="opt-icon">🧪</span><span class="opt-label">Produits chimiques</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Soudage & découpe thermique')"><div class="opt-check"></div><span class="opt-icon">🔥</span><span class="opt-label">Soudage & découpe</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Travaux sur voirie & route')"><div class="opt-check"></div><span class="opt-icon">🚧</span><span class="opt-label">Voirie & route</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Maintenance industrielle')"><div class="opt-check"></div><span class="opt-icon">🔧</span><span class="opt-label">Maintenance industrielle</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Travaux de démolition')"><div class="opt-check"></div><span class="opt-icon">🪨</span><span class="opt-label">Démolition</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Travaux de toiture & étanchéité')"><div class="opt-check"></div><span class="opt-icon">🏠</span><span class="opt-label">Toiture & étanchéité</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Terrassement & fouilles')"><div class="opt-check"></div><span class="opt-icon">⛏️</span><span class="opt-label">Terrassement & fouilles</span></div>
-      <div class="option-card" onclick="toggleIntervention(this,'Peinture & traitement de surface')"><div class="opt-check"></div><span class="opt-icon">🖌️</span><span class="opt-label">Peinture & surface</span></div>
+    <div class="option-grid" id="interventionGrid">
+      <!-- Rempli dynamiquement par buildInterventionGrid() -->
     </div>
     <div class="selection-summary" id="interventionSummary">
       <span id="summaryText" style="color:#9ca3af;font-style:italic">Aucune intervention sélectionnée</span>
@@ -1379,7 +1368,7 @@ async function loadAllDataFromAPI(){
     _cache['features'] = features || {};
     _cache['hiddenInterventionTypes'] = hiddenTypes || [];
     // Appliquer les flags de fonctionnalités dès le chargement
-    setTimeout(applyFeatureFlags, 0);
+    setTimeout(()=>{ applyFeatureFlags(); buildInterventionGrid(); }, 0);
 
     // Charger la liste des users si admin
     let users = null;
@@ -1626,6 +1615,7 @@ function goStep(n){
   if(n===2&&!validateStep1()) return;
   if(n===3) buildSummary();
   if(n===2) buildRiskStep();
+  if(n===1) buildInterventionGrid();  // Reconstruire la grille avec les types actifs
   appState.step=n;
   [0,1,2,3].forEach(i=>{
     document.getElementById('screen'+i).classList.add('hidden');
@@ -1668,6 +1658,41 @@ function toggleIntervention(el,type){
   const txt=document.getElementById('summaryText'), tags=document.getElementById('selTags');
   if(count===0){ txt.textContent='Aucune intervention sélectionnée'; txt.style.color='#9ca3af'; txt.style.fontStyle='italic'; tags.innerHTML=''; }
   else { txt.textContent=count+' intervention(s) :'; txt.style.color='#374151'; txt.style.fontStyle='normal'; tags.innerHTML=[...appState.selectedInterventions].map(t=>`<span class="sel-tag">📋 ${t}</span>`).join(''); }
+}
+
+// Icônes par défaut pour les types d'intervention natifs
+const INTERVENTION_ICONS = {
+  'Travaux en hauteur':'🏗️','Travaux électriques':'⚡','Manutention & levage':'🏋️',
+  'Travaux en espace confiné':'🕳️','Produits chimiques & dangereux':'🧪','Soudage & découpe thermique':'🔥',
+  'Travaux sur voirie & route':'🚧','Maintenance industrielle':'🔧','Travaux de démolition':'🪨',
+  'Travaux de toiture & étanchéité':'🏠','Terrassement & fouilles':'⛏️','Peinture & traitement de surface':'🖌️'
+};
+
+function buildInterventionGrid(){
+  const grid = document.getElementById('interventionGrid');
+  if(!grid) return;
+  const hidden = _cache['hiddenInterventionTypes'] || [];
+  // Types natifs (clés de RISKS) + types custom
+  const allTypes = [
+    ...Object.keys(RISKS),
+    ...(_cache['customTypes'] || []).filter(t => !Object.keys(RISKS).includes(t))
+  ];
+  const visible = allTypes.filter(t => !hidden.includes(t));
+  if(!visible.length){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:24px;color:#9ca3af;font-style:italic">Aucun type d\'intervention actif.<br><small>Activez des types dans Admin → Fonctionnalités.</small></div>';
+    return;
+  }
+  grid.innerHTML = visible.map(t => {
+    const icon = INTERVENTION_ICONS[t] || '🔩';
+    const isSel = appState.selectedInterventions.has(t);
+    // Tronquer les libellés longs pour l'affichage
+    const shortLabel = t.length > 22 ? t.substring(0,20)+'…' : t;
+    return `<div class="option-card${isSel?' selected':''}" id="icard-${CSS.escape(t)}" onclick="toggleIntervention(this,'${t.replace(/'/g,"&#39;")}')">
+      <div class="opt-check">${isSel?'✓':''}</div>
+      <span class="opt-icon">${icon}</span>
+      <span class="opt-label" title="${t}">${shortLabel}</span>
+    </div>`;
+  }).join('');
 }
 function getAllRisks(){
   const all=[];
@@ -3283,6 +3308,7 @@ async function saveFeatures(){
   dbSet('hiddenInterventionTypes',hiddenTypes);
   api('PUT','/data/settings/hiddenInterventionTypes',{value:hiddenTypes});
   applyFeatureFlags();
+  buildInterventionGrid();
   showToast('Paramètres enregistrés','success');
 }
 
