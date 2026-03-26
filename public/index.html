@@ -2210,55 +2210,6 @@ const AI_KW={
     {s:4,w:['solvant organique','vapeur inflammable','acetone','diluant'],r:['p1','p2']},
     {s:3,w:['peinture facade','ravalement peint'],r:['p1','p4']},
   ],
-  'Maintenance industrielle & dépannage':[
-    // Équipements & machines
-    {s:5,w:['pont roulant','grue atelier','levage machine'],r:['m1','m3']},
-    {s:4,w:['moteur electrique','variateur vitesse','moteur hydraulique'],r:['mi1','e1']},
-    {s:4,w:['compresseur','pompe centrifuge','ventilateur industriel','turbine','generateur'],r:['mi1','mi2']},
-    {s:4,w:['convoyeur','courroie transporteuse','chaine convoyeur'],r:['mi1','mi4']},
-    {s:4,w:['presse','fraiseuse','tour','perceuse colonne','scie industrielle','robot'],r:['mi1','mi4']},
-    {s:3,w:['chaudiere','echangeur thermique','refroidisseur','climatisation industrielle'],r:['mi2','ch1']},
-    {s:4,w:['cuve','reservoir industriel','silo','bac stockage'],r:['ec1','ec2','ch4']},
-    {s:3,w:['tuyauterie','canalisation','robinet','vanne','clapet'],r:['mi2','ch4']},
-    // Fluides & produits
-    {s:4,w:['fluide hydraulique','huile hydraulique','circuit hydraulique'],r:['mi2','ch2']},
-    {s:4,w:['air comprime','circuit pneumatique','purge pneumatique'],r:['mi2','mi1']},
-    {s:4,w:['vapeur','fluide thermique','liquide caloporteur'],r:['mi2','ch2']},
-    {s:4,w:['lubrifiant','lubrification','graissage','appoint huile','vidange'],r:['ch4','mi3']},
-    {s:3,w:['solvant industriel','degraissage','nettoyage piece','nettoyage systeme'],r:['ch1','ch2']},
-    {s:3,w:['carburant','diesel','essence','stockage carburant'],r:['ch3','ch4']},
-    // Opérations maintenance
-    {s:5,w:['consignation loto','deconsignation','mise hors energie','isolation energie'],r:['mi1','e1']},
-    {s:5,w:['absence tension','verification tension','vat maintenance'],r:['e1','mi1']},
-    {s:5,w:['depannage','panne','dysfonctionnement','defaillance','intervention corrective'],r:['mi1','mi2']},
-    {s:4,w:['demontage','remontage','remplacement piece','echange standard'],r:['mi1','mi4']},
-    {s:4,w:['roulement','palier','arbre','engrenage','pignon','courroie transmission'],r:['mi1','mi4']},
-    {s:4,w:['alignement','desalignement','vibration machine','balourd'],r:['mi1','mi3']},
-    {s:3,w:['serrage','reglage','calibrage','etalonnage'],r:['mi1']},
-    {s:3,w:['inspection visuelle machine','controle usure','verification etancheite machine'],r:['mi1','mi3']},
-    {s:4,w:['surchauffe','echauffement anormal','temperature anormale'],r:['mi2','ch3']},
-    {s:4,w:['fuite huile','fuite hydraulique','fuite gaz','fuite vapeur'],r:['ch4','mi2']},
-    // Risques électriques maintenance
-    {s:5,w:['tableau electrique maintenance','armoire electrique','intervention electrique'],r:['e1','e2']},
-    {s:4,w:['cable electrique','prise industrielle','connecteur electrique'],r:['e1','e3']},
-    {s:4,w:['court circuit','surtension','defaut isolement','disjoncteur'],r:['e1','e3']},
-    {s:3,w:['onduleur','batterie industrie','alimentation secours'],r:['e1','e3']},
-    // Diagnostic & mesure
-    {s:3,w:['multimetre','oscilloscope','testeur isolement','mesure courant'],r:['e1']},
-    {s:3,w:['camera thermique','thermographie','point chaud'],r:['mi2','e3']},
-    {s:3,w:['analyse vibratoire','vibrometre','diagnostic vibration'],r:['mi1','mi3']},
-    {s:3,w:['analyse huile','pollution huile','contamination huile'],r:['ch4','mi3']},
-    // Interventions terrain
-    {s:4,w:['espace confine maintenance','intervention cuve','travaux reservoir'],r:['ec1','ec2','ec3']},
-    {s:4,w:['travaux chauds maintenance','soudage maintenance','meulage maintenance'],r:['s1','s3']},
-    {s:4,w:['produit chimique maintenance','manipulation produit','transvasement'],r:['ch1','ch2']},
-    {s:3,w:['bruit machine','protection auditive atelier','bouchons oreilles'],r:['mi3']},
-    {s:3,w:['ergonomie','port charge maintenance','manutention piece'],r:['m2']},
-    {s:4,w:['zone atex maintenance','atmosphere explosive','gaz inflammable atelier'],r:['e5','ch3','ec3']},
-    // GMAO & organisation
-    {s:2,w:['gmao','ordre travail','bon intervention','fiche technique machine'],r:['mi1']},
-    {s:2,w:['historique panne','tracabilite','retour experience maintenance'],r:['mi1']},
-  ],
 };
 function aiNorm(t){
   return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[''`]/g,"'").replace(/[_-]/g,' ').replace(/\s+/g,' ').trim();
@@ -3801,60 +3752,21 @@ async function renderValidationList(){
     });
   }
   if(done.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9ca3af;margin:24px 0 12px">Traités (${done.length})</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9ca3af;margin:20px 0 12px">Traités (${done.length})</div>`;
     done.slice(0,20).forEach(r=>{
       const ev=r.evalSnapshot||{};
-      const uid='done-'+r.id;
-      const borderCol=r.status==='approved'?'var(--safe)':'var(--danger)';
-      const sevLbl2=s=>s==='high'?'CRITIQUE':s==='medium'?'MODÉRÉ':'FAIBLE';
-      html+=`<div style="border:1.5px solid ${borderCol};border-radius:8px;margin-bottom:10px;overflow:hidden;background:#fff;opacity:.9">
-        <div style="padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <div style="flex:1">
-            ${ev.interventionTitle?`<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">🏷️ ${ev.interventionTitle}</div>`:''}
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <strong style="font-size:13px">${r.submitterName}</strong>
-              <span style="font-size:11px;color:#6b7280">${r.submitterSite||'—'}</span>
-              ${levelLabel(r.level)} ${statusBadge(r.status)}
-            </div>
-            <div style="font-size:11px;color:#9ca3af;margin-top:3px">
-              📍 ${ev.location||'—'} · 📅 ${ev.date?new Date(ev.date).toLocaleDateString('fr-FR'):'—'} · ${(ev.risks||[]).length} risque(s)
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'" style="padding:5px 12px;background:#e8f4fd;color:var(--accent2);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">👁 Détail complet</button>
-            <button onclick="downloadValidatedReport('${r.id}')" style="padding:5px 12px;background:var(--ink);color:#fff;border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">📄 PDF</button>
-          </div>
+      html+=`<div style="border:1px solid var(--cream);border-radius:6px;margin-bottom:8px;padding:12px 16px;background:var(--paper)">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="flex:1"><strong>${r.submitterName}</strong> <span style="font-size:11px;color:#6b7280">${r.submitterSite}</span> ${levelLabel(r.level)} ${statusBadge(r.status)}</div>
+          <span style="font-size:11px;color:#9ca3af">${new Date(r.createdAt).toLocaleDateString('fr-FR')}</span>
+          ${r.comment?`<span style="font-size:11px;font-style:italic;color:#6b7280">"${r.comment}"</span>`:''}
+          <button onclick="toggleReportDetail('donedetail-${r.id}')" style="padding:4px 10px;background:#e8f4fd;color:var(--accent2);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">👁 Détail</button>
+          <button onclick="downloadValidatedReport('${r.id}')" style="padding:4px 10px;background:var(--ink);color:#fff;border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">📄 PDF</button>
         </div>
-        ${r.comment?`<div style="padding:6px 18px;background:#f9fafb;border-top:1px solid var(--cream);font-size:11.5px;color:#4b5563;font-style:italic">💬 ${r.comment}</div>`:''}
-        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
-          ${(ev.missionSteps||[]).length?`<div style="padding:12px 18px;border-bottom:1px solid #f3f4f6">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:8px">📋 Phases</div>
-            ${(ev.missionSteps||[]).map((s,i)=>`<div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #f9fafb"><span style="background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${i+1}</span><span style="font-size:12px">${s}</span></div>`).join('')}
-          </div>`:''}
-          <div style="padding:12px 18px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques, prévention & protections</div>
-            ${(ev.risks||[]).length?ev.risks.map(x=>{
-              const [bg2]=x.sev==='high'?['#fde8e6']:x.sev==='medium'?['#fef3e6']:['#e6f4ec'];
-              const solH=(x.solutions||[]).length?x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;color:var(--safe);font-weight:700">→</span>${s}</div>`).join(''):'<span style="font-size:11px;color:#9ca3af;font-style:italic">—</span>';
-              const epcH=(x.epc||[]).length?x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;color:#5b3fb5;font-weight:700">✓</span>${e}</div>`).join(''):'<span style="font-size:11px;color:#9ca3af;font-style:italic">—</span>';
-              const epiH=(x.epi||[]).length?x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;color:#0e7490;font-weight:700">✓</span>${e}</div>`).join(''):'<span style="font-size:11px;color:#9ca3af;font-style:italic">—</span>';
-              return `<div style="border:1px solid #e5e7eb;border-radius:5px;margin-bottom:8px;overflow:hidden">
-                <div style="padding:7px 11px;background:${bg2};display:flex;align-items:center;gap:8px">
-                  <strong style="font-size:12px">${x.name}</strong><span style="font-size:10px;color:#6b7280;margin-left:auto">${x.type||''}</span>
-                  <span style="font-size:9px;padding:1px 7px;background:var(--ink);color:#fff;border-radius:10px">${sevLbl2(x.sev)}</span>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff">
-                  <div style="padding:8px 10px;border-right:1px solid #f3f4f6"><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--safe);margin-bottom:5px">Prévention</div>${solH}</div>
-                  <div style="padding:8px 10px;border-right:1px solid #f3f4f6"><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#5b3fb5;margin-bottom:5px">EPC</div>${epcH}</div>
-                  <div style="padding:8px 10px"><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#0e7490;margin-bottom:5px">EPI</div>${epiH}</div>
-                </div>
-              </div>`;
-            }).join(''):'<div style="color:#9ca3af;font-style:italic;font-size:12px">Aucun risque enregistré</div>'}
-          </div>
-          ${r.sigIntervenant||r.sigManager?`<div style="padding:10px 18px;border-top:1px solid #f3f4f6;display:flex;gap:20px">
-            ${r.sigIntervenant?`<div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature intervenant</div><img src="${r.sigIntervenant}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>`:''}
-            ${r.sigManager?`<div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature responsable</div><img src="${r.sigManager}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>`:''}
-          </div>`:''}
+        <div id="donedetail-${r.id}" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--cream)">
+          <div style="font-size:12px;color:#374151;margin-bottom:8px">📍 ${ev.location||'—'} · 📅 ${ev.date?new Date(ev.date).toLocaleDateString('fr-FR'):'—'}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">${(ev.risks||[]).map(x=>`<span style="font-size:10px;padding:2px 8px;background:${x.sev==='high'?'#fde8e6':x.sev==='medium'?'#fef3e6':'#e6f4ec'};color:${x.sev==='high'?'var(--danger)':x.sev==='medium'?'var(--warn)':'var(--safe)'};border-radius:10px">${x.name}</span>`).join('')}</div>
+          ${r.sigIntervenant&&r.sigManager?`<div style="display:flex;gap:16px;margin-top:10px"><div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature intervenant</div><img src="${r.sigIntervenant}" style="height:40px;border:1px solid var(--border);border-radius:3px"/></div><div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature responsable</div><img src="${r.sigManager}" style="height:40px;border:1px solid var(--border);border-radius:3px"/></div></div>`:''}
         </div>
       </div>`;
     });
@@ -4905,29 +4817,16 @@ async function refreshMyEvalsBadge(){
   const btn=document.getElementById('btnMyEvals');
   const badge=document.getElementById('myEvalsBadge');
   if(!btn||!currentUser) return;
+  // Comptage rapide depuis le localStorage
   const local=_getLocalEvals();
-  let pending=0;
+  // Évaluations soumises (validations API)
+  let submitted=0;
   try{
     const vals=await api('GET','/data/validations')||[];
-    const mine=vals.filter(v=>v.submitterName===currentUser.name||String(v.submittedBy)===String(currentUser.id));
-    // Badge = évals en attente uniquement (pour alerter)
-    pending=mine.filter(v=>v.status==='pending').length;
+    submitted=vals.filter(v=>String(v.submittedBy||v.submitterName)===String(currentUser.id)||v.submitterName===currentUser.name).length;
   }catch(e){}
-  const total=local.length; // total local pour info
-  // Badge orange sur les "en attente" uniquement
-  if(badge){
-    if(pending>0){
-      badge.style.display='flex';
-      badge.style.background='var(--warn)';
-      badge.textContent=pending>9?'9+':String(pending);
-    } else if(total>0){
-      badge.style.display='flex';
-      badge.style.background='#7c3aed';
-      badge.textContent=total>9?'9+':String(total);
-    } else {
-      badge.style.display='none';
-    }
-  }
+  const total=local.length+submitted;
+  if(badge){ badge.style.display=total>0?'flex':'none'; badge.textContent=total>9?'9+':String(total); }
 }
 function _getLocalEvals(){
   try{ return JSON.parse(localStorage.getItem('myEvals_'+currentUser.id)||'[]'); }catch(e){ return []; }
@@ -4947,13 +4846,22 @@ async function renderMyEvals(){
   if(!container) return;
   container.innerHTML='<div style="text-align:center;padding:24px;color:#9ca3af">Chargement…</div>';
 
+  // Évals locales (brouillons + PDFs générés sans validation)
   const local=_getLocalEvals();
+
+  // Évals soumises à validation (via API)
   let submitted=[];
   try{
     const vals=await api('GET','/data/validations')||[];
-    submitted=vals.filter(v=>v.submitterName===currentUser.name||String(v.submittedBy)===String(currentUser.id))
-      .map(v=>({...v,id:String(v._id||v.id||'')}));
+    submitted=vals.filter(v=>v.submitterName===currentUser.name||String(v.submittedBy)===String(currentUser.id));
   }catch(e){}
+
+  const statusBadge=s=>{
+    if(s==='approved') return '<span style="padding:2px 9px;background:#e6f4ec;color:var(--safe);border-radius:20px;font-size:10px;font-weight:700">✓ Validé</span>';
+    if(s==='rejected') return '<span style="padding:2px 9px;background:#fde8e6;color:var(--danger);border-radius:20px;font-size:10px;font-weight:700">✕ Refusé</span>';
+    if(s==='pending')  return '<span style="padding:2px 9px;background:#fef3e6;color:var(--warn);border-radius:20px;font-size:10px;font-weight:700">⏳ En attente</span>';
+    return '<span style="padding:2px 9px;background:#f3f4f6;color:#6b7280;border-radius:20px;font-size:10px;font-weight:700">💾 Local</span>';
+  };
 
   const total=local.length+submitted.length;
   if(countEl) countEl.textContent=total;
@@ -4963,136 +4871,44 @@ async function renderMyEvals(){
     return;
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-  const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR'):'—';
-  const levelRgb=s=>s==='high'?['#fde8e6','var(--danger)','🔴']:s==='medium'?['#fef3e6','var(--warn)','🟠']:['#e6f4ec','var(--safe)','🟢'];
-
-  function statusBlock(s,comment){
-    const cfg={
-      approved:{bg:'#f0fdf4',border:'var(--safe)',icon:'✅',label:'Rapport validé',sublabel:'Votre responsable a signé et approuvé ce rapport.',color:'var(--safe)'},
-      rejected:{bg:'#fef2f2',border:'var(--danger)',icon:'❌',label:'Rapport refusé',sublabel:'Votre responsable a refusé ce rapport.',color:'var(--danger)'},
-      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d'examen par votre responsable.',color:'var(--warn)'},
-    }[s]||{bg:'#f3f4f6',border:'#d1d5db',icon:'💾',label:'Brouillon local',sublabel:'Rapport non encore soumis.',color:'#6b7280'};
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 18px;background:${cfg.bg};border-top:1px solid ${cfg.border}">
-      <span style="font-size:20px;flex-shrink:0">${cfg.icon}</span>
-      <div>
-        <div style="font-weight:700;font-size:13px;color:${cfg.color}">${cfg.label}</div>
-        <div style="font-size:11.5px;color:#4b5563;margin-top:2px">${cfg.sublabel}</div>
-        ${comment?`<div style="margin-top:5px;font-size:11.5px;font-style:italic;color:#374151">💬 Commentaire : ${comment}</div>`:''}
-      </div>
-    </div>`;
-  }
-
-  function riskDetailHtml(risks){
-    if(!risks||!risks.length) return '<div style="padding:16px;color:#9ca3af;font-style:italic;text-align:center">Aucun risque renseigné</div>';
-    const sevLbl=s=>s==='high'?'CRITIQUE':s==='medium'?'MODÉRÉ':'FAIBLE';
-    return risks.map(x=>{
-      const [bg,col]=levelRgb(x.sev);
-      const solHtml=(x.solutions||[]).length
-        ?x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:var(--safe)">→</span>${s}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      const epcHtml=(x.epc||[]).length
-        ?x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:#5b3fb5">✓</span>${e}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      const epiHtml=(x.epi||[]).length
-        ?x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:#0e7490">✓</span>${e}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      return `<div style="border:1px solid #e5e7eb;border-radius:6px;margin-bottom:9px;overflow:hidden">
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:${bg}">
-          <span style="font-size:10px;font-weight:700;padding:2px 8px;background:${col};color:#fff;border-radius:20px">${sevLbl(x.sev)}</span>
-          <strong style="font-size:12.5px;color:var(--ink);flex:1">${x.name}</strong>
-          <span style="font-size:10px;color:#6b7280">${x.type||''}</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff">
-          <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--safe);margin-bottom:6px">🛡 Prévention</div>${solHtml}
-          </div>
-          <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5b3fb5;margin-bottom:6px">🔵 EPC collectif</div>${epcHtml}
-          </div>
-          <div style="padding:9px 11px">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#0e7490;margin-bottom:6px">🦺 EPI individuel</div>${epiHtml}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  function stepsHtml(steps){
-    if(!steps||!steps.length) return '';
-    return steps.map((s,i)=>`<div style="display:flex;gap:9px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #f3f4f6">
-      <span style="background:var(--accent2);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px">${i+1}</span>
-      <span style="font-size:12.5px;color:#374151;line-height:1.45">${s}</span>
-    </div>`).join('');
-  }
-
   let html='';
 
-  // ── Évaluations soumises ──────────────────────────────────────────────
   if(submitted.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:14px">📤 Soumises au responsable (${submitted.length})</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:12px">📤 Soumises au responsable (${submitted.length})</div>`;
     submitted.forEach(r=>{
       const ev=r.evalSnapshot||{};
-      const title=ev.interventionTitle||ev.mission||'Évaluation sans titre';
-      const uid='myev-sub-'+r.id;
-      const borderCol=r.status==='approved'?'var(--safe)':r.status==='rejected'?'var(--danger)':'var(--warn)';
-      html+=`<div style="border:2px solid ${borderCol};border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)">
-        <!-- En-tête -->
-        <div style="padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px;word-break:break-word">${title}</div>
-            <div style="font-size:12px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap">
+      const title=ev.interventionTitle||ev.mission||'—';
+      const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR'):'—';
+      html+=`<div style="border:1.5px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;background:#fff">
+        <div style="padding:14px 18px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px">${title}</div>
+            <div style="font-size:12px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap">
               <span>👤 ${r.submitterName||currentUser.name}</span>
               <span>📍 ${ev.location||'—'}</span>
               <span>📅 ${fmt(r.createdAt)}</span>
               <span>⚠️ ${(ev.risks||[]).length} risque(s)</span>
-              <span>📋 ${(ev.interventions||[]).length} intervention(s)</span>
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
-            <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
-              style="padding:6px 14px;background:var(--ink);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">
-              👁 Voir le détail
-            </button>
-            ${r.status==='approved'?`<button onclick="downloadValidatedReport('${r.id}')" style="padding:6px 14px;background:var(--accent2);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">📄 Télécharger PDF</button>`:''}
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            ${statusBadge(r.status)}
+            ${r.status!=='pending'?`<button onclick="downloadValidatedReport('${r._id||r.id}')" style="padding:5px 12px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">📄 PDF</button>`:''}
           </div>
         </div>
-        <!-- Bandeau statut -->
-        ${statusBlock(r.status,r.comment||'')}
-        <!-- Détail expansible -->
-        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
-          ${ev.missionSteps&&ev.missionSteps.length?`
-          <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:10px">📋 Phases de l'intervention</div>
-            ${stepsHtml(ev.missionSteps)}
-          </div>`:''}
-          ${(ev.interventions||[]).length?`
-          <div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-right:4px">Types :</span>
-            ${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}
-          </div>`:''}
-          <div style="padding:14px 18px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques, prévention & protections</div>
-            ${riskDetailHtml(ev.risks)}
-          </div>
-          ${r.sigIntervenant?`<div style="padding:10px 18px;border-top:1px solid #f3f4f6;display:flex;gap:16px;align-items:center">
-            <div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature intervenant</div><img src="${r.sigIntervenant}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>
-          </div>`:''}
-        </div>
+        ${r.comment?`<div style="padding:8px 18px;background:#f9fafb;border-top:1px solid var(--cream);font-size:11.5px;color:#4b5563;font-style:italic">💬 ${r.comment}</div>`:''}
       </div>`;
     });
   }
 
-  // ── Évaluations locales ───────────────────────────────────────────────
   if(local.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c3aed;margin:${submitted.length?'24px':0} 0 14px">💾 Évaluations locales (${local.length})</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c3aed;margin:20px 0 12px">💾 Évaluations locales (${local.length})</div>`;
     local.forEach((ev,i)=>{
       const title=ev.interventionTitle||ev.mission||'Évaluation sans titre';
-      const uid='myev-loc-'+i;
-      html+=`<div style="border:2px solid #ddd5fe;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#fff">
+      const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR'):'—';
+      html+=`<div style="border:1.5px solid #ddd5fe;border-radius:8px;margin-bottom:10px;overflow:hidden;background:#fff">
         <div style="padding:14px 18px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px;word-break:break-word">${title}</div>
+          <div style="flex:1">
+            <div style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px">${title}</div>
             <div style="font-size:12px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap">
               <span>👤 ${ev.operator||currentUser.name}</span>
               <span>📍 ${ev.location||'—'}</span>
@@ -5100,33 +4916,13 @@ async function renderMyEvals(){
               <span>⚠️ ${(ev.selectedRisks||[]).length} risque(s)</span>
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-            <span style="padding:3px 10px;background:#f3f4f6;color:#6b7280;border-radius:20px;font-size:10px;font-weight:700">💾 Brouillon local</span>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            ${statusBadge('local')}
             <div style="display:flex;gap:6px">
-              <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
-                style="padding:5px 10px;background:#e0e7ff;color:#4f46e5;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">👁 Détail</button>
-              <button onclick="loadLocalEval(${i})" style="padding:5px 12px;background:#7c3aed;color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer" title="Charger pour continuer ou créer un nouveau rapport">🔄 Charger</button>
-              <button onclick="deleteLocalEval(${i})" style="padding:5px 8px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:11px;color:#9ca3af;cursor:pointer" title="Supprimer">✕</button>
+              <button onclick="loadLocalEval(${i})" style="padding:5px 12px;background:#7c3aed;color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer" title="Charger cette évaluation pour la continuer ou créer un nouveau rapport">🔄 Charger</button>
+              <button onclick="deleteLocalEval(${i})" style="padding:5px 8px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:11px;color:#9ca3af;cursor:pointer">✕</button>
             </div>
           </div>
-        </div>
-        <!-- Détail local expansible -->
-        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
-          ${ev.missionSteps&&ev.missionSteps.length?`
-          <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:10px">📋 Phases de l'intervention</div>
-            ${stepsHtml(ev.missionSteps)}
-          </div>`:''}
-          ${(ev.interventions||[]).length?`
-          <div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-right:4px">Types :</span>
-            ${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}
-          </div>`:''}
-          ${ev.epiSnapshot&&Object.keys(ev.epiSnapshot).length?`
-          <div style="padding:14px 18px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques & protections enregistrés</div>
-            <div style="font-size:12px;color:#6b7280;font-style:italic">Les EPI/EPC sont enregistrés dans ce brouillon. Chargez-le pour voir le détail complet.</div>
-          </div>`:'<div style="padding:14px 18px;color:#9ca3af;font-size:12px;font-style:italic">Aucun détail de risques enregistré dans ce brouillon.</div>'}
         </div>
       </div>`;
     });
