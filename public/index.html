@@ -5551,5 +5551,41 @@ function _applyKwOverrides(){
 }
 
 </script>
+
+<script>
+
+// Corrected IA Detection Engine (Option C)
+// Normalize text, robust matching, apply rules, leverage variants
+function normalizeText(t){
+  return t.toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim();
+}
+
+function matchKeywords(text, keywords){
+  const t = normalizeText(text);
+  return keywords.some(k=>{
+    const nk = normalizeText(k);
+    return t.includes(nk);
+  });
+}
+
+function detectRisksFromText(text, rules){
+  const detected = new Set();
+  for(const type in rules){
+    const typeRules = rules[type];
+    for(const rule of typeRules){
+      if(matchKeywords(text, rule.w)){
+        rule.r.forEach(rid=>detected.add(rid));
+      }
+    }
+  }
+  return [...detected];
+}
+
+// Export for main app integration
+if(typeof window !== 'undefined'){
+  window.IA_Detect = { normalizeText, matchKeywords, detectRisksFromText };
+}
+
+</script>
 </body>
 </html>
