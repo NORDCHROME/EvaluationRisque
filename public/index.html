@@ -340,6 +340,10 @@ textarea{resize:vertical;min-height:80px;}
       👤 <span id="headerUserName" style="font-weight:600;color:#fff"></span>
       <span id="headerRole" style="color:#8a9aaa;font-size:10px"></span>
     </span>
+    <button id="btnMyEvals" onclick="openMyEvals()" style="display:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;padding:6px 14px;border-radius:2px;cursor:pointer;border:none;background:rgba(91,63,181,.2);color:#b39ddb;border:1px solid rgba(91,63,181,.3);position:relative">
+      📋 Mes Évaluations
+      <span id="myEvalsBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:800;align-items:center;justify-content:center;line-height:1">0</span>
+    </button>
     <button id="btnAdmin" onclick="openAdmin()" style="display:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;padding:6px 14px;border-radius:2px;cursor:pointer;border:none;background:rgba(26,77,110,.2);color:#7ab3d4;border:1px solid rgba(26,77,110,.3)">⚙ Admin</button>
     <button id="btnValidation" onclick="openValidationPanel()" style="display:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;padding:6px 14px;border-radius:2px;cursor:pointer;border:none;background:rgba(45,106,79,.2);color:#4ade80;border:1px solid rgba(45,106,79,.4);position:relative">
       ✅ Validations
@@ -370,6 +374,10 @@ textarea{resize:vertical;min-height:80px;}
     <div class="card-eyebrow">Étape 1 — Identification</div>
     <div class="card-title">Informations générales</div>
     <div class="card-desc">Renseignez les informations de l'intervenant et de la mission.</div>
+    <div class="field-group">
+      <label class="field-label" style="display:flex;align-items:center;gap:8px">🏷️ Titre de l'intervention <span style="font-weight:400;font-size:10px;color:var(--accent);background:#fff5f3;padding:2px 9px;border-radius:20px;text-transform:none;letter-spacing:0">Nom du rapport</span></label>
+      <input type="text" id="interventionTitle" placeholder="ex: Remplacement pompe P12 — Atelier traitement de surface" style="font-size:15px;font-weight:500"/>
+    </div>
     <div class="field-row">
       <div class="field-group">
         <label class="field-label">Société</label>
@@ -652,8 +660,23 @@ textarea{resize:vertical;min-height:80px;}
     <div class="btn-actions" style="margin-top:20px">
       <button class="btn btn-secondary" onclick="goStep(2)">← Modifier</button>
       <div id="signatureZone" style="display:flex;align-items:center;gap:12px;flex:1;justify-content:flex-end"></div>
+      <button class="btn btn-secondary" onclick="generateDraftPDF()" style="background:var(--paper);color:var(--ink);border:1.5px solid var(--border)" title="Télécharger le rapport en brouillon (avant validation)">📄 Brouillon PDF</button>
       <button class="btn btn-pdf" onclick="handleGeneratePDF()">📄 Générer le rapport PDF</button>
     </div>
+  </div>
+</div>
+
+<!-- MES ÉVALUATIONS PANEL -->
+<div id="myEvalsPanel" style="display:none;position:fixed;inset:0;background:rgba(10,18,26,.85);z-index:1002;align-items:flex-start;justify-content:center;padding:24px 16px;overflow-y:auto;">
+  <div style="background:#fff;border-radius:8px;width:900px;max-width:100%;box-shadow:0 32px 80px rgba(0,0,0,.5);margin:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 28px;background:var(--ink);border-radius:8px 8px 0 0;border-bottom:3px solid #7c3aed;">
+      <div style="display:flex;align-items:center;gap:14px">
+        <span style="color:#fff;font-family:'DM Serif Display',serif;font-size:20px">📋 Mes Évaluations</span>
+        <span id="myEvalsCount" style="font-size:11px;font-weight:700;background:#7c3aed;color:#fff;padding:3px 10px;border-radius:20px">0</span>
+      </div>
+      <button onclick="closeMyEvals()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:4px">✕</button>
+    </div>
+    <div id="myEvalsList" style="padding:24px;max-height:75vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -1480,6 +1503,7 @@ async function doLogin(){
     Object.keys(_cache).forEach(k=>delete _cache[k]);
     Object.keys(epiState).forEach(k=>delete epiState[k]);
     appState={step:0,operator:'',location:'',date:'',mission:'',missionSteps:[],
+      interventionTitle:'',
       selectedInterventions:new Set(),selectedRisks:new Set(),activeRiskId:null,
       manualRisks:[],derogations:{}};
     // Charger toutes les données depuis l'API
@@ -1579,6 +1603,12 @@ function initUI(){
   } else {
     document.getElementById('btnAdmin').style.display='none';
   }
+  // Bouton "Mes Évaluations" visible pour tous
+  const btnMyEvals=document.getElementById('btnMyEvals');
+  if(btnMyEvals) btnMyEvals.style.display='inline-flex';
+  refreshMyEvalsBadge();
+  // Appliquer les surcharges locales de mots-clés
+  _applyKwOverrides();
   document.getElementById('headerUserInfo').style.display='inline-flex';
   document.getElementById('btnLogout').style.display='inline-flex';
   document.getElementById('evalDate').valueAsDate=new Date();
@@ -1591,6 +1621,7 @@ function initUI(){
 const epiState = {};
 let appState = {
   step:0, operator:'', location:'', date:'', mission:'', missionSteps:[],
+  interventionTitle:'',   // titre de l'intervention (nom du rapport)
   selectedInterventions:new Set(), selectedRisks:new Set(), activeRiskId:null,
   manualRisks: [],        // risques saisis manuellement dans l'évaluation
   derogations: {}         // { riskId: { active: bool, justification: '', signataire: '' } }
@@ -1633,6 +1664,7 @@ function validateStep0(){
   appState.operator=o;
   appState.location=document.getElementById('location').value.trim()||'Non précisé';
   appState.date=document.getElementById('evalDate').value||new Date().toISOString().split('T')[0];
+  appState.interventionTitle=document.getElementById('interventionTitle')?.value.trim()||'';
   // Construire la mission à partir des étapes
   const steps=[...document.querySelectorAll('.step-desc-input')].map(t=>t.value.trim()).filter(Boolean);
   if(!steps.length){ showToast('Décrivez au moins une étape de l\'intervention.','error'); return false; }
@@ -1997,6 +2029,7 @@ function buildSummary(){
   const all=getAllRisks(), selected=all.filter(r=>appState.selectedRisks.has(r.id));
   const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}):'—';
   document.getElementById('summaryMeta').innerHTML=`
+    ${appState.interventionTitle?`<div class="meta-block" style="grid-column:span 3;background:linear-gradient(135deg,#fff8f7,#fde8e6);border-color:var(--accent)"><div class="meta-label" style="color:var(--accent)">Titre de l'intervention</div><div class="meta-value" style="font-size:16px">${appState.interventionTitle}</div></div>`:''}
     <div class="meta-block"><div class="meta-label">Société</div><div class="meta-value">${(_cache['company']||{name:'NORDCHROME'}).name}</div></div>
     <div class="meta-block"><div class="meta-label">Intervenant</div><div class="meta-value">${appState.operator}</div></div>
     <div class="meta-block"><div class="meta-label">Date</div><div class="meta-value">${fmt(appState.date)}</div></div>
@@ -3173,7 +3206,7 @@ async function renderAdminKeywords(){
         <div style="min-width:28px;text-align:center;font-size:11px;font-weight:700;color:${sc};background:${sb};padding:3px 7px;border-radius:3px">${rule.s}</div>
         <div class="adm-kw-tags">${rule.w.map(w=>`<span class="adm-kw-tag">${w}</span>`).join('')}</div>
         <div style="font-size:10px;color:#6b7280;white-space:nowrap">→ ${(rule.r||[]).join(', ')||'—'}</div>
-        <span style="font-size:10px;color:#bbb;margin-left:4px;white-space:nowrap">intégré</span>
+        <button class="adm-btn-edit" onclick="adminEditBuiltinKeyword('${type}',${idx})" style="padding:3px 10px;white-space:nowrap">✎ Modifier</button>
       </div>`;
     });
   });
@@ -3551,13 +3584,20 @@ async function sendToManagerForValidation(sigDataURL, level, manager){
     managerId:     String(manager.id),
     level,
     evalSnapshot:{
+      interventionTitle: appState.interventionTitle||'',
       operator:     appState.operator||currentUser.name,
       location:     appState.location||'—',
       date:         appState.date||new Date().toISOString().split('T')[0],
       mission:      appState.mission||'',
       missionSteps: appState.missionSteps||[],
       interventions:[...appState.selectedInterventions],
-      risks:        selected.map(r=>({id:r.id,name:r.name,sev:r.sev,type:r.interventionType,isManual:r.isManual||false})),
+      risks:        selected.map(r=>{
+        const es=getEPI(r.id);
+        return {id:r.id,name:r.name,sev:r.sev,type:r.interventionType,isManual:r.isManual||false,
+          solutions:r.solutions||[],
+          epc:[...es.collectif,...es.customC],
+          epi:[...es.individuel,...es.customI]};
+      }),
       derogations:  Object.fromEntries(Object.entries(appState.derogations||{}).filter(([,d])=>d.active)),
     },
     sigIntervenant: sigDataURL,
@@ -3654,6 +3694,7 @@ async function renderValidationList(){
         <!-- En-tête rapport -->
         <div style="background:linear-gradient(135deg,#fffbeb,#fef9e6);padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid #fde68a">
           <div style="flex:1">
+            ${(r.evalSnapshot||{}).interventionTitle?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:4px">🏷️ ${r.evalSnapshot.interventionTitle}</div>`:''}
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
               <strong style="font-size:15px">${r.submitterName}</strong>
               <span style="font-size:11px;color:#6b7280;background:var(--cream);padding:2px 8px;border-radius:20px">${r.submitterSite}</span>
@@ -3677,14 +3718,28 @@ async function renderValidationList(){
           ${stepsHtml?`<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:8px">Étapes de l'intervention</div>${stepsHtml}</div>`:''}
           ${(ev.interventions||[]).length?`<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:8px">Types d'intervention</div><div style="display:flex;flex-wrap:wrap;gap:6px">${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}</div></div>`:''}
           <div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:8px">Risques identifiés (${(ev.risks||[]).length})</div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px">
-              <thead><tr style="background:var(--ink)"><th style="color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase">Risque</th><th style="color:#fff;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase">Type</th><th style="color:#fff;padding:7px 10px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase">Niveau</th></tr></thead>
-              <tbody>${(ev.risks||[]).map((x,i)=>`<tr style="background:${i%2?'var(--paper)':'#fff'}">
-                <td style="padding:7px 10px;border-bottom:1px solid var(--cream)">${x.name}</td>
-                <td style="padding:7px 10px;border-bottom:1px solid var(--cream);color:#6b7280;font-size:11px">${x.type}</td>
-                <td style="padding:7px 10px;border-bottom:1px solid var(--cream);text-align:center">${levelLabel(x.sev)}</td>
-              </tr>`).join('')}</tbody>
-            </table>
+            ${(ev.risks||[]).map((x,i)=>{
+              const solHtml=(x.solutions||[]).length?x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid var(--cream)"><span style="position:absolute;left:0;font-weight:700;color:var(--safe)">→</span>${s}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+              const epcHtml=(x.epc||[]).length?x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid var(--cream)"><span style="position:absolute;left:0;font-weight:700;color:#5b3fb5">✓</span>${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+              const epiHtml=(x.epi||[]).length?x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid var(--cream)"><span style="position:absolute;left:0;font-weight:700;color:#0e7490">✓</span>${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+              return `<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:${x.sev==='high'?'#fde8e6':x.sev==='medium'?'#fef3e6':'#e6f4ec'}">
+                  ${levelLabel(x.sev)} <strong style="font-size:12.5px">${x.name}</strong>
+                  <span style="font-size:10px;color:#6b7280;margin-left:auto">${x.type}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;background:#fff">
+                  <div style="padding:10px 12px;border-right:1px solid var(--cream)">
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--safe);margin-bottom:6px">Prévention</div>${solHtml}
+                  </div>
+                  <div style="padding:10px 12px;border-right:1px solid var(--cream)">
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5b3fb5;margin-bottom:6px">EPC collectif</div>${epcHtml}
+                  </div>
+                  <div style="padding:10px 12px">
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#0e7490;margin-bottom:6px">EPI individuel</div>${epiHtml}
+                  </div>
+                </div>
+              </div>`;
+            }).join('')}
           </div>
         </div>
         <!-- Actions -->
@@ -3812,6 +3867,12 @@ function generateValidatedPDF(r, ev){
   doc.setDrawColor(200,75,49);doc.roundedRect(mg,y,IW,58,3,3,'S');
   doc.setFillColor(200,75,49);doc.rect(mg,y,3,58,'F');
   let fy=y+8;
+  // Afficher le titre de l'intervention si présent
+  if(ev.interventionTitle){
+    doc.setFontSize(12);doc.setFont('helvetica','bold');doc.setTextColor(200,75,49);
+    const tLines=doc.splitTextToSize(ev.interventionTitle, IW-20);
+    doc.text(tLines,W/2,96,{align:'center'});
+  }
   const infoFields=[['Intervenant',ev.operator||r.submitterName],['Site',r.submitterSite||'—'],['Date',fmt(ev.date)],['Lieu',ev.location||'—']];
   infoFields.forEach(([lbl,val],i)=>{
     const col=i%2===0?mg+8:W/2+4; if(i%2===0&&i>0) fy+=14;
@@ -3850,7 +3911,13 @@ function generateValidatedPDF(r, ev){
 
   (ev.risks||[]).forEach((r3,idx)=>{
     const[rc,gc,bc]=sevRgb(r3.sev);
-    checkY(16);
+    // Helpers for block
+    const PAD2=4; const LH2=4.5;
+    function bH2(items){ let h=PAD2+5; items.forEach(it=>{ const ls=doc.splitTextToSize(it,IW/3-PAD2*2-4); h+=ls.length*LH2+1; }); h+=PAD2; return h; }
+    const sol=r3.solutions||[]; const epc=r3.epc||[]; const epi=r3.epi||[];
+    const rowH=Math.max(bH2(sol),bH2(epc),bH2(epi));
+    checkY(16+rowH+4);
+    // Header
     doc.setFillColor(rc,gc,bc);doc.rect(mg,y,3,13,'F');
     doc.setFillColor(250,248,245);doc.rect(mg+3,y,IW-3,13,'F');
     doc.setDrawColor(200,192,181);doc.rect(mg,y,IW,13,'S');
@@ -3863,6 +3930,26 @@ function generateValidatedPDF(r, ev){
     doc.setTextColor(255,255,255);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
     doc.text(sevLbl(r3.sev),W-mg-14,y+7.5,{align:'center'});
     y+=16;
+    // Three columns: prevention | EPC | EPI
+    if(sol.length||epc.length||epi.length){
+      const colW=(IW-4)/3;
+      function drawCol2(bx,by,bw,bh,titleTxt,titleRgb,items,prefix){
+        doc.setFillColor(250,250,250);doc.roundedRect(bx,by,bw,bh,1,1,'F');
+        doc.setDrawColor(215,207,198);doc.roundedRect(bx,by,bw,bh,1,1,'S');
+        doc.setFillColor(...titleRgb);doc.roundedRect(bx,by,3,bh,1,1,'F');doc.rect(bx+2,by,1,bh,'F');
+        let ty=by+PAD2+3;
+        doc.setFontSize(6.5);doc.setFont('helvetica','bold');doc.setTextColor(...titleRgb);
+        doc.text(titleTxt,bx+PAD2+3,ty);ty+=5;
+        doc.setFontSize(6.5);doc.setFont('helvetica','normal');
+        if(!items.length){doc.setTextColor(180,180,180);doc.setFont('helvetica','italic');doc.text('—',bx+PAD2+3,ty);return;}
+        doc.setTextColor(55,65,81);
+        items.forEach(it=>{const ls=doc.splitTextToSize((prefix||'')+it,bw-PAD2*2-4);doc.text(ls,bx+PAD2+3,ty);ty+=ls.length*LH2+1;});
+      }
+      drawCol2(mg,y,colW,rowH,'PRÉVENTION',[45,106,79],sol,'→ ');
+      drawCol2(mg+colW+2,y,colW,rowH,'EPC COLLECTIF',[91,63,181],epc,'✓ ');
+      drawCol2(mg+colW*2+4,y,colW,rowH,'EPI INDIVIDUEL',[14,116,144],epi,'✓ ');
+      y+=rowH+4;
+    }
     // Dérogation si présente dans le snapshot
     const derogations=ev.derogations||{};
     const d3=derogations[r3.id];
@@ -3924,7 +4011,8 @@ function generateValidatedPDF(r, ev){
   }
 
   footer();
-  doc.save('Rapport_Valide_'+r.submitterName.replace(/\s+/g,'_')+'_'+new Date(r.createdAt).toLocaleDateString('fr-FR').replace(/\//g,'-')+'.pdf');
+  const valTitle=((r.evalSnapshot||{}).interventionTitle||('Rapport_'+r.submitterName)).replace(/[^a-z0-9À-ÿ\s_-]/gi,'_').replace(/\s+/g,'_');
+  doc.save(valTitle+'_Valide_'+new Date(r.createdAt).toLocaleDateString('fr-FR').replace(/\//g,'-')+'.pdf');
 }
 
 // ── Modal de signature (canvas) ───────────────────────────────────────────
@@ -4154,8 +4242,19 @@ function generatePDF(sigData){
   doc.setFillColor(200,75,49);doc.rect(mg,70,W-2*mg,1,'F');
   doc.setFontSize(18);doc.setFont('helvetica','normal');doc.setTextColor(180,200,220);
   doc.text('EvalRisque — Rapport d\'évaluation des risques',W/2,82,{align:'center'});
+  if(appState.interventionTitle){
+    doc.setFontSize(13);doc.setFont('helvetica','bold');doc.setTextColor(200,75,49);
+    const titleLines=doc.splitTextToSize(appState.interventionTitle,W-2*mg-20);
+    doc.text(titleLines,W/2,90,{align:'center'});
+  }
   doc.setFontSize(10);doc.setTextColor(120,140,160);
   doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'})}`,W/2,94,{align:'center'});
+  // Mention BROUILLON si draft
+  if(sigData&&sigData.draft){
+    doc.setFillColor(217,119,6);doc.roundedRect(mg,100,W-2*mg,12,2,2,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+    doc.text('⚠  BROUILLON — EN ATTENTE DE VALIDATION PAR LE RESPONSABLE',W/2,108,{align:'center'});
+  }
   y=108;
   doc.setFillColor(20,32,44);doc.roundedRect(mg,y,W-2*mg,72,3,3,'F');
   doc.setDrawColor(200,75,49);doc.roundedRect(mg,y,W-2*mg,72,3,3,'S');
@@ -4337,7 +4436,7 @@ function generatePDF(sigData){
   const bw2=(W-2*mg-8)/2;
   const sigBlocks=[
     {label:'Intervenant : '+(sigData?.operator||appState.operator), sig:sigData?.sigDataURL||null, auto:sigData?.auto||false},
-    {label:'Responsable NORDCHROME', sig:null}
+    {label:'Responsable NORDCHROME', sig:null, draft:sigData&&sigData.draft}
   ];
   sigBlocks.forEach((b,i)=>{
     const bx=mg+i*(bw2+8);
@@ -4354,16 +4453,43 @@ function generatePDF(sigData){
       doc.text('Date : '+new Date().toLocaleDateString('fr-FR'),bx+4,y+46);
     } else {
       doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(140,130,120);
-      doc.text('Signature :',bx+4,y+24);doc.text('Date :',bx+4,y+38);
-      doc.line(bx+22,y+24,bx+bw2-4,y+24);doc.line(bx+16,y+38,bx+bw2-4,y+38);
+      if(b.draft){
+        doc.setFillColor(255,243,205);doc.rect(bx+4,y+12,bw2-8,30,'F');
+        doc.setTextColor(217,119,6);doc.setFontSize(8);doc.setFont('helvetica','bold');
+        doc.text('EN ATTENTE DE VALIDATION',bx+bw2/2,y+26,{align:'center'});
+        doc.setTextColor(150,110,0);doc.setFontSize(7);doc.setFont('helvetica','normal');
+        doc.text('Ce rapport doit être validé',bx+bw2/2,y+33,{align:'center'});
+        doc.text('par le responsable.',bx+bw2/2,y+38,{align:'center'});
+      } else {
+        doc.text('Signature :',bx+4,y+24);doc.text('Date :',bx+4,y+38);
+        doc.line(bx+22,y+24,bx+bw2-4,y+24);doc.line(bx+16,y+38,bx+bw2-4,y+38);
+      }
     }
   });
   y+=54;
   footer();
-  doc.save(`EvalRisque_NORDCHROME_${appState.date||'rapport'}.pdf`);
-  saveReport('eval',{operator:appState.operator,location:appState.location,date:appState.date,
-    mission:appState.mission,interventions:[...appState.selectedInterventions],
-    selectedRisksCount:appState.selectedRisks.size});
+  const pdfTitle=(appState.interventionTitle||('EvalRisque_'+appState.date)||'rapport').replace(/[^a-z0-9À-ÿ\s_-]/gi,'_').replace(/\s+/g,'_');
+  doc.save(pdfTitle+'.pdf');
+  // Sauvegarder avec titre + snapshot complet pour rechargement
+  const selForSave=getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
+  const epiSnapshot={};
+  selForSave.forEach(r=>{ const es=getEPI(r.id); epiSnapshot[r.id]={collectif:[...es.collectif],individuel:[...es.individuel],customC:[...es.customC],customI:[...es.customI]}; });
+  const evalToSave={
+    id:'eval_'+Date.now(),
+    savedAt:new Date().toISOString(),
+    interventionTitle:appState.interventionTitle,
+    operator:appState.operator,location:appState.location,date:appState.date,
+    mission:appState.mission,missionSteps:appState.missionSteps||[],
+    interventions:[...appState.selectedInterventions],
+    selectedRisks:[...appState.selectedRisks],
+    derogations:appState.derogations||{},
+    epiSnapshot,
+    selectedRisksCount:appState.selectedRisks.size,
+    status:'local'
+  };
+  saveReport('eval',evalToSave);
+  _saveLocalEval(evalToSave);
+  refreshMyEvalsBadge();
 }
 
 function generatePP(){
@@ -4676,6 +4802,274 @@ function generatePP(){
 
   doc.save('PlanPrevention_NORDCHROME_'+(pp.dateDebut||'doc')+'.pdf');
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// MES ÉVALUATIONS PANEL
+// ══════════════════════════════════════════════════════════════════════════
+async function openMyEvals(){
+  await renderMyEvals();
+  document.getElementById('myEvalsPanel').style.display='flex';
+}
+function closeMyEvals(){
+  document.getElementById('myEvalsPanel').style.display='none';
+}
+async function refreshMyEvalsBadge(){
+  const btn=document.getElementById('btnMyEvals');
+  const badge=document.getElementById('myEvalsBadge');
+  if(!btn||!currentUser) return;
+  // Comptage rapide depuis le localStorage
+  const local=_getLocalEvals();
+  // Évaluations soumises (validations API)
+  let submitted=0;
+  try{
+    const vals=await api('GET','/data/validations')||[];
+    submitted=vals.filter(v=>String(v.submittedBy||v.submitterName)===String(currentUser.id)||v.submitterName===currentUser.name).length;
+  }catch(e){}
+  const total=local.length+submitted;
+  if(badge){ badge.style.display=total>0?'flex':'none'; badge.textContent=total>9?'9+':String(total); }
+}
+function _getLocalEvals(){
+  try{ return JSON.parse(localStorage.getItem('myEvals_'+currentUser.id)||'[]'); }catch(e){ return []; }
+}
+function _saveLocalEval(ev){
+  const list=_getLocalEvals();
+  // Éviter doublons par id
+  const idx=list.findIndex(e=>e.id===ev.id);
+  if(idx>=0) list[idx]=ev; else list.unshift(ev);
+  // Garder les 50 dernières
+  if(list.length>50) list.splice(50);
+  localStorage.setItem('myEvals_'+currentUser.id, JSON.stringify(list));
+}
+async function renderMyEvals(){
+  const container=document.getElementById('myEvalsList');
+  const countEl=document.getElementById('myEvalsCount');
+  if(!container) return;
+  container.innerHTML='<div style="text-align:center;padding:24px;color:#9ca3af">Chargement…</div>';
+
+  // Évals locales (brouillons + PDFs générés sans validation)
+  const local=_getLocalEvals();
+
+  // Évals soumises à validation (via API)
+  let submitted=[];
+  try{
+    const vals=await api('GET','/data/validations')||[];
+    submitted=vals.filter(v=>v.submitterName===currentUser.name||String(v.submittedBy)===String(currentUser.id));
+  }catch(e){}
+
+  const statusBadge=s=>{
+    if(s==='approved') return '<span style="padding:2px 9px;background:#e6f4ec;color:var(--safe);border-radius:20px;font-size:10px;font-weight:700">✓ Validé</span>';
+    if(s==='rejected') return '<span style="padding:2px 9px;background:#fde8e6;color:var(--danger);border-radius:20px;font-size:10px;font-weight:700">✕ Refusé</span>';
+    if(s==='pending')  return '<span style="padding:2px 9px;background:#fef3e6;color:var(--warn);border-radius:20px;font-size:10px;font-weight:700">⏳ En attente</span>';
+    return '<span style="padding:2px 9px;background:#f3f4f6;color:#6b7280;border-radius:20px;font-size:10px;font-weight:700">💾 Local</span>';
+  };
+
+  const total=local.length+submitted.length;
+  if(countEl) countEl.textContent=total;
+
+  if(!total){
+    container.innerHTML='<div style="text-align:center;padding:48px;color:#9ca3af;font-style:italic">Aucune évaluation enregistrée.<br><small>Générez votre premier rapport PDF pour le voir ici.</small></div>';
+    return;
+  }
+
+  let html='';
+
+  if(submitted.length){
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:12px">📤 Soumises au responsable (${submitted.length})</div>`;
+    submitted.forEach(r=>{
+      const ev=r.evalSnapshot||{};
+      const title=ev.interventionTitle||ev.mission||'—';
+      const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR'):'—';
+      html+=`<div style="border:1.5px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;background:#fff">
+        <div style="padding:14px 18px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px">${title}</div>
+            <div style="font-size:12px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap">
+              <span>👤 ${r.submitterName||currentUser.name}</span>
+              <span>📍 ${ev.location||'—'}</span>
+              <span>📅 ${fmt(r.createdAt)}</span>
+              <span>⚠️ ${(ev.risks||[]).length} risque(s)</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            ${statusBadge(r.status)}
+            ${r.status!=='pending'?`<button onclick="downloadValidatedReport('${r._id||r.id}')" style="padding:5px 12px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">📄 PDF</button>`:''}
+          </div>
+        </div>
+        ${r.comment?`<div style="padding:8px 18px;background:#f9fafb;border-top:1px solid var(--cream);font-size:11.5px;color:#4b5563;font-style:italic">💬 ${r.comment}</div>`:''}
+      </div>`;
+    });
+  }
+
+  if(local.length){
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c3aed;margin:20px 0 12px">💾 Évaluations locales (${local.length})</div>`;
+    local.forEach((ev,i)=>{
+      const title=ev.interventionTitle||ev.mission||'Évaluation sans titre';
+      const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR'):'—';
+      html+=`<div style="border:1.5px solid #ddd5fe;border-radius:8px;margin-bottom:10px;overflow:hidden;background:#fff">
+        <div style="padding:14px 18px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between">
+          <div style="flex:1">
+            <div style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px">${title}</div>
+            <div style="font-size:12px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap">
+              <span>👤 ${ev.operator||currentUser.name}</span>
+              <span>📍 ${ev.location||'—'}</span>
+              <span>📅 ${fmt(ev.savedAt||ev.date)}</span>
+              <span>⚠️ ${(ev.selectedRisks||[]).length} risque(s)</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+            ${statusBadge('local')}
+            <div style="display:flex;gap:6px">
+              <button onclick="loadLocalEval(${i})" style="padding:5px 12px;background:#7c3aed;color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer" title="Charger cette évaluation pour la continuer ou créer un nouveau rapport">🔄 Charger</button>
+              <button onclick="deleteLocalEval(${i})" style="padding:5px 8px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:11px;color:#9ca3af;cursor:pointer">✕</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+  }
+
+  container.innerHTML=html;
+}
+
+function deleteLocalEval(idx){
+  if(!confirm('Supprimer cette évaluation locale ?')) return;
+  const list=_getLocalEvals();
+  list.splice(idx,1);
+  localStorage.setItem('myEvals_'+currentUser.id, JSON.stringify(list));
+  renderMyEvals();
+  refreshMyEvalsBadge();
+}
+
+function loadLocalEval(idx){
+  const list=_getLocalEvals();
+  const ev=list[idx]; if(!ev) return;
+  if(!confirm('Charger cette évaluation ? Le formulaire actuel sera remplacé.')) return;
+  closeMyEvals();
+  // Remplir le formulaire étape 1
+  if(document.getElementById('interventionTitle')) document.getElementById('interventionTitle').value=ev.interventionTitle||'';
+  if(document.getElementById('operator')) document.getElementById('operator').value=ev.operator||'';
+  if(document.getElementById('location')) document.getElementById('location').value=ev.location||'';
+  if(document.getElementById('evalDate')) document.getElementById('evalDate').value=ev.date||'';
+  // Reconstruire les étapes de mission
+  const stepsBody=document.getElementById('missionStepsBody');
+  if(stepsBody && (ev.missionSteps||[]).length){
+    stepsBody.innerHTML='';
+    ev.missionSteps.forEach((step,i)=>{
+      const tr=document.createElement('tr');
+      tr.setAttribute('data-step',i+1);
+      tr.innerHTML=`<td class="step-num-cell">${i+1}</td>
+        <td><textarea class="step-desc-input" rows="2" placeholder="…" oninput="onStepInput(this)">${step}</textarea></td>
+        <td><div class="step-risks-zone" id="step-risks-${i+1}"><span class="step-risks-placeholder">Décrivez l'étape…</span></div></td>
+        <td><button class="pp-del-btn" onclick="delMissionStep(this)" title="Supprimer">×</button></td>`;
+      stepsBody.appendChild(tr);
+    });
+  }
+  // Valider step 0 pour passer à l'étape suivante avec les données
+  appState.interventionTitle=ev.interventionTitle||'';
+  appState.operator=ev.operator||'';
+  appState.location=ev.location||'';
+  appState.date=ev.date||new Date().toISOString().split('T')[0];
+  appState.mission=ev.mission||'';
+  appState.missionSteps=ev.missionSteps||[];
+  // Restaurer les interventions
+  appState.selectedInterventions=new Set(ev.interventions||[]);
+  // Restaurer les risques sélectionnés
+  appState.selectedRisks=new Set(ev.selectedRisks||[]);
+  // Restaurer les dérogations
+  appState.derogations=ev.derogations||{};
+  // Restaurer les EPI
+  if(ev.epiSnapshot){
+    Object.entries(ev.epiSnapshot).forEach(([riskId, epi])=>{
+      const type=getInterventionType(riskId);
+      if(!epiState[type]) epiState[type]={collectif:new Set(),individuel:new Set(),customC:[],customI:[]};
+      epiState[type].collectif=new Set(epi.collectif||[]);
+      epiState[type].individuel=new Set(epi.individuel||[]);
+      epiState[type].customC=epi.customC||[];
+      epiState[type].customI=epi.customI||[];
+    });
+  }
+  // Aller à step 0 pour review
+  goStep(0);
+  showToast('Évaluation chargée — vérifiez et continuez','success');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// BROUILLON PDF (sans validation)
+// ══════════════════════════════════════════════════════════════════════════
+function generateDraftPDF(){
+  // Générer le PDF avec mention "BROUILLON — EN ATTENTE DE VALIDATION"
+  _pendingDraft=true;
+  const sigData={operator:currentUser.name, sigDataURL:null, draft:true};
+  generatePDF(sigData);
+  _pendingDraft=false;
+}
+let _pendingDraft=false;
+
+// ══════════════════════════════════════════════════════════════════════════
+// ÉDITION DES MOTS-CLÉS INTÉGRÉS
+// ══════════════════════════════════════════════════════════════════════════
+function adminEditBuiltinKeyword(type, idx){
+  // Supprimer éventuel formulaire ouvert
+  document.getElementById('kw-edit-form')?.remove();
+  const rule=AI_KW[type]&&AI_KW[type][idx];
+  if(!rule) return;
+  const form=document.createElement('div');
+  form.id='kw-edit-form';
+  form.style.cssText='background:#fffbeb;border:1.5px solid var(--warn);border-radius:6px;padding:14px 16px;margin:8px 0;';
+  form.innerHTML=`<div style="font-size:11px;font-weight:700;color:var(--warn);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">✏️ Modifier règle intégrée — ${type}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+      <div><label class="field-label" style="font-size:9px">Mots-clés (virgule)</label><input type="text" id="bk-words" value="${rule.w.join(', ')}" style="padding:8px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+      <div><label class="field-label" style="font-size:9px">IDs risques (virgule)</label><input type="text" id="bk-risks" value="${(rule.r||[]).join(', ')}" style="padding:8px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+      <div><label class="field-label" style="font-size:9px">Score</label>
+        <select id="bk-score" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+          ${[5,4,3,2].map(s=>`<option value="${s}"${rule.s===s?' selected':''}>${s}</option>`).join('')}
+        </select>
+      </div>
+      <div><label class="field-label" style="font-size:9px">&nbsp;</label>
+        <button onclick="saveEditBuiltinKeyword('${type}',${idx})" class="adm-btn-primary" style="font-size:12px;padding:9px 16px">💾</button>
+      </div>
+    </div>
+    <div style="margin-top:8px"><button onclick="document.getElementById('kw-edit-form').remove()" style="padding:6px 14px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:12px;cursor:pointer">Annuler</button></div>`;
+  const kwRow=document.getElementById(`kw-builtin-${type}-${idx}`);
+  if(kwRow) kwRow.after(form);
+  else document.getElementById('adm-kw-list').appendChild(form);
+}
+async function saveEditBuiltinKeyword(type, idx){
+  const rule=AI_KW[type]&&AI_KW[type][idx]; if(!rule) return;
+  const words=document.getElementById('bk-words')?.value.trim().split(',').map(w=>w.trim()).filter(Boolean)||rule.w;
+  const risks=document.getElementById('bk-risks')?.value.trim().split(',').map(r=>r.trim()).filter(Boolean)||rule.r;
+  const score=parseInt(document.getElementById('bk-score')?.value)||rule.s;
+  // Sauvegarder en local comme override
+  const overrides=JSON.parse(localStorage.getItem('kw_overrides_'+currentUser.id)||'{}');
+  if(!overrides[type]) overrides[type]={};
+  overrides[type][idx]={w:words,r:risks,s:score};
+  localStorage.setItem('kw_overrides_'+currentUser.id, JSON.stringify(overrides));
+  // Appliquer en mémoire
+  AI_KW[type][idx].w=words;
+  AI_KW[type][idx].r=risks;
+  AI_KW[type][idx].s=score;
+  document.getElementById('kw-edit-form')?.remove();
+  // Reset filtre
+  const kf=document.getElementById('adm-kw-filter'); if(kf) kf.innerHTML='<option value="">Tous les types</option>';
+  renderAdminKeywords();
+  showToast('Règle intégrée modifiée — active immédiatement','success');
+}
+function _applyKwOverrides(){
+  try{
+    const overrides=JSON.parse(localStorage.getItem('kw_overrides_'+(currentUser?.id||''))||'{}');
+    Object.entries(overrides).forEach(([type,idxMap])=>{
+      if(!AI_KW[type]) return;
+      Object.entries(idxMap).forEach(([idx,rule])=>{
+        if(AI_KW[type][idx]){
+          AI_KW[type][idx].w=rule.w;
+          AI_KW[type][idx].r=rule.r;
+          AI_KW[type][idx].s=rule.s;
+        }
+      });
+    });
+  }catch(e){}
+}
+
 </script>
 </body>
 </html>
