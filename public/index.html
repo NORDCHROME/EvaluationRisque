@@ -2123,6 +2123,13 @@ const AI_KW={
     {s:3,w:['echelle','mezzanine','passerelle','balcon','plancher superieur'],r:['h1','h2']},
     {s:2,w:['vent','verglas','tempete'],r:['h4']},
     {s:4,w:['ligne aerienne','ligne electrique aerienne','htb aerien'],r:['h5']},
+    // Structures, accès, EPI, météo
+    {s:3,w:['escalier','garde corps','plafond','dalle','plancher'],r:['h1','h2']},
+    {s:3,w:['ascenseur','monte charge'],r:['h1','h3']},
+    {s:3,w:['travail hauteur','acces difficile'],r:['h1','h3']},
+    {s:2,w:['fondation','mur'],r:['h1','h2']},
+    {s:3,w:['casque','casque chantier','harnais securite'],r:['h1','h2']},
+    {s:3,w:['balisage','balisage zone','signalisation'],r:['h2']},
   ],
   'Travaux électriques':[
     {s:5,w:['electrique','electricite','tableau electrique','armoire electrique'],r:['e1','e2']},
@@ -2133,6 +2140,11 @@ const AI_KW={
     {s:3,w:['cable','cablage','conducteur'],r:['e1','e3']},
     {s:5,w:['arc electrique','arc flash','electrocution','court-circuit'],r:['e1','e2']},
     {s:4,w:['reseau electrique enterre','dict electrique','cable enterre'],r:['e4']},
+    // Composants électriques
+    {s:3,w:['interrupteur','relais','fusible','panneau solaire','eolienne'],r:['e1','e3']},
+    {s:3,w:['puissance','frequence','phase','neutre','tension','courant'],r:['e1','e3']},
+    {s:3,w:['mise a la terre','continuite','isolement','connecteur'],r:['e1','e3']},
+    {s:3,w:['armoire','tableau electrique','tgbt'],r:['e1','e2','e3']},
   ],
   'Manutention & levage':[
     {s:5,w:['levage','grue','pont roulant','portique'],r:['m1','m3']},
@@ -2141,6 +2153,10 @@ const AI_KW={
     {s:4,w:['charge lourde','soulever','palette','container'],r:['m1','m2']},
     {s:4,w:['port de charge','tms','lombaire','dos','hernie'],r:['m2']},
     {s:3,w:['basculement','renversement','desequilibre'],r:['m3']},
+    // Équipements & sécurité manutention
+    {s:3,w:['amortisseur','volant','friction'],r:['m2','m3']},
+    {s:3,w:['casque','gants','chaussures securite','epi'],r:['m1','m2']},
+    {s:3,w:['balisage','signalisation'],r:['m1','m3']},
   ],
   'Travaux en espace confiné':[
     {s:5,w:['espace confine','espace restreint'],r:['ec1','ec2','ec3','ec4']},
@@ -2148,6 +2164,9 @@ const AI_KW={
     {s:4,w:['egout','galerie','tunnel','puits','regard','collecteur'],r:['ec1','ec2']},
     {s:5,w:['gaz asphyxiant','manque oxygene','h2s','monoxyde'],r:['ec2']},
     {s:5,w:['detecteur multigaz','analyse atmosphere'],r:['ec2']},
+    // Accès & préparation espace confiné
+    {s:4,w:['zone confinee','acces difficile','autorisation travail'],r:['ec1','ec2','ec4']},
+    {s:3,w:['purge energie','isolation energie','mise hors service'],r:['ec1','ec4']},
   ],
   'Produits chimiques & dangereux':[
     {s:5,w:['produit chimique','produit dangereux','substance chimique'],r:['ch1','ch2']},
@@ -2156,6 +2175,17 @@ const AI_KW={
     {s:4,w:['decapant','degraissant','dissolvant'],r:['ch1','ch2']},
     {s:4,w:['hydrocarbure','fuel','fioul','toluene','benzene'],r:['ch1','ch2']},
     {s:3,w:['deversement','fuite chimique','contamination'],r:['ch3','ch4']},
+    // Produits & symptômes chimiques
+    {s:4,w:['graisse','lubrifiant','huile','liquide refroidissement'],r:['ch1','ch2']},
+    {s:4,w:['detergent','additif','antigel','nettoyant','inhibiteur','anticorrosion'],r:['ch1','ch2']},
+    {s:4,w:['vernis','mastic','resine','adhesif'],r:['ch1','ch2']},
+    {s:3,w:['joint torique','joint plat','garniture'],r:['ch2','ch4']},
+    {s:3,w:['filtre huile','filtre air','filtre carburant','changement filtre'],r:['ch4','mi1']},
+    {s:4,w:['corrosion','oxydation','infiltration','humidite'],r:['ch4','mi3']},
+    {s:3,w:['fissure','rupture','deformation'],r:['ch4','mi3']},
+    {s:3,w:['encrassement','colmatage','debouchage','decalamination'],r:['ch4','mi3']},
+    {s:3,w:['lavage','rincage','sechage','soufflage','aspiration'],r:['ch1','ch2']},
+    {s:3,w:['decapage','degraissage','nettoyage piece','nettoyage systeme'],r:['ch1','ch2']},
   ],
   'Soudage & découpe thermique':[
     {s:5,w:['soudage','soudure','souder'],r:['s1','s2','s3']},
@@ -2166,6 +2196,8 @@ const AI_KW={
     {s:4,w:['fumee soudage','fumee metallique'],r:['s4']},
     {s:4,w:['bouteille gaz','acetylene explosion','bleve'],r:['s5']},
     {s:3,w:['meuleuse','meulage','disque abrasif'],r:['s2','s3']},
+    // Outillage & préparation soudage
+    {s:2,w:['preparation intervention','prise outil','caisse outil'],r:['s1','s3']},
   ],
   'Travaux sur voirie & route':[
     {s:5,w:['voirie','route','chaussee','trottoir','autoroute'],r:['r1','r2']},
@@ -2173,6 +2205,9 @@ const AI_KW={
     {s:5,w:['heurtement vehicule','collision route'],r:['r1','r2']},
     {s:4,w:['nationale','departementale','zone circulee'],r:['r1','r2']},
     {s:4,w:['deviation','alternat','fermeture voie'],r:['r1','r2']},
+    // Contexte voirie
+    {s:3,w:['urgente','intervention urgence','intervention nuit','intervention weekend'],r:['r1','r2']},
+    {s:3,w:['deplacement','trajet'],r:['r1']},
   ],
   'Maintenance industrielle':[
     {s:5,w:['consignation machine','loto mecanique','cadenassage machine'],r:['mi1','mi2']},
@@ -2200,6 +2235,86 @@ const AI_KW={
     {s:5,w:['levage piece','poser piece','depose lourde','deplacer equipement'],r:['mi8','m1','m4']},
     {s:4,w:['palan','potence','palan chaine','anneau levage','point levage'],r:['mi8','m1']},
     {s:4,w:['elingue piece','sangles machine','soulever moteur','sortir pompe'],r:['mi8','m1']},
+    // Défauts & symptômes machines
+    {s:4,w:['vibration','bruit','usure','jeu','blocage','surcharge','surchauffe'],r:['mi1','mi3']},
+    {s:4,w:['fuite','fuite interne','fuite externe','perte performance'],r:['mi2','mi3']},
+    {s:4,w:['corrosion','oxydation','cavitation','desalignement','instabilite'],r:['mi1','mi3']},
+    {s:4,w:['oscillation','ralentissement','dysfonctionnement','defaut','panne'],r:['mi1','mi2']},
+    {s:3,w:['echauffement','surchauffe','encrassement','colmatage'],r:['mi2','mi3']},
+    {s:3,w:['rupture','fissure','deformation','amortisseur'],r:['mi1','mi3']},
+    // Opérations terrain détaillées
+    {s:4,w:['reparation','reparation sur place','reparation atelier'],r:['mi1','mi2']},
+    {s:4,w:['mise en service','redemarrage','redemarrage installation'],r:['mi1','mi2']},
+    {s:4,w:['arret','arret production','immobilisation','indisponibilite'],r:['mi1','mi2']},
+    {s:4,w:['solution temporaire','contournement','echange standard'],r:['mi1','mi2']},
+    {s:3,w:['ajustement','reglage terrain','desserrage','demontage rapide','remontage rapide'],r:['mi1','mi6']},
+    {s:3,w:['appoint huile','ajout lubrifiant','purge','vidange'],r:['mi2','mi3']},
+    {s:3,w:['decalamination','decapage','debouchage'],r:['mi3','mi2']},
+    // Contrôles & mesures terrain
+    {s:4,w:['diagnostic terrain','analyse panne','localisation panne','recherche defaut'],r:['mi1','mi2']},
+    {s:4,w:['verification terrain','controle visuel','controle fonctionnel','controle etat'],r:['mi1','mi3']},
+    {s:3,w:['verification usure','verification fixation','verification serrage','verification alignement'],r:['mi1','mi6']},
+    {s:3,w:['detection bruit','detection vibration','recherche fuite'],r:['mi1','mi3']},
+    {s:3,w:['controle temperature','controle pression','controle debit','controle niveau'],r:['mi2','mi3']},
+    {s:3,w:['mesure tension','mesure courant','mesure resistance'],r:['e1','e3']},
+    {s:3,w:['test continuite','test isolement','test securite','test arret urgence'],r:['e1','mi1']},
+    {s:3,w:['test capteur','test alarme','test systeme','test liaison'],r:['mi1','mi3']},
+    {s:3,w:['recalibrage','etalonnage terrain','reinitialisation','reset systeme'],r:['mi1']},
+    {s:3,w:['parametrage','reprogrammation','configuration'],r:['mi1','mi2']},
+    {s:3,w:['connexion reseau','verification communication'],r:['mi1','ia3']},
+    {s:3,w:['diagnostic electronique','diagnostic mecanique','diagnostic hydraulique','diagnostic pneumatique','diagnostic electrique'],r:['mi1','mi2','e1']},
+    // Outillage terrain
+    {s:3,w:['cle','cle plate','cle dynamometrique','tournevis','pince','marteau'],r:['mi1','mi6']},
+    {s:3,w:['comparateur','pied a coulisse','micrometre'],r:['mi1','mi3']},
+    {s:3,w:['manometre','thermometre','tachymetre','jauge'],r:['mi2','mi3']},
+    {s:3,w:['laser','niveau','regle'],r:['mi1','mi3']},
+    {s:3,w:['outil portatif','caisse outil','equipement mobile','lampe frontale'],r:['mi1']},
+    {s:3,w:['radio communication','telephone terrain','tablette intervention'],r:['mi1']},
+    {s:3,w:['ordinateur','tablette','smartphone','logiciel'],r:['mi1','ia1']},
+    // Gestion intervention terrain
+    {s:4,w:['urgence','intervention urgence','intervention rapide','intervention immediate'],r:['mi1','mi2']},
+    {s:4,w:['intervention planifiee','intervention corrective','intervention differee'],r:['mi1']},
+    {s:3,w:['intervention nuit','intervention weekend','intervention equipe','intervention solo'],r:['mi1']},
+    {s:3,w:['intervention exterieure','intervention interieure'],r:['mi1']},
+    {s:3,w:['signalement','demande intervention','prise en charge','appel'],r:['mi1']},
+    {s:3,w:['preparation intervention','prise outil','prise piece','logistique intervention'],r:['mi1']},
+    {s:3,w:['deplacement','trajet'],r:['mi1']},
+    {s:3,w:['coordination','coordination maintenance','coordination production','communication equipe'],r:['mi1']},
+    {s:3,w:['compte rendu intervention','rapport terrain','cloture intervention','validation intervention'],r:['mi1']},
+    {s:3,w:['fiche intervention','ordre travail','bon intervention','suivi intervention'],r:['mi1']},
+    {s:3,w:['criticite','niveau urgence','gestion priorite','priorisation intervention'],r:['mi1','mi2']},
+    {s:3,w:['temps intervention','delai intervention','temps reparation'],r:['mi1','mi2']},
+    {s:3,w:['reprise activite','continuite service','impact production','arret production'],r:['mi1','mi2']},
+    {s:3,w:['solution definitive','limitation impact'],r:['mi1','mi2']},
+    {s:3,w:['gestion panne','gestion urgence','gestion incident'],r:['mi1','mi2']},
+    {s:3,w:['dispatching','affectation technicien','mobilisation equipe','planification urgence'],r:['mi1']},
+    {s:3,w:['disponibilite technicien','disponibilite piece','gestion ressources'],r:['mi1']},
+    {s:3,w:['verification stock','demande piece','commande urgente','livraison rapide'],r:['mi1']},
+    {s:3,w:['stockage temporaire','gestion materiel','gestion outil'],r:['mi1']},
+    // Sécurité avant/après intervention
+    {s:4,w:['consignation securite','mise hors tension','mise hors service','isolation energie'],r:['mi1','e1']},
+    {s:4,w:['purge energie','mise a terre','verification absence tension'],r:['mi1','e1']},
+    {s:4,w:['controle securite avant intervention','controle securite apres intervention'],r:['mi1','e1']},
+    {s:3,w:['reprise securisee','validation securite','remise en service'],r:['mi1']},
+    {s:3,w:['mise en securite','balisage zone','installation balisage'],r:['mi1','h2']},
+    {s:3,w:['autorisation travail','acces site','acces machine'],r:['mi1']},
+    {s:3,w:['gestion risque','evaluation risque','analyse danger','prevention accident'],r:['mi1']},
+    {s:3,w:['protection collective','protection individuelle','intervention securisee'],r:['mi1']},
+    {s:3,w:['gestion accident','premier secours','evacuation urgence'],r:['mi1']},
+    {s:3,w:['alerte secours','communication urgence','coordination secours'],r:['mi1']},
+    // Clôture & traçabilité
+    {s:3,w:['nettoyage zone','rangement outil','evacuation dechets'],r:['mi1']},
+    {s:3,w:['retour normale','remise en etat','nettoyage final','controle final'],r:['mi1']},
+    {s:3,w:['validation finale','cloture dossier','archivage intervention','tracabilite intervention'],r:['mi1']},
+    {s:3,w:['analyse performance','optimisation intervention','reduction temps arret'],r:['mi1']},
+    {s:3,w:['amelioration processus','standardisation intervention'],r:['mi1']},
+    // Pièces & consommables
+    {s:3,w:['piece rechange','consommable','magasin','entrepot'],r:['mi1']},
+    {s:3,w:['filtre huile','filtre air','filtre carburant','changement filtre'],r:['mi1','mi3']},
+    {s:3,w:['joint torique','joint plat','garniture'],r:['mi1','mi2']},
+    // Instruments de mesure
+    {s:3,w:['manometre','thermometre','tachymetre','jauge','comparateur'],r:['mi2','mi3']},
+    {s:3,w:['pied a coulisse','micrometre','laser','regle','niveau'],r:['mi1','mi3']},
   ],
   'Travaux de démolition':[
     {s:5,w:['demolition','deconstruction','desamiantage'],r:['d1','d2']},
@@ -2207,6 +2322,8 @@ const AI_KW={
     {s:5,w:['marteau piqueur','brise beton','perforateur'],r:['d1','d3']},
     {s:4,w:['effondrement structure','mur porteur','etaiement'],r:['d1']},
     {s:4,w:['silice','silicose','beton a casser'],r:['d4']},
+    // Contexte démolition
+    {s:3,w:['inspection visuelle detaillee','controle etat'],r:['d1','d3']},
   ],
   'Travaux de toiture & étanchéité':[
     {s:5,w:['toiture etancheite','etancheite toiture','rive toiture'],r:['t1','t2']},
@@ -2277,6 +2394,16 @@ const AI_KW={
     // Protocoles & interfaces
     {s:3,w:['modbus','profibus','protocole industriel','opc ua'],r:['ia2','ia3']},
     {s:3,w:['interface utilisateur ia','tableau de bord ia','ihm connecte'],r:['ia1','ia4']},
+    // Gestion incident cyber & continuité
+    {s:4,w:['gestion incident','gestion crise','plan reprise activite','continuite activite'],r:['ia2','ia4']},
+    {s:3,w:['antivirus','restauration','sauvegarde'],r:['ia2']},
+    {s:3,w:['hotline','support technique','ticketing','assistance utilisateur'],r:['ia4']},
+    {s:3,w:['erp','logiciel gestion','base donnee','application'],r:['ia1','ia4']},
+    {s:3,w:['workflow','processus','standardisation','optimisation processus'],r:['ia1']},
+    {s:3,w:['notification','alerte automatique'],r:['ia3']},
+    {s:3,w:['ethernet','wifi','bluetooth'],r:['ia2','ia3']},
+    {s:3,w:['architecture systeme','interface utilisateur','protocole communication'],r:['ia1','ia4']},
+    {s:3,w:['innovation','amelioration continue systeme'],r:['ia1','ia4']},
   ],
   'Maintenance industrielle & dépannage':[
     {s:5,w:['pont roulant','grue atelier','levage machine'],r:['m1','m3']},
@@ -2325,6 +2452,82 @@ const AI_KW={
     // GMAO & organisation
     {s:2,w:['gmao','ordre travail','bon intervention','fiche technique machine'],r:['mi1']},
     {s:2,w:['historique panne','tracabilite','retour experience maintenance'],r:['mi1']},
+    // Symptômes & défauts supplémentaires
+    {s:4,w:['cavitation','oscillation','instabilite','ralentissement'],r:['mi1','mi3']},
+    {s:3,w:['colmatage','encrassement','contamination'],r:['mi2','mi3']},
+    // Méthodes qualité & fiabilité
+    {s:3,w:['amdec','arbre defaillance','diagramme ishikawa','pareto'],r:['mi1','mi3']},
+    {s:3,w:['rca','lean','tpm','six sigma','kaizen','smed','5s'],r:['mi1']},
+    {s:3,w:['mtbf','mttr','fiabilite','maintenabilite','disponibilite'],r:['mi1','mi3']},
+    {s:3,w:['rendement','efficacite','qualite','performance'],r:['mi1']},
+    {s:3,w:['amelioration continue','fiabilisation','analyse defaillance'],r:['mi1','mi3']},
+    {s:3,w:['suivi condition','inspection periodique','controle qualite'],r:['mi1','mi3']},
+    {s:3,w:['verification technique','audit interne','audit externe'],r:['mi1']},
+    {s:3,w:['controle non destructif','ultrasons','radiographie','endoscopie'],r:['mi1','mi3']},
+    // Types de maintenance
+    {s:3,w:['corrective urgente','corrective immediate','corrective differee'],r:['mi1','mi2']},
+    {s:3,w:['planifiee','preventive systematique','predictive conditionnelle'],r:['mi1']},
+    {s:3,w:['premier niveau','second niveau','troisieme niveau'],r:['mi1']},
+    {s:3,w:['systematique','conditionnelle','ameliorative','fiabilisation'],r:['mi1']},
+    {s:3,w:['externalisee','internalisee','sous traitant'],r:['mi1']},
+    // Gestion & organisation
+    {s:3,w:['planification','ordonnancement','planning','gestion planning'],r:['mi1']},
+    {s:3,w:['rapport','compte rendu','indicateur','kpi'],r:['mi1']},
+    {s:3,w:['tracabilite','historique','retour experience','documentation'],r:['mi1']},
+    {s:3,w:['procedure','instruction','fiche technique','dossier','registre'],r:['mi1']},
+    {s:3,w:['conformite','norme','certification','inspection reglementaire'],r:['mi1']},
+    {s:3,w:['audit','formation','habilitation','qualification','competence'],r:['mi1']},
+    {s:3,w:['budget','cout','optimisation','strategie'],r:['mi1']},
+    {s:3,w:['approvisionnement','inventaire','stock'],r:['mi1']},
+    {s:3,w:['fournisseur','contrat','ressource'],r:['mi1']},
+    {s:2,w:['secteur industriel','batiment','ferroviaire','automobile','aeronautique','navale','energetique'],r:['mi1']},
+    // Applications numériques maintenance
+    {s:3,w:['erp','logiciel gestion','application','base donnee','gmao'],r:['mi1','ia1']},
+    {s:3,w:['workflow','processus','standardisation','optimisation processus'],r:['mi1']},
+    {s:3,w:['ticketing','hotline','support technique','assistance utilisateur'],r:['mi1']},
+    {s:3,w:['gestion equipe','gestion competence','gestion formation','gestion connaissance'],r:['mi1']},
+    {s:3,w:['innovation','transformation digitale','numerique','connectee'],r:['mi1','ia1']},
+    {s:2,w:['robotisee','automatisee','intelligente','assistee'],r:['mi1','ia1']},
+    // Capteurs spécifiques supplémentaires
+    {s:3,w:['capteur niveau','capteur courant','capteur tension','capteur acoustique'],r:['mi3','ia3']},
+    {s:3,w:['capteur optique','capteur proximite','capteur position','capteur vitesse'],r:['mi3','ia3']},
+    {s:3,w:['capteur acceleration','capteur humidite','capteur gaz','capteur fumee'],r:['mi3','ia3']},
+    {s:3,w:['capteur flamme','capteur infrarouge','capteur ultrason'],r:['mi3','ia3']},
+    {s:3,w:['capteur laser','capteur fibre optique','capteur magnetique'],r:['mi3','ia3']},
+    {s:3,w:['capteur inductif','capteur capacitif','capteur piezo'],r:['mi3','ia3']},
+    {s:3,w:['capteur sans fil','capteur industriel','detecteur gaz','detecteur'],r:['mi3','ia3']},
+    // Communication réseau maintenance
+    {s:3,w:['ethernet','wifi','bluetooth','reseau industriel'],r:['mi1','ia2']},
+    {s:3,w:['protocole communication','architecture systeme','interface utilisateur'],r:['mi1','ia1']},
+    {s:3,w:['continuite activite','plan reprise activite','sauvegarde','restauration'],r:['mi1','ia4']},
+    {s:3,w:['gestion crise','antivirus','firewall'],r:['ia2']},
+    {s:3,w:['notification','alerte automatique','alarme','supervision systeme'],r:['mi1','ia3']},
+    // Thermique & fluides
+    {s:3,w:['chaleur','transfert thermique','convection','conduction','chauffage'],r:['mi2','ch1']},
+    {s:3,w:['refroidissement','condensation','evaporation','ventilation'],r:['mi2','ch1']},
+    {s:3,w:['drainage','evacuation eau'],r:['mi2','ch4']},
+    // Séparateur & équipements divers
+    {s:3,w:['separateur','filtre separateur'],r:['mi2','ch4']},
+    // Lunettes & EPI terrain
+    {s:3,w:['lunettes','lunettes protection','gants protection'],r:['mi1','mi7']},
+    // Incendie
+    {s:4,w:['incendie','feu','depart feu'],r:['mi4','ch3','s3']},
+    // Qualificatifs maintenance (types)
+    {s:2,w:['durable','optimisee','avancee','reguliere','exceptionnelle','legere','programmee'],r:['mi1']},
+    {s:2,w:['distance','exploitation','engineering','globale','specialisee'],r:['mi1']},
+    {s:2,w:['regulation','normalisation'],r:['mi1']},
+    // Interventions terrain complémentaires
+    {s:3,w:['test fonctionnement','essai','controle fonctionnel'],r:['mi1','mi2']},
+    {s:3,w:['intervention jour','support terrain','assistance technique'],r:['mi1']},
+    {s:3,w:['verification finale','verification equipement'],r:['mi1']},
+    {s:3,w:['gants protection','lunettes protection'],r:['mi1','mi7']},
+    {s:3,w:['tri intervention','dispatching'],r:['mi1']},
+    {s:3,w:['preparation chantier','audit terrain'],r:['mi1']},
+    {s:3,w:['inspection rapide','inspection detaillee'],r:['mi1','mi3']},
+    {s:3,w:['verification conformite','controle norme'],r:['mi1']},
+    {s:3,w:['respect procedure','application consigne','suivi instruction'],r:['mi1']},
+    {s:3,w:['analyse donnee','analyse recurrence','prevention panne','anticipation'],r:['mi1','ia3']},
+    {s:3,w:['surveillance active','monitoring terrain','alerte systeme','notification panne'],r:['mi1','ia3']},
   ],
 };
 function aiNorm(t){
