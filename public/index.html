@@ -1113,6 +1113,7 @@ const EPI_COL={
   'Travaux de toiture & étanchéité':['Garde-corps de rive périphérie','Filets sous toiture','Balisage périmètre au sol','Plateforme travail stabilisée','Ancrages collectifs certifiés','Accès sécurisé (échelle toit fixe)'],
   'Terrassement & fouilles':['Blindage de fouilles >1,30m','Béquilles et étais de sécurité','Balisage périmètre fouille','Passerelles accès garde-corps','Purge des parois avant descente'],
   'Peinture & traitement de surface':['Ventilation forcée du local','Extraction vapeurs bras aspirant','Bacs de rétention solvants','Signalétique danger/flamme','Armoire stockage inflammables','Extincteur poudre ou CO2'],
+  'Outils numériques & IA':['Balisage et signalisation zones robotisées','Arrêt d\'urgence accessible et testé','Cloisonnement réseau OT/IT (firewall industriel)','Affichage consignes utilisation outils IA','Procédure dégradée documentée et affichée','Verrouillage physique accès aux automates et SCADA'],
 };const EPI_IND={
   'Travaux en hauteur':['Harnais antichute EN 361','Longe à absorption énergie EN 355','Casque avec mentonnière EN 397','Chaussures S3 EN ISO 20345','Gants anti-coupure EN 388','Lunettes de protection','Vêtements haute visibilité cl.3'],
   'Travaux électriques':['Gants diélectriques EN 60903','Casque diélectrique EN 50365','Lunettes protection anti-arc','Combinaison ignifugée EN ISO 11612','Chaussures diélectriques','Visière faciale anti-arc','Tapis isolant individuel'],
@@ -1126,6 +1127,7 @@ const EPI_COL={
   'Travaux de toiture & étanchéité':['Harnais antichute EN 361','Longe absorption énergie','Casque avec mentonnière','Chaussures S3 antidérapantes','Vêtements haute visibilité','Gants résistant chaleur'],
   'Terrassement & fouilles':['Casque de chantier','Chaussures S3 anti-perforation','Gants de travail renforcés','Vêtements haute visibilité','Lunettes anti-projection','Gilet de signalisation'],
   'Peinture & traitement de surface':['Masque demi-masque + cartouche A2P3','Combinaison protection type 5','Gants résistant solvants EN 374','Lunettes protection étanches','Chaussures antistatiques','Tablier imperméable'],
+  'Outils numériques & IA':['Formation et habilitation outils IA (obligatoire)','Badge d\'accès zones automatisées','Équipement anti-CEM si champs électromagnétiques','Vêtement haute visibilité dans zones robotisées','Chaussures S3 dans zones cobotique'],
 };const EPI_SUGGESTIONS={
   // HAUTEUR
   h1:{c:['Garde-corps provisoires NF EN 13374','Ligne de vie collective horizontale','Balisage et signalisation périmètre'],i:['Harnais antichute EN 361','Longe à absorption énergie EN 355','Casque avec mentonnière EN 397','Chaussures S3 EN ISO 20345']},
@@ -1181,6 +1183,13 @@ const EPI_COL={
   p2:{c:['Ventilation forcée du local','Armoire stockage inflammables','Extincteur poudre ou CO2'],i:['Masque demi-masque + cartouche A2P3','Chaussures antistatiques']},
   p3:{c:['Bacs de rétention solvants'],i:['Gants résistant solvants EN 374','Tablier imperméable','Lunettes protection étanches']},
   p4:{c:['Ventilation forcée du local','Bacs de rétention solvants'],i:['Masque demi-masque + cartouche A2P3','Combinaison protection type 5','Gants résistant solvants EN 374']},
+  // INTELLIGENCE ARTIFICIELLE & NUMÉRIQUE
+  ia1:{c:['Affichage consignes utilisation outils IA','Procédure dégradée documentée et affichée'],i:['Formation et habilitation outils IA (obligatoire)']},
+  ia2:{c:['Cloisonnement réseau OT/IT (firewall industriel)','Verrouillage physique accès aux automates et SCADA'],i:['Formation et habilitation outils IA (obligatoire)','Badge d\'accès zones automatisées']},
+  ia3:{c:['Arrêt d\'urgence accessible et testé','Cloisonnement réseau OT/IT (firewall industriel)','Affichage consignes utilisation outils IA'],i:['Formation et habilitation outils IA (obligatoire)']},
+  ia4:{c:['Procédure dégradée documentée et affichée','Arrêt d\'urgence accessible et testé'],i:['Formation et habilitation outils IA (obligatoire)','Badge d\'accès zones automatisées']},
+  ia5:{c:['Affichage consignes utilisation outils IA','Procédure dégradée documentée et affichée'],i:['Formation et habilitation outils IA (obligatoire)']},
+  ia6:{c:['Balisage et signalisation zones robotisées','Arrêt d\'urgence accessible et testé'],i:['Formation et habilitation outils IA (obligatoire)','Vêtement haute visibilité dans zones robotisées','Chaussures S3 dans zones cobotique']},
 };const RISKS={
   'Travaux en hauteur':[
     {id:'h1',name:'Chute de hauteur de l\'opérateur',sev:'high',causes:['Absence/inadaptation des protections collectives','Harnais non porté ou mal réglé','Point d\'ancrage non certifié','Fatigue, inattention ou vertiges'],consequences:['Blessures graves voire mortelles','Fractures multiples, traumatismes crâniens','Incapacité permanente'],solutions:['Installer des garde-corps ≥ 1 m conformes NF EN 13374','Utiliser un harnais EN 361 avec longe EN 355','Vérifier les points d\'ancrage EN 795 avant utilisation','Établir un plan de prévention chute (PPSPS)','Former et habiliter le personnel (recyclage annuel)','Inspecter les EPI avant chaque utilisation','Mettre en place une procédure de secours']},
@@ -1260,6 +1269,14 @@ const EPI_COL={
     {id:'p2',name:'Incendie et explosion de vapeurs inflammables',sev:'high',causes:['Accumulation vapeurs en espace fermé','Source d\'ignition présente'],consequences:['Flash fire','Explosion de la pièce','Brûlures graves'],solutions:['Ventiler abondamment (6 renouvellements/heure)','Éliminer toutes sources d\'ignition','Outillages antidéflagrants','Stockage ≤ 1 journée de produits inflammables au poste']},
     {id:'p3',name:'Brûlures chimiques et allergies cutanées',sev:'medium',causes:['Contact avec acides de décapage, époxy','Allergie aux chromates'],consequences:['Dermatose de contact allergique irréversible','Brûlures acides ou basiques'],solutions:['Gants résistants EN 374 niveau approprié','Crème barrière avant chaque session','Tests allergie en médecine du travail']},
     {id:'p4',name:'Chute lors du travail en hauteur (façades)',sev:'high',causes:['Travail sur échafaudage ou nacelle','Sol glissant (peinture fraîche)'],consequences:['Chute mortelle','Fractures'],solutions:['Harnais antichute si nacelle non protégée','Garde-corps sur l\'échafaudage','Signaler les zones de sol peint frais','Anti-dérapant temporaire sur zones glissantes']},
+  ],
+  'Outils numériques & IA':[
+    {id:'ia1',name:'Décision erronée basée sur une recommandation IA mal interprétée',sev:'high',causes:['Confiance excessive envers une IA sans validation humaine','Données d\'entraînement non représentatives du contexte industriel','Absence de formation des opérateurs à l\'interprétation des résultats IA','Interface affichant un résultat sans indication d\'incertitude'],consequences:['Intervention réalisée sur la mauvaise machine ou dans la mauvaise zone','Omission d\'un risque critique non détecté par l\'IA','Accident grave par sous-estimation du danger réel'],solutions:['Appliquer le principe de double validation : IA + expert humain avant toute décision critique','Former les techniciens à comprendre les limites et biais des outils IA','Afficher systématiquement le niveau de confiance et les incertitudes du modèle','Ne jamais déléguer la validation sécurité finale à un algorithme seul','Instaurer un processus de retour d\'expérience pour corriger les dérives du modèle']},
+    {id:'ia2',name:'Cybersécurité : accès non autorisé aux systèmes de contrôle via outil IA connecté',sev:'high',causes:['Outil IA connecté au réseau OT/SCADA sans cloisonnement','Identifiants par défaut non modifiés','Absence de chiffrement des communications','Mise à jour de sécurité non appliquée'],consequences:['Prise de contrôle à distance d\'une installation industrielle','Arrêt brutal ou démarrage intempestif d\'une machine','Sabotage ou perte de données critiques'],solutions:['Cloisonner le réseau IA du réseau industriel (DMZ, firewall OT)','Appliquer une politique de gestion des mots de passe et MFA','Réaliser des audits de cybersécurité réguliers (IEC 62443)','Mettre à jour les firmwares et logiciels IA selon les bulletins de sécurité','Former les équipes maintenance aux risques cyber industriels']},
+    {id:'ia3',name:'Défaillance d\'un capteur IoT ou d\'un système de surveillance IA',sev:'high',causes:['Capteur mal étalonné ou hors plage de mesure','Perte de connexion réseau non détectée','Firmware obsolète provoquant des lectures erronées','Absence de redondance sur les capteurs critiques'],consequences:['Non-détection d\'une anomalie (surchauffe, fuite, vibration anormale)','Incident majeur non anticipé sur l\'équipement surveillé','Maintenance prédictive déclenchée à tort (arrêt inutile) ou non déclenchée (panne grave)'],solutions:['Étalonner les capteurs IoT selon un calendrier défini (ISO 9001)','Implémenter des alertes de perte de signal ou de valeur hors plage','Assurer une redondance sur les capteurs critiques de sécurité','Tester régulièrement les chaînes de surveillance de bout en bout','Documenter et auditer les règles d\'alarme des systèmes IA']},
+    {id:'ia4',name:'Dépendance technologique et perte de compétences humaines',sev:'medium',causes:['Automatisation excessive sans maintien des savoirs-faire manuels','Opérateurs ne sachant plus intervenir sans l\'outil IA','Absence de plan de continuité en cas de défaillance du système numérique'],consequences:['Incapacité à gérer une situation non couverte par l\'IA','Perte de réactivité face à une panne du système numérique','Erreurs humaines accrues lors des interventions manuelles de secours'],solutions:['Maintenir des formations pratiques sans assistance IA (exercices annuels)','Rédiger des procédures papier de secours pour les interventions critiques','Planifier des tests réguliers de fonctionnement en mode dégradé (sans IA)','Sensibiliser les équipes sur les limites et le périmètre de l\'IA','Conserver un niveau de compétence humaine validé en parallèle des outils numériques']},
+    {id:'ia5',name:'Protection des données personnelles et confidentielles lors de l\'usage d\'un outil IA',sev:'medium',causes:['Saisie de données personnelles ou sensibles dans un outil IA non sécurisé','Stockage cloud sans chiffrement ni localisation des données conforme','Absence de politique de données interne liée aux outils IA'],consequences:['Violation du RGPD (amendes jusqu\'à 4% du CA)','Divulgation d\'informations confidentielles (plans, recettes, stratégies)','Perte de confiance des partenaires et clients'],solutions:['Établir une charte d\'utilisation des outils IA en entreprise','Former les utilisateurs aux données qui ne doivent jamais être saisies dans une IA','Utiliser uniquement des solutions IA conformes RGPD avec hébergement européen','Classifier les données selon leur sensibilité et définir des règles d\'usage IA','Réaliser un audit RGPD annuel incluant les nouveaux usages IA']},
+    {id:'ia6',name:'Mauvaise utilisation d\'un robot ou cobotique assisté par IA',sev:'high',causes:['Zone de collaboration homme-robot non correctement définie','Capteurs de sécurité du robot mal configurés ou désactivés','Technicien non formé à la reprogrammation ou à l\'intervention en mode manuel','Mise à jour IA du robot modifiant un comportement sans validation préalable'],consequences:['Collision entre l\'opérateur et le robot en mouvement','Blessures graves par pincement, écrasement ou choc','Dommages matériels importants sur l\'équipement'],solutions:['Définir et baliser clairement les zones de collaboration homme-robot (ISO/TS 15066)','Ne jamais désactiver les capteurs de sécurité du robot','Former et habiliter les techniciens avant toute intervention sur robot IA','Valider chaque mise à jour du modèle IA sur banc de test avant déploiement','Mettre en place un arrêt d\'urgence accessible et testé régulièrement']},
   ],
 };
 
@@ -1697,7 +1714,8 @@ const INTERVENTION_ICONS = {
   'Travaux en hauteur':'🏗️','Travaux électriques':'⚡','Manutention & levage':'🏋️',
   'Travaux en espace confiné':'🕳️','Produits chimiques & dangereux':'🧪','Soudage & découpe thermique':'🔥',
   'Travaux sur voirie & route':'🚧','Maintenance industrielle':'🔧','Travaux de démolition':'🪨',
-  'Travaux de toiture & étanchéité':'🏠','Terrassement & fouilles':'⛏️','Peinture & traitement de surface':'🖌️'
+  'Travaux de toiture & étanchéité':'🏠','Terrassement & fouilles':'⛏️','Peinture & traitement de surface':'🖌️',
+  'Outils numériques & IA':'🤖'
 };
 
 function buildInterventionGrid(){
@@ -2210,8 +2228,57 @@ const AI_KW={
     {s:4,w:['solvant organique','vapeur inflammable','acetone','diluant'],r:['p1','p2']},
     {s:3,w:['peinture facade','ravalement peint'],r:['p1','p4']},
   ],
+  'Outils numériques & IA':[
+    // Décision / supervision IA
+    {s:5,w:['intelligence artificielle','ia industrielle','ia maintenance','outil ia','assistant ia'],r:['ia1','ia4']},
+    {s:5,w:['algorithme predictif','maintenance predictive ia','modele ia','prediction ia','ia predictive'],r:['ia1','ia3']},
+    {s:4,w:['jumeau numerique','digital twin','simulation ia','modele numerique'],r:['ia1','ia4']},
+    {s:4,w:['machine learning','deep learning','reseau de neurones','modele ml'],r:['ia1','ia4']},
+    {s:3,w:['recommandation ia','aide decision','decision automatique','alerte ia','notification ia'],r:['ia1']},
+    // Capteurs & IoT
+    {s:5,w:['capteur iot','capteur connecte','capteur intelligent','iiot','industrial iot'],r:['ia3']},
+    {s:4,w:['capteur vibration ia','capteur temperature ia','capteur pression ia','capteur debit ia'],r:['ia3']},
+    {s:4,w:['defaillance capteur','capteur hors service','capteur mal etalonne','perte signal capteur'],r:['ia3']},
+    {s:4,w:['donnees capteur','flux donnees','streaming donnees','data pipeline'],r:['ia3']},
+    {s:3,w:['surveillance continue','monitoring ia','supervision ia','scada ia'],r:['ia3']},
+    // Cybersécurité industrielle
+    {s:5,w:['cybersecurite','cyberattaque','intrusion reseau','ransomware'],r:['ia2']},
+    {s:5,w:['piratage','hacking','acces non autorise','compromis reseau'],r:['ia2']},
+    {s:5,w:['reseau ot','scada','plc','automate connecte','systeme controle commande'],r:['ia2']},
+    {s:4,w:['firewall industriel','reseau industriel','segmentation reseau','dmz ot'],r:['ia2']},
+    {s:4,w:['mot de passe defaut','authentification','mfa','identifiants'],r:['ia2']},
+    {s:3,w:['mise a jour firmware','patch securite','vulnerability','cve'],r:['ia2']},
+    // Robotique & cobotique IA
+    {s:5,w:['cobot','cobotique','robot collaboratif','robot ia','bras robotique'],r:['ia6']},
+    {s:5,w:['robot autonome','agv','amr','chariot autonome','robot mobile'],r:['ia6']},
+    {s:4,w:['zone collaboration homme robot','espace robot','securite robot','iso ts 15066'],r:['ia6']},
+    {s:4,w:['capteur securite robot','lidar','vision robot','detection presence'],r:['ia6']},
+    {s:4,w:['programmation robot','reprogrammation robot','mise a jour robot','teach pendant'],r:['ia6']},
+    // Dépendance technologique
+    {s:4,w:['panne systeme ia','defaillance logiciel','mode degrade','perte connexion ia'],r:['ia4']},
+    {s:3,w:['formation ia','competence numerique','habilitation numerique','usage ia'],r:['ia4']},
+    {s:3,w:['procedure secours','plan continuite','backup systeme','sauvegarde'],r:['ia4']},
+    // Données & RGPD
+    {s:4,w:['donnees personnelles','rgpd','gdpr','protection donnees','confidentialite'],r:['ia5']},
+    {s:4,w:['cloud ia','hebergement donnees','stockage cloud','saas industriel'],r:['ia5']},
+    {s:3,w:['audit ia','conformite ia','politique donnees','charte ia'],r:['ia5']},
+    {s:3,w:['tableau bord digital','reporting automatique','analytics'],r:['ia1','ia3']},
+    // Big data, cloud & infrastructure numérique
+    {s:4,w:['big data','donnees massives','data lake','data warehouse'],r:['ia3','ia5']},
+    {s:4,w:['edge computing','edge ia','calcul embarque','systeme embarque'],r:['ia3']},
+    {s:3,w:['cloud industriel','cloud computing','infrastructure cloud','serveur distant'],r:['ia2','ia5']},
+    {s:3,w:['cybersecurite industrielle','protection systeme','protection reseau ot'],r:['ia2']},
+    {s:4,w:['modele predictif','prediction defaillance','maintenance conditionnelle ia'],r:['ia1','ia3']},
+    {s:3,w:['simulation process','simulation production','simulation gemeau'],r:['ia1','ia4']},
+    // Automatisation
+    {s:4,w:['automatisation','systeme automatise','processus automatique'],r:['ia1','ia6']},
+    {s:4,w:['automate programmable','automate connecte','plc connecte','supervision automate'],r:['ia2','ia6']},
+    {s:3,w:['transformation digitale','numerisation','industrie 4.0','usine connectee'],r:['ia1','ia4']},
+    // Protocoles & interfaces
+    {s:3,w:['modbus','profibus','protocole industriel','opc ua'],r:['ia2','ia3']},
+    {s:3,w:['interface utilisateur ia','tableau de bord ia','ihm connecte'],r:['ia1','ia4']},
+  ],
   'Maintenance industrielle & dépannage':[
-    // Équipements & machines
     {s:5,w:['pont roulant','grue atelier','levage machine'],r:['m1','m3']},
     {s:4,w:['moteur electrique','variateur vitesse','moteur hydraulique'],r:['mi1','e1']},
     {s:4,w:['compresseur','pompe centrifuge','ventilateur industriel','turbine','generateur'],r:['mi1','mi2']},
@@ -2284,6 +2351,12 @@ function runAIDetection(raw){
     {a:'Terrassement & fouilles',b:'Travaux électriques',add:['tf3','e4'],bonus:3},
     // Démontage + levage => chute de pièce
     {a:'Maintenance industrielle',b:'Manutention & levage',add:['mi6','mi8','m1','m4'],bonus:3},
+    // IA + maintenance => risque décision erronée + capteur défaillant
+    {a:'Outils numériques & IA',b:'Maintenance industrielle',add:['ia1','ia3','mi1'],bonus:3},
+    // IA + électrique => cybersécurité système de contrôle
+    {a:'Outils numériques & IA',b:'Travaux électriques',add:['ia2','e1'],bonus:2},
+    // IA + robot => cobotique
+    {a:'Outils numériques & IA',b:'Manutention & levage',add:['ia6','m1','m4'],bonus:3},
   ];
   COMBOS.forEach(({a,b,add,bonus})=>{
     if((typeScores[a]||0)>=2&&(typeScores[b]||0)>=2) add.forEach(id=>{riskScores[id]=(riskScores[id]||0)+bonus;});
