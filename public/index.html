@@ -791,8 +791,11 @@ textarea{resize:vertical;min-height:80px;}
     <div style="display:flex;gap:0;border-bottom:2px solid var(--cream);background:var(--paper);padding:0 28px;">
       <button class="adm-tab active" onclick="switchAdminTab('company')" data-tab="company">🏢 Société</button>
       <button class="adm-tab" onclick="switchAdminTab('users')" data-tab="users">👥 Utilisateurs</button>
-      <button class="adm-tab" onclick="switchAdminTab('risks')" data-tab="risks">⚠️ Risques</button>
-      <button class="adm-tab" onclick="switchAdminTab('keywords')" data-tab="keywords">🔍 Mots-clés IA</button>
+      <button class="adm-tab" onclick="switchAdminTab('interface')" data-tab="interface">🎨 Interface</button>
+      <button class="adm-tab" onclick="switchAdminTab('risksdb')" data-tab="risksdb">⚠️ Risques DB</button>
+      <button class="adm-tab" onclick="switchAdminTab('ppconfig')" data-tab="ppconfig">📋 Plan de Prévention</button>
+      <button class="adm-tab" onclick="switchAdminTab('risks')" data-tab="risks">📚 Bibliothèque</button>
+      <button class="adm-tab" onclick="switchAdminTab('keywords')" data-tab="keywords">🔍 Mots-clés</button>
       <button class="adm-tab" onclick="switchAdminTab('features')" data-tab="features">🧩 Fonctionnalités</button>
       <button class="adm-tab" onclick="switchAdminTab('reports')" data-tab="reports">📊 Rapports</button>
       <button class="adm-tab" onclick="switchAdminTab('carnet')" data-tab="carnet">📒 Carnet</button>
@@ -1039,6 +1042,24 @@ textarea{resize:vertical;min-height:80px;}
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- ── INTERFACE (nouveau) ── -->
+      <div id="admpane-interface" class="adm-pane" style="display:none">
+        <!-- Rendu dynamique par renderAdminInterface() -->
+        <div style="text-align:center;padding:40px;color:#9ca3af"><div style="font-size:32px;margin-bottom:10px">🎨</div>Chargement de la configuration…</div>
+      </div>
+
+      <!-- ── RISQUES DB (nouveau) ── -->
+      <div id="admpane-risksdb" class="adm-pane" style="display:none">
+        <!-- Rendu dynamique par renderAdminRisksDB() -->
+        <div style="text-align:center;padding:40px;color:#9ca3af"><div style="font-size:32px;margin-bottom:10px">⚠️</div>Chargement des risques depuis la base de données…</div>
+      </div>
+
+      <!-- ── PP CONFIG (nouveau) ── -->
+      <div id="admpane-ppconfig" class="adm-pane" style="display:none">
+        <!-- Rendu dynamique par renderAdminPPConfig() -->
+        <div style="text-align:center;padding:40px;color:#9ca3af"><div style="font-size:32px;margin-bottom:10px">📋</div>Chargement de la configuration du Plan de Prévention…</div>
       </div>
 
     </div><!-- /padding -->
@@ -1598,7 +1619,7 @@ function doLogout(){
   document.getElementById('loginPass').value='';
 }
 
-function initUI(){
+async function initUI(){
   const co = _cache['company']||{name:'NORDCHROME'};
   document.getElementById('headerCompany').textContent = co.name;
   document.getElementById('loginCompanyName').textContent = co.name;
@@ -1607,12 +1628,10 @@ function initUI(){
   const csSel=document.getElementById('companySociety'); if(csSel) csSel.value=co.name;
   document.getElementById('pp-eu').value = co.name;
   if(co.instructions) document.getElementById('pp-instructions').value=co.instructions;
-  // Toujours pré-remplir depuis le profil utilisateur (écrase les valeurs précédentes)
   const opEl=document.getElementById('operator');
   if(opEl) opEl.value=currentUser.name||'';
   const locEl=document.getElementById('location');
   if(locEl) locEl.value=currentUser.site||'';
-  // Bouton Admin UNIQUEMENT pour les admins
   if(currentUser.role==='admin'){
     document.getElementById('btnAdmin').style.display='inline-flex';
     const shortcut=document.getElementById('adminShortcut');
@@ -1620,16 +1639,20 @@ function initUI(){
   } else {
     document.getElementById('btnAdmin').style.display='none';
   }
-  // Bouton "Mes Évaluations" visible pour tous
   const btnMyEvals=document.getElementById('btnMyEvals');
   if(btnMyEvals) btnMyEvals.style.display='inline-flex';
   refreshMyEvalsBadge();
-  // Appliquer les surcharges locales de mots-clés
   _applyKwOverrides();
   document.getElementById('headerUserInfo').style.display='inline-flex';
   document.getElementById('btnLogout').style.display='inline-flex';
   document.getElementById('evalDate').valueAsDate=new Date();
   refreshValidationBadge();
+  // ── Nouveau : charger config UI + risques DB ──
+  try {
+    await initDBRisksAndUI();
+  } catch(e) {
+    console.warn('initDBRisksAndUI error:', e);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -3158,12 +3181,15 @@ function switchAdminTab(tab){
   document.querySelectorAll('.adm-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===tab));
   document.querySelectorAll('.adm-pane').forEach(p=>p.style.display='none');
   const pane=document.getElementById('admpane-'+tab); if(pane) pane.style.display='block';
-  if(tab==='users') renderAdminUsers();
-  if(tab==='risks'){renderAdminRisks();}
-  if(tab==='keywords') renderAdminKeywords();
-  if(tab==='features') renderAdminFeatures();
-  if(tab==='reports') renderAdminReports();
-  if(tab==='carnet') renderAdminCarnet();
+  if(tab==='users')     renderAdminUsers();
+  if(tab==='risks')     renderAdminRisks();
+  if(tab==='keywords')  renderAdminKeywords();
+  if(tab==='features')  renderAdminFeatures();
+  if(tab==='reports')   renderAdminReports();
+  if(tab==='carnet')    renderAdminCarnet();
+  if(tab==='interface') renderAdminInterface();
+  if(tab==='risksdb')   renderAdminRisksDB();
+  if(tab==='ppconfig')  renderAdminPPConfig();
 }
 async function saveCompanyInfo(){
   const co={};
@@ -5584,6 +5610,1406 @@ function detectRisksFromText(text, rules){
 // Export for main app integration
 if(typeof window !== 'undefined'){
   window.IA_Detect = { normalizeText, matchKeywords, detectRisksFromText };
+}
+
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════
+// ADMIN UI v3 — Config Interface, Risques DB, PP Config
+// ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════
+// ADMIN PANEL v3 — Config UI, Risques DB, Mots-clés DB, Plan de Prévention
+// À insérer dans index.html (remplace/complète le JS admin existant)
+// ════════════════════════════════════════════════════════════════════════
+
+// ── CONFIG UI DEFAULTS ───────────────────────────────────────────────────
+const UI_DEFAULTS = {
+  branding: {
+    appName: 'EvalRisque',
+    companyName: 'NORDCHROME',
+    logoUrl: '',
+    logoBase64: '',
+    colors: { accent: '#c84b31', accent2: '#1a4d6e', ink: '#0f1923' },
+    headerBadgeText: 'v2',
+    footerText: 'EvalRisque — NORDCHROME',
+  },
+  buttons: {
+    // Boutons navigation
+    btnStartEval:    { label: 'Commencer l\'évaluation →',  visible: true },
+    btnNextToRisks:  { label: 'Identifier les risques →',   visible: true },
+    btnNextToSummary:{ label: 'Voir le récapitulatif →',    visible: true },
+    btnGeneratePDF:  { label: '📄 Générer le rapport PDF',  visible: true },
+    btnDraftPDF:     { label: '📄 Brouillon PDF',           visible: true },
+    btnSuggestAllEPI:{ label: '✨ Suggérer tous les EPI/EPC', visible: true },
+    btnDetectAll:    { label: '✨ Analyser toutes les étapes', visible: true },
+    btnMyEvals:      { label: '📋 Mes Évaluations',         visible: true },
+    btnAdmin:        { label: '⚙ Admin',                    visible: true },
+    btnValidation:   { label: '✅ Validations',             visible: true },
+    btnPPLibrary:    { label: '📂 Mes plans PP',            visible: true },
+    btnGeneratePP:   { label: '📋 Générer le Plan de Prévention PDF', visible: true },
+    btnSavePP:       { label: '💾 Enregistrer',             visible: true },
+    btnAutoFillSteps:{ label: '✨ Importer depuis l\'évaluation', visible: true },
+    btnAddStep:      { label: '+ Ajouter une étape',        visible: true },
+    btnSuggestEPI:   { label: '✨ Suggérer',                visible: true },
+  },
+  labels: {
+    // Labels des étapes
+    step0Label: 'Informations',
+    step1Label: 'Interventions',
+    step2Label: 'Risques & EPI',
+    step3Label: 'Récapitulatif',
+    // Labels des sections
+    screen0Title:    'Informations générales',
+    screen0Eyebrow:  'Étape 1 — Identification',
+    screen1Title:    'Sélectionnez vos types d\'intervention',
+    screen2Title:    'Identification des risques',
+    screen3Title:    'Rapport d\'évaluation des risques',
+    // Champ intervenant
+    fieldOperatorLabel: 'Nom de l\'intervenant',
+    fieldLocationLabel: 'Lieu d\'intervention',
+    fieldTitleLabel:    'Titre de l\'intervention',
+    // Section risques
+    riskPanelTitle:     'Liste des risques',
+    riskDetailEmpty:    'Cliquez sur un risque pour voir le détail',
+    // Plan de prévention
+    ppSectionTitle:     'Plan de Prévention',
+    ppOptionalBadge:    'Optionnel',
+    ppLegalRef:         'Art. R.4512-6 Code du travail',
+  },
+  features: {
+    feat_ai:         true,
+    feat_pp:         true,
+    feat_epi:        true,
+    feat_carnet:     true,
+    feat_pdf:        true,
+    feat_savepp:     true,
+    feat_derogation: true,
+    feat_signature:  true,
+    feat_myevals:    true,
+  },
+};
+
+// Cache UI config chargé depuis l'API
+let _uiConfig = JSON.parse(JSON.stringify(UI_DEFAULTS));
+
+// ── Chargement de la config UI depuis l'API ──────────────────────────────
+async function loadUIConfig() {
+  try {
+    const cfgs = await api('GET', '/data/ui-config');
+    if (cfgs) {
+      ['branding','buttons','labels','features'].forEach(section => {
+        if (cfgs[section]) {
+          _uiConfig[section] = { ...UI_DEFAULTS[section], ...cfgs[section] };
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Impossible de charger la config UI:', e);
+  }
+}
+
+// ── Application de la config UI ──────────────────────────────────────────
+function applyUIConfig() {
+  const { branding, buttons, labels, features } = _uiConfig;
+
+  // Branding — couleurs CSS
+  if (branding.colors) {
+    const root = document.documentElement;
+    if (branding.colors.accent)  root.style.setProperty('--accent',  branding.colors.accent);
+    if (branding.colors.accent2) root.style.setProperty('--accent2', branding.colors.accent2);
+    if (branding.colors.ink)     root.style.setProperty('--ink',     branding.colors.ink);
+  }
+
+  // Branding — nom app et société
+  const logoApp = document.querySelector('.logo-app');
+  if (logoApp && branding.appName) {
+    const parts = branding.appName.split(/(?=[A-Z])/);
+    if (parts.length > 1) {
+      const last = parts.pop();
+      logoApp.innerHTML = parts.join('') + `<span style="color:var(--accent)">${last}</span>`;
+    } else {
+      logoApp.textContent = branding.appName;
+    }
+  }
+
+  const logoCompany = document.getElementById('headerCompany');
+  if (logoCompany && branding.companyName) logoCompany.textContent = branding.companyName;
+
+  // Logo image
+  const logoWrap = document.querySelector('.logo-wrap');
+  if (logoWrap && (branding.logoUrl || branding.logoBase64)) {
+    let logoImg = document.getElementById('brandLogoImg');
+    if (!logoImg) {
+      logoImg = document.createElement('img');
+      logoImg.id = 'brandLogoImg';
+      logoImg.style.cssText = 'height:32px;width:auto;object-fit:contain;margin-right:8px;border-radius:3px;';
+      logoWrap.insertBefore(logoImg, logoWrap.firstChild);
+    }
+    logoImg.src = branding.logoBase64 || branding.logoUrl;
+    logoImg.alt = branding.companyName || 'Logo';
+  }
+
+  // Boutons
+  const btnMap = {
+    btnGeneratePDF:   () => document.querySelector('.btn-pdf'),
+    btnDraftPDF:      () => document.querySelector('button[onclick="generateDraftPDF()"]'),
+    btnSuggestAllEPI: () => document.getElementById('btn-suggest-all'),
+    btnDetectAll:     () => document.getElementById('btn-detect-all'),
+    btnMyEvals:       () => document.getElementById('btnMyEvals'),
+    btnAdmin:         () => document.getElementById('btnAdmin'),
+    btnValidation:    () => document.getElementById('btnValidation'),
+    btnPPLibrary:     () => document.querySelector('button[onclick="openPPLibrary()"]'),
+    btnGeneratePP:    () => document.querySelector('.btn-pp-pdf'),
+    btnSavePP:        () => document.querySelector('button[onclick="savePP()"]'),
+    btnAutoFillSteps: () => document.querySelector('button[onclick="ppAutoFillSteps()"]'),
+    btnSuggestEPI:    () => document.querySelector('button[onclick^="suggestEPI"]'),
+  };
+
+  Object.entries(buttons).forEach(([key, cfg]) => {
+    if (btnMap[key]) {
+      const el = btnMap[key]();
+      if (el) {
+        if (cfg.label) {
+          // Préserver les spinners dans les boutons
+          const spinner = el.querySelector('.ai-spinner');
+          if (spinner) {
+            el.childNodes[el.childNodes.length - 1].textContent = ' ' + cfg.label.replace(/^[✨📄📋⚙✅🔧]/,'').trim();
+          } else {
+            el.textContent = cfg.label;
+          }
+        }
+        if (cfg.visible === false) el.style.display = 'none';
+      }
+    }
+  });
+
+  // Labels des étapes
+  if (labels.step0Label) { const el = document.querySelector('#step0 .step-label'); if (el) el.textContent = labels.step0Label; }
+  if (labels.step1Label) { const el = document.querySelector('#step1 .step-label'); if (el) el.textContent = labels.step1Label; }
+  if (labels.step2Label) { const el = document.querySelector('#step2 .step-label'); if (el) el.textContent = labels.step2Label; }
+  if (labels.step3Label) { const el = document.querySelector('#step3 .step-label'); if (el) el.textContent = labels.step3Label; }
+
+  // Features
+  applyFeatureFlagsFromUI(features);
+}
+
+function applyFeatureFlagsFromUI(features) {
+  if (!features) return;
+  const isEnabled = id => features[id] !== false;
+
+  // EPI — masquer toute la section EPI si désactivé
+  if (!isEnabled('feat_epi')) {
+    document.querySelectorAll('.epi-section').forEach(el => el.style.display = 'none');
+  }
+  // Dérogation
+  document.querySelectorAll('.epi-section + div').forEach(el => {
+    if (!isEnabled('feat_derogation')) el.style.display = 'none';
+  });
+  // Signature
+  const sigZone = document.getElementById('signatureZone');
+  if (sigZone && !isEnabled('feat_signature')) sigZone.style.display = 'none';
+  // Mes évals
+  const btnME = document.getElementById('btnMyEvals');
+  if (btnME) btnME.style.display = isEnabled('feat_myevals') ? 'inline-flex' : 'none';
+  // PP
+  const ppPanel = document.getElementById('ppPanel');
+  if (ppPanel) ppPanel.style.display = isEnabled('feat_pp') ? '' : 'none';
+  const ppToggle = document.querySelector('.pp-toggle-bar');
+  if (ppToggle) ppToggle.style.display = isEnabled('feat_pp') ? '' : 'none';
+  // PDF
+  document.querySelectorAll('.btn-pdf,.btn-pp-pdf').forEach(el => {
+    el.style.display = isEnabled('feat_pdf') ? '' : 'none';
+  });
+  // Carnet
+  document.querySelectorAll('.pp-carnet-btn').forEach(el => {
+    el.style.display = isEnabled('feat_carnet') ? '' : 'none';
+  });
+  // Save PP
+  const savePPBtn = document.querySelector('button[onclick="savePP()"]');
+  if (savePPBtn) savePPBtn.closest('div')?.style.setProperty('display', isEnabled('feat_savepp') ? '' : 'none');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ONGLET INTERFACE — rendu admin
+// ════════════════════════════════════════════════════════════════════════
+async function renderAdminInterface() {
+  const pane = document.getElementById('admpane-interface');
+  if (!pane) return;
+
+  const { branding, buttons, labels, features } = _uiConfig;
+
+  pane.innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr;gap:24px">
+
+    <!-- BRANDING -->
+    <div>
+      <div class="adm-section-title">🎨 Identité visuelle & Marque</div>
+      <div class="adm-card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Nom de l'application</label>
+            <input type="text" id="ui-appName" value="${escHtml(branding.appName||'EvalRisque')}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Nom de la société (header)</label>
+            <input type="text" id="ui-companyName" value="${escHtml(branding.companyName||'NORDCHROME')}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+          </div>
+        </div>
+
+        <!-- Logo -->
+        <div class="field-group" style="margin-bottom:16px">
+          <label class="field-label">Logo (URL externe)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="ui-logoUrl" value="${escHtml(branding.logoUrl||'')}" placeholder="https://exemple.com/logo.png" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:3px"/>
+            <button onclick="previewLogo()" style="padding:9px 16px;background:var(--accent2);color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600">Prévisualiser</button>
+          </div>
+        </div>
+        <div class="field-group" style="margin-bottom:16px">
+          <label class="field-label">Logo (upload fichier)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="file" id="ui-logoFile" accept="image/*" onchange="handleLogoUpload(this)" style="flex:1;padding:7px;border:1.5px solid var(--border);border-radius:3px;font-size:12px;background:var(--paper)"/>
+            ${branding.logoBase64 ? '<img id="logoPreview" src="'+branding.logoBase64+'" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff;padding:4px"/>' : '<div id="logoPreview" style="width:60px;height:40px;border:1.5px dashed var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--border)">🏢</div>'}
+          </div>
+        </div>
+
+        <!-- Couleurs -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Couleur accent (rouge)</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="ui-colorAccent" value="${branding.colors?.accent||'#c84b31'}" style="width:44px;height:36px;border:1.5px solid var(--border);border-radius:3px;padding:2px;cursor:pointer"/>
+              <input type="text" id="ui-colorAccentHex" value="${branding.colors?.accent||'#c84b31'}" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px" oninput="syncColorPicker('Accent')"/>
+            </div>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Couleur accent 2 (bleu)</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="ui-colorAccent2" value="${branding.colors?.accent2||'#1a4d6e'}" style="width:44px;height:36px;border:1.5px solid var(--border);border-radius:3px;padding:2px;cursor:pointer"/>
+              <input type="text" id="ui-colorAccent2Hex" value="${branding.colors?.accent2||'#1a4d6e'}" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px" oninput="syncColorPicker('Accent2')"/>
+            </div>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Couleur principale (fond header)</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="ui-colorInk" value="${branding.colors?.ink||'#0f1923'}" style="width:44px;height:36px;border:1.5px solid var(--border);border-radius:3px;padding:2px;cursor:pointer"/>
+              <input type="text" id="ui-colorInkHex" value="${branding.colors?.ink||'#0f1923'}" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px" oninput="syncColorPicker('Ink')"/>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="previewColors()" style="padding:8px 16px;background:var(--ink);color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600">👁 Prévisualiser les couleurs</button>
+          <button onclick="resetColors()" style="padding:8px 16px;background:none;border:1.5px solid var(--border);border-radius:3px;cursor:pointer;font-size:12px;color:#6b7280">↺ Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOUTONS -->
+    <div>
+      <div class="adm-section-title">🔘 Configuration des boutons</div>
+      <div class="adm-card">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Renommez les boutons et activez/désactivez leur affichage.</div>
+        <div style="display:flex;flex-direction:column;gap:10px" id="ui-buttons-grid">
+          ${Object.entries(buttons).map(([key, cfg]) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--paper);border:1.5px solid var(--border);border-radius:4px">
+            <div style="flex:1">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:4px">${key}</div>
+              <input type="text" id="btn-label-${key}" value="${escHtml(cfg.label||key)}" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:12.5px"/>
+            </div>
+            <label class="adm-toggle" title="${cfg.visible!==false ? 'Visible' : 'Masqué'}">
+              <input type="checkbox" id="btn-vis-${key}" ${cfg.visible!==false ? 'checked' : ''} onchange="this.closest('.adm-toggle').title=this.checked?'Visible':'Masqué'">
+              <span class="adm-toggle-slider"></span>
+            </label>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- LABELS -->
+    <div>
+      <div class="adm-section-title">🏷️ Noms et libellés</div>
+      <div class="adm-card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          ${Object.entries(labels).map(([key, val]) => `
+          <div class="field-group" style="margin:0">
+            <label class="field-label" style="font-size:9px">${key}</label>
+            <input type="text" id="lbl-${key}" value="${escHtml(val||key)}" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- FONCTIONNALITÉS -->
+    <div>
+      <div class="adm-section-title">🧩 Activation des fonctionnalités</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="ui-features-grid">
+        ${[
+          { id:'feat_ai',         label:'Détection IA des risques',      desc:'Analyse auto des étapes par mots-clés' },
+          { id:'feat_pp',         label:'Plan de Prévention',            desc:'Section PP dans le récapitulatif' },
+          { id:'feat_epi',        label:'Gestion EPI/EPC',               desc:'Sélection des équipements de protection' },
+          { id:'feat_derogation', label:'Dérogations de risques',        desc:'Accord de dérogation par risque' },
+          { id:'feat_signature',  label:'Signature électronique',        desc:'Canvas de signature et workflow validation' },
+          { id:'feat_carnet',     label:'Carnet d\'adresses',            desc:'Import entreprises et intervenants' },
+          { id:'feat_pdf',        label:'Export PDF',                    desc:'Génération de rapports PDF' },
+          { id:'feat_savepp',     label:'Sauvegarde plans PP',           desc:'Bibliothèque de plans de prévention' },
+          { id:'feat_myevals',    label:'Mes Évaluations',               desc:'Historique des évaluations utilisateur' },
+        ].map(f => {
+          const enabled = features[f.id] !== false;
+          return `<div class="adm-feat-card${enabled ? ' enabled' : ''}" id="feat-card-${f.id}">
+            <div>
+              <div style="font-size:13px;font-weight:600;margin-bottom:3px">${f.label}</div>
+              <div style="font-size:11px;color:#6b7280">${f.desc}</div>
+            </div>
+            <label class="adm-toggle">
+              <input type="checkbox" id="feat-${f.id}" ${enabled ? 'checked' : ''} onchange="document.getElementById('feat-card-${f.id}').classList.toggle('enabled',this.checked)">
+              <span class="adm-toggle-slider"></span>
+            </label>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Bouton sauvegarde -->
+    <div style="padding-top:8px">
+      <button class="adm-btn-primary" onclick="saveUIConfig()" style="font-size:14px;padding:12px 28px">
+        💾 Enregistrer toute la configuration
+      </button>
+      <button onclick="resetUIConfig()" style="margin-left:12px;padding:12px 20px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:13px;cursor:pointer;color:#6b7280">
+        ↺ Réinitialiser les valeurs par défaut
+      </button>
+    </div>
+
+  </div>`;
+
+  // Sync color pickers (color → hex)
+  ['Accent','Accent2','Ink'].forEach(n => {
+    const cp = document.getElementById('ui-color'+n);
+    if (cp) cp.addEventListener('input', () => {
+      const hex = document.getElementById('ui-color'+n+'Hex');
+      if (hex) hex.value = cp.value;
+    });
+  });
+}
+
+function syncColorPicker(name) {
+  const hex = document.getElementById('ui-color'+name+'Hex')?.value;
+  const cp  = document.getElementById('ui-color'+name);
+  if (cp && /^#[0-9a-f]{6}$/i.test(hex)) cp.value = hex;
+}
+
+function previewColors() {
+  const root = document.documentElement;
+  root.style.setProperty('--accent',  document.getElementById('ui-colorAccentHex')?.value || '#c84b31');
+  root.style.setProperty('--accent2', document.getElementById('ui-colorAccent2Hex')?.value || '#1a4d6e');
+  root.style.setProperty('--ink',     document.getElementById('ui-colorInkHex')?.value || '#0f1923');
+  showToast('Couleurs prévisualisées — sauvegardez pour conserver','success');
+}
+
+function resetColors() {
+  ['Accent','Accent2','Ink'].forEach(n => {
+    const defaults = { Accent:'#c84b31', Accent2:'#1a4d6e', Ink:'#0f1923' };
+    const cp  = document.getElementById('ui-color'+n);
+    const hex = document.getElementById('ui-color'+n+'Hex');
+    if (cp) cp.value = defaults[n];
+    if (hex) hex.value = defaults[n];
+  });
+  previewColors();
+}
+
+function previewLogo() {
+  const url = document.getElementById('ui-logoUrl')?.value;
+  if (!url) { showToast('Entrez une URL de logo','error'); return; }
+  const prev = document.getElementById('logoPreview');
+  if (prev) { prev.src = url; prev.style.display = 'block'; }
+  showToast('Logo prévisualisé dans le header','success');
+}
+
+function handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 500000) { showToast('Logo trop volumineux (max 500 Ko)','error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const b64 = e.target.result;
+    let prev = document.getElementById('logoPreview');
+    if (!prev) {
+      prev = document.createElement('img');
+      prev.id = 'logoPreview';
+      prev.style.cssText = 'height:40px;border:1px solid var(--border);border-radius:3px;background:#fff;padding:4px';
+      input.parentElement.appendChild(prev);
+    }
+    prev.src = b64;
+    _pendingLogoBase64 = b64;
+    showToast('Logo chargé — sauvegardez pour appliquer','success');
+  };
+  reader.readAsDataURL(file);
+}
+let _pendingLogoBase64 = '';
+
+async function saveUIConfig() {
+  // Collecter branding
+  const branding = {
+    appName:     document.getElementById('ui-appName')?.value || 'EvalRisque',
+    companyName: document.getElementById('ui-companyName')?.value || 'NORDCHROME',
+    logoUrl:     document.getElementById('ui-logoUrl')?.value || '',
+    logoBase64:  _pendingLogoBase64 || _uiConfig.branding.logoBase64 || '',
+    colors: {
+      accent:  document.getElementById('ui-colorAccentHex')?.value || '#c84b31',
+      accent2: document.getElementById('ui-colorAccent2Hex')?.value || '#1a4d6e',
+      ink:     document.getElementById('ui-colorInkHex')?.value || '#0f1923',
+    }
+  };
+
+  // Collecter boutons
+  const buttons = {};
+  Object.keys(UI_DEFAULTS.buttons).forEach(key => {
+    buttons[key] = {
+      label:   document.getElementById('btn-label-'+key)?.value || UI_DEFAULTS.buttons[key].label,
+      visible: document.getElementById('btn-vis-'+key)?.checked !== false,
+    };
+  });
+
+  // Collecter labels
+  const labels = {};
+  Object.keys(UI_DEFAULTS.labels).forEach(key => {
+    labels[key] = document.getElementById('lbl-'+key)?.value || UI_DEFAULTS.labels[key];
+  });
+
+  // Collecter features
+  const features = {};
+  ['feat_ai','feat_pp','feat_epi','feat_derogation','feat_signature','feat_carnet','feat_pdf','feat_savepp','feat_myevals'].forEach(id => {
+    features[id] = document.getElementById('feat-'+id)?.checked !== false;
+  });
+
+  // Sauvegarder chaque section
+  const saves = await Promise.all([
+    api('PUT', '/data/ui-config/branding', { config: branding }),
+    api('PUT', '/data/ui-config/buttons',  { config: buttons }),
+    api('PUT', '/data/ui-config/labels',   { config: labels }),
+    api('PUT', '/data/ui-config/features', { config: features }),
+    // Aussi sauvegarder les couleurs dans la société
+    api('PUT', '/data/company', { brandColors: branding.colors, logoData: branding.logoBase64, logoUrl: branding.logoUrl, name: branding.companyName }),
+  ]);
+
+  if (saves.some(s => !s)) return;
+
+  _uiConfig = { branding, buttons, labels, features };
+  applyUIConfig();
+  showToast('Configuration interface enregistrée et appliquée','success');
+}
+
+async function resetUIConfig() {
+  if (!confirm('Réinitialiser toute la configuration de l\'interface ?')) return;
+  await Promise.all(['branding','buttons','labels','features'].map(s => api('DELETE', '/data/ui-config/'+s)));
+  _uiConfig = JSON.parse(JSON.stringify(UI_DEFAULTS));
+  applyUIConfig();
+  await renderAdminInterface();
+  showToast('Configuration réinitialisée','success');
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ════════════════════════════════════════════════════════════════════════
+// ONGLET PLAN DE PRÉVENTION — Configuration complète
+// ════════════════════════════════════════════════════════════════════════
+let _ppConfig = null;
+
+async function loadPPConfig() {
+  const cfg = await api('GET', '/data/pp-config');
+  if (cfg) _ppConfig = cfg;
+}
+
+async function renderAdminPPConfig() {
+  await loadPPConfig();
+  const pane = document.getElementById('admpane-ppconfig');
+  if (!pane || !_ppConfig) return;
+
+  const cfg = _ppConfig;
+
+  pane.innerHTML = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div class="adm-section-title" style="margin:0">📋 Configuration du Plan de Prévention</div>
+    <div style="display:flex;gap:8px">
+      <button class="adm-btn-primary" onclick="savePPConfig()">💾 Enregistrer</button>
+      <button onclick="resetPPConfig()" style="padding:8px 16px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:12px;cursor:pointer;color:#6b7280">↺ Réinitialiser</button>
+    </div>
+  </div>
+
+  <!-- TABS PP CONFIG -->
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--cream);margin-bottom:20px;overflow-x:auto">
+    ${[
+      { id:'ppconf-sections',   label:'📑 Sections' },
+      { id:'ppconf-permits',    label:'📝 Permis' },
+      { id:'ppconf-checklist',  label:'✅ Checklist' },
+      { id:'ppconf-fields',     label:'➕ Champs perso' },
+      { id:'ppconf-levels',     label:'🎨 Niveaux risque' },
+      { id:'ppconf-pdf',        label:'📄 Options PDF' },
+      { id:'ppconf-emergency',  label:'🚨 Urgences' },
+    ].map((t,i) => `<button class="adm-tab${i===0?' active':''}" onclick="switchPPConfigTab('${t.id}')" data-pptab="${t.id}">${t.label}</button>`).join('')}
+  </div>
+
+  <!-- SECTIONS -->
+  <div id="ppconf-sections" class="pp-config-pane">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Activez/désactivez et renommez les sections du Plan de Prévention. Glissez pour réordonner.</div>
+    <div id="pp-sections-list" style="display:flex;flex-direction:column;gap:8px">
+      ${(cfg.sections||[]).sort((a,b)=>a.order-b.order).map((s,i) => `
+      <div class="pp-config-item" draggable="true" data-section-id="${s.id}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border:1.5px solid var(--border);border-radius:4px;background:#fff;cursor:grab">
+        <span style="cursor:grab;color:#9ca3af;font-size:16px">⠿</span>
+        <input type="text" value="${escHtml(s.label)}" id="ppsec-label-${s.id}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <label class="adm-toggle">
+          <input type="checkbox" id="ppsec-en-${s.id}" ${s.enabled ? 'checked' : ''}>
+          <span class="adm-toggle-slider"></span>
+        </label>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- PERMIS -->
+  <div id="ppconf-permits" class="pp-config-pane" style="display:none">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Configurez les permis disponibles dans le formulaire PP.</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="pp-permits-list">
+      ${(cfg.permits||[]).sort((a,b)=>a.order-b.order).map(p => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+        <input type="text" value="${escHtml(p.icon||'📋')}" id="pperm-icon-${p.id}" style="width:44px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:18px;text-align:center"/>
+        <input type="text" value="${escHtml(p.label)}" id="pperm-label-${p.id}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <label class="adm-toggle">
+          <input type="checkbox" id="pperm-en-${p.id}" ${p.enabled ? 'checked' : ''}>
+          <span class="adm-toggle-slider"></span>
+        </label>
+        <button onclick="deletePPPermit('${p.id}')" style="padding:4px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <input type="text" id="new-permit-icon" placeholder="🔥" style="width:52px;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:18px;text-align:center"/>
+      <input type="text" id="new-permit-label" placeholder="Nom du permis…" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+      <button onclick="addPPPermit()" class="adm-btn-primary">+ Ajouter</button>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div id="ppconf-checklist" class="pp-config-pane" style="display:none">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Configurez les items de la checklist d'analyses préalables.</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="pp-checklist-list">
+      ${(cfg.checklist||[]).sort((a,b)=>a.order-b.order).map(c => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+        <input type="text" value="${escHtml(c.label)}" id="ppchk-label-${c.id}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <label class="adm-toggle">
+          <input type="checkbox" id="ppchk-en-${c.id}" ${c.enabled ? 'checked' : ''}>
+          <span class="adm-toggle-slider"></span>
+        </label>
+        <button onclick="deletePPChecklist('${c.id}')" style="padding:4px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <input type="text" id="new-chk-label" placeholder="Nouvelle vérification…" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+      <button onclick="addPPChecklist()" class="adm-btn-primary">+ Ajouter</button>
+    </div>
+  </div>
+
+  <!-- CHAMPS PERSONNALISÉS -->
+  <div id="ppconf-fields" class="pp-config-pane" style="display:none">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Ajoutez des champs personnalisés dans le formulaire PP (texte libre, date, sélection…).</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="pp-custom-fields-list">
+      ${(cfg.customFields||[]).map((f,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--accent2);border-radius:4px;background:#f0f7ff">
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px">Label</div>
+            <input type="text" value="${escHtml(f.label)}" id="ppcf-label-${i}" style="width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px"/></div>
+          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px">Type</div>
+            <select id="ppcf-type-${i}" style="width:100%;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+              <option value="text" ${f.type==='text'?'selected':''}>Texte</option>
+              <option value="textarea" ${f.type==='textarea'?'selected':''}>Texte long</option>
+              <option value="date" ${f.type==='date'?'selected':''}>Date</option>
+              <option value="select" ${f.type==='select'?'selected':''}>Liste déroulante</option>
+              <option value="checkbox" ${f.type==='checkbox'?'selected':''}>Case à cocher</option>
+            </select></div>
+          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px">Section</div>
+            <select id="ppcf-section-${i}" style="width:100%;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+              ${(cfg.sections||[]).map(s => `<option value="${s.id}" ${f.section===s.id?'selected':''}>${s.label}</option>`).join('')}
+            </select></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap">
+          <input type="checkbox" id="ppcf-req-${i}" ${f.required?'checked':''}> Requis
+        </label>
+        <button onclick="deletePPCustomField(${i})" style="padding:4px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:14px;padding:14px;background:var(--paper);border:1.5px dashed var(--border);border-radius:4px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">+ Nouveau champ</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="field-group" style="margin:0"><label class="field-label">Label</label><input type="text" id="new-cf-label" placeholder="Ex: N° chantier" style="padding:8px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Type</label>
+          <select id="new-cf-type" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <option value="text">Texte</option><option value="textarea">Texte long</option>
+            <option value="date">Date</option><option value="select">Liste déroulante</option><option value="checkbox">Case à cocher</option>
+          </select></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Section</label>
+          <select id="new-cf-section" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            ${(cfg.sections||[]).map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+          </select></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="text" id="new-cf-options" placeholder="Options (virgule séparés, si liste déroulante)" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px"/>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><input type="checkbox" id="new-cf-req"/> Requis</label>
+        <button onclick="addPPCustomField()" class="adm-btn-primary">+ Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NIVEAUX DE RISQUE -->
+  <div id="ppconf-levels" class="pp-config-pane" style="display:none">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Personnalisez les niveaux de risque utilisés dans les étapes du PP.</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${(cfg.riskLevels||[]).map((l,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+        <input type="color" id="pplvl-color-${i}" value="${l.color||'#666'}" style="width:36px;height:34px;border:none;cursor:pointer;border-radius:3px"/>
+        <input type="text" value="${escHtml(l.label)}" id="pplvl-label-${i}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <span style="font-size:11px;color:#9ca3af;padding:2px 8px;background:var(--cream);border-radius:10px">${l.value}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- OPTIONS PDF -->
+  <div id="ppconf-pdf" class="pp-config-pane" style="display:none">
+    <div class="adm-card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="adm-sub-title">Contenu PDF</div>
+          ${[
+            { id:'pdf-showLogo',       label:'Afficher le logo de la société',  checked: cfg.pdfOptions?.showLogo !== false },
+            { id:'pdf-showSignatures', label:'Afficher la zone de signatures',  checked: cfg.pdfOptions?.showSignatures !== false },
+            { id:'pdf-showEmergency',  label:'Afficher les numéros d\'urgence', checked: cfg.pdfOptions?.showEmergency !== false },
+          ].map(opt => `
+          <label style="display:flex;align-items:center;gap:9px;padding:10px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;margin-bottom:8px">
+            <input type="checkbox" id="${opt.id}" ${opt.checked ? 'checked' : ''} style="accent-color:var(--accent2)"/>
+            <span style="font-size:13px">${opt.label}</span>
+          </label>`).join('')}
+        </div>
+        <div>
+          <div class="adm-sub-title">Textes PDF</div>
+          <div class="field-group">
+            <label class="field-label">Texte pied de page</label>
+            <input type="text" id="pdf-footerText" value="${escHtml(cfg.pdfOptions?.footerText||'EvalRisque — NORDCHROME')}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Filigrane (watermark)</label>
+            <input type="text" id="pdf-watermark" value="${escHtml(cfg.pdfOptions?.watermark||'')}" placeholder="Ex: CONFIDENTIEL" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Format de page</label>
+            <select id="pdf-pageFormat" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+              <option value="a4" ${cfg.pdfOptions?.pageFormat==='a4'?'selected':''}>A4</option>
+              <option value="letter" ${cfg.pdfOptions?.pageFormat==='letter'?'selected':''}>Letter</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- URGENCES PAR DÉFAUT -->
+  <div id="ppconf-emergency" class="pp-config-pane" style="display:none">
+    <div class="adm-card">
+      <div class="adm-sub-title">Numéros d'urgence par défaut (pré-remplissage du formulaire PP)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        ${[
+          { id:'urg-samu',     label:'SAMU',           val: cfg.defaultEmergency?.samu     || '15' },
+          { id:'urg-pompiers', label:'Pompiers',        val: cfg.defaultEmergency?.pompiers || '18' },
+          { id:'urg-police',   label:'Police',          val: cfg.defaultEmergency?.police   || '17' },
+          { id:'urg-sitelbl',  label:'Label contact site', val: cfg.defaultEmergency?.siteLabel || 'Contact site' },
+        ].map(u => `
+        <div class="field-group" style="margin:0">
+          <label class="field-label">${u.label}</label>
+          <input type="text" id="${u.id}" value="${escHtml(u.val)}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // CSS pour les panes
+  const style = document.createElement('style');
+  style.textContent = `.pp-config-pane{}.pp-config-item:active{cursor:grabbing;}`;
+  pane.appendChild(style);
+}
+
+function switchPPConfigTab(tabId) {
+  document.querySelectorAll('.pp-config-pane').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('[data-pptab]').forEach(b => b.classList.remove('active'));
+  const pane = document.getElementById(tabId);
+  const btn  = document.querySelector(`[data-pptab="${tabId}"]`);
+  if (pane) pane.style.display = 'block';
+  if (btn)  btn.classList.add('active');
+}
+
+// ── CRUD permis PP ───────────────────────────────────────────
+function addPPPermit() {
+  const icon  = document.getElementById('new-permit-icon')?.value.trim() || '📋';
+  const label = document.getElementById('new-permit-label')?.value.trim();
+  if (!label) { showToast('Entrez un libellé','error'); return; }
+  if (!_ppConfig.permits) _ppConfig.permits = [];
+  _ppConfig.permits.push({ id: 'permit_'+Date.now(), label, icon, enabled: true, order: _ppConfig.permits.length+1 });
+  renderAdminPPConfig();
+  showToast('Permis ajouté','success');
+}
+function deletePPPermit(id) {
+  _ppConfig.permits = (_ppConfig.permits||[]).filter(p => p.id !== id);
+  renderAdminPPConfig();
+}
+
+// ── CRUD checklist PP ────────────────────────────────────────
+function addPPChecklist() {
+  const label = document.getElementById('new-chk-label')?.value.trim();
+  if (!label) { showToast('Entrez un libellé','error'); return; }
+  if (!_ppConfig.checklist) _ppConfig.checklist = [];
+  _ppConfig.checklist.push({ id: 'chk_'+Date.now(), label, enabled: true, order: _ppConfig.checklist.length+1 });
+  renderAdminPPConfig();
+  showToast('Item ajouté','success');
+}
+function deletePPChecklist(id) {
+  _ppConfig.checklist = (_ppConfig.checklist||[]).filter(c => c.id !== id);
+  renderAdminPPConfig();
+}
+
+// ── CRUD champs custom PP ────────────────────────────────────
+function addPPCustomField() {
+  const label   = document.getElementById('new-cf-label')?.value.trim();
+  const type    = document.getElementById('new-cf-type')?.value;
+  const section = document.getElementById('new-cf-section')?.value;
+  const options = (document.getElementById('new-cf-options')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const required = document.getElementById('new-cf-req')?.checked;
+  if (!label) { showToast('Entrez un libellé','error'); return; }
+  if (!_ppConfig.customFields) _ppConfig.customFields = [];
+  _ppConfig.customFields.push({ id: 'cf_'+Date.now(), label, type, section, options, required, order: _ppConfig.customFields.length+1 });
+  renderAdminPPConfig();
+  showToast('Champ ajouté','success');
+}
+function deletePPCustomField(idx) {
+  _ppConfig.customFields.splice(idx, 1);
+  renderAdminPPConfig();
+}
+
+// ── Sauvegarder config PP ────────────────────────────────────
+async function savePPConfig() {
+  const cfg = _ppConfig;
+
+  // Collecter sections
+  (cfg.sections||[]).forEach(s => {
+    const lbl = document.getElementById('ppsec-label-'+s.id);
+    const en  = document.getElementById('ppsec-en-'+s.id);
+    if (lbl) s.label   = lbl.value;
+    if (en)  s.enabled = en.checked;
+  });
+
+  // Collecter permis
+  (cfg.permits||[]).forEach(p => {
+    const icon = document.getElementById('pperm-icon-'+p.id);
+    const lbl  = document.getElementById('pperm-label-'+p.id);
+    const en   = document.getElementById('pperm-en-'+p.id);
+    if (icon) p.icon    = icon.value;
+    if (lbl)  p.label   = lbl.value;
+    if (en)   p.enabled = en.checked;
+  });
+
+  // Collecter checklist
+  (cfg.checklist||[]).forEach(c => {
+    const lbl = document.getElementById('ppchk-label-'+c.id);
+    const en  = document.getElementById('ppchk-en-'+c.id);
+    if (lbl) c.label   = lbl.value;
+    if (en)  c.enabled = en.checked;
+  });
+
+  // Collecter champs custom
+  (cfg.customFields||[]).forEach((f,i) => {
+    const lbl = document.getElementById('ppcf-label-'+i);
+    const type = document.getElementById('ppcf-type-'+i);
+    const sec  = document.getElementById('ppcf-section-'+i);
+    const req  = document.getElementById('ppcf-req-'+i);
+    if (lbl)  f.label    = lbl.value;
+    if (type) f.type     = type.value;
+    if (sec)  f.section  = sec.value;
+    if (req)  f.required = req.checked;
+  });
+
+  // Niveaux de risque
+  (cfg.riskLevels||[]).forEach((l,i) => {
+    const col = document.getElementById('pplvl-color-'+i);
+    const lbl = document.getElementById('pplvl-label-'+i);
+    if (col) l.color = col.value;
+    if (lbl) l.label = lbl.value;
+  });
+
+  // Options PDF
+  if (!cfg.pdfOptions) cfg.pdfOptions = {};
+  cfg.pdfOptions.showLogo       = document.getElementById('pdf-showLogo')?.checked !== false;
+  cfg.pdfOptions.showSignatures = document.getElementById('pdf-showSignatures')?.checked !== false;
+  cfg.pdfOptions.showEmergency  = document.getElementById('pdf-showEmergency')?.checked !== false;
+  cfg.pdfOptions.footerText     = document.getElementById('pdf-footerText')?.value || '';
+  cfg.pdfOptions.watermark      = document.getElementById('pdf-watermark')?.value || '';
+  cfg.pdfOptions.pageFormat     = document.getElementById('pdf-pageFormat')?.value || 'a4';
+
+  // Urgences
+  if (!cfg.defaultEmergency) cfg.defaultEmergency = {};
+  cfg.defaultEmergency.samu      = document.getElementById('urg-samu')?.value || '15';
+  cfg.defaultEmergency.pompiers  = document.getElementById('urg-pompiers')?.value || '18';
+  cfg.defaultEmergency.police    = document.getElementById('urg-police')?.value || '17';
+  cfg.defaultEmergency.siteLabel = document.getElementById('urg-sitelbl')?.value || 'Contact site';
+
+  const result = await api('PUT', '/data/pp-config', cfg);
+  if (!result) return;
+  _ppConfig = cfg;
+
+  // Appliquer les permis dans le formulaire PP
+  applyPPConfigToForm();
+  showToast('Configuration PP enregistrée','success');
+}
+
+async function resetPPConfig() {
+  if (!confirm('Réinitialiser la configuration du Plan de Prévention ?')) return;
+  const result = await api('DELETE', '/data/pp-config');
+  if (!result) return;
+  _ppConfig = result;
+  renderAdminPPConfig();
+  applyPPConfigToForm();
+  showToast('Configuration PP réinitialisée','success');
+}
+
+// ── Appliquer la config PP au formulaire PP ──────────────────
+function applyPPConfigToForm() {
+  if (!_ppConfig) return;
+
+  // Numéros urgence
+  const de = _ppConfig.defaultEmergency || {};
+  ['samu','pompiers'].forEach(id => {
+    const el = document.getElementById('pp-'+id);
+    if (el && de[id]) el.value = de[id];
+  });
+
+  // Permis — reconstruire la grille
+  const permitGrid = document.querySelector('.pp-permit-grid');
+  if (permitGrid && _ppConfig.permits) {
+    const enabled = _ppConfig.permits.filter(p => p.enabled);
+    permitGrid.innerHTML = enabled.map(p => `
+    <div class="pp-permit-card" onclick="togglePermit(this,'${escHtml(p.label)}')">
+      <div class="pp-permit-icon">${p.icon||'📋'}</div>
+      <div class="pp-permit-label">${escHtml(p.label)}</div>
+    </div>`).join('');
+  }
+
+  // Checklist
+  const chkMatrix = document.querySelector('.pp-risk-matrix');
+  if (chkMatrix && _ppConfig.checklist) {
+    const enabled = _ppConfig.checklist.filter(c => c.enabled);
+    chkMatrix.innerHTML = enabled.map(c => `
+    <div class="pp-matrix-cell">
+      <label><input type="checkbox" id="chk-${c.id}"/> ${escHtml(c.label)}</label>
+    </div>`).join('');
+  }
+
+  // Sections — masquer/afficher
+  if (_ppConfig.sections) {
+    const sectionMap = {
+      parties:      () => document.querySelector('.pp-section-title:first-of-type'),
+      emergency:    () => document.getElementById('pp-samu')?.closest('.pp-field-grid-3')?.previousElementSibling,
+    };
+    // Simple masquage par section
+    const ppPanel = document.getElementById('ppPanel');
+    if (ppPanel) {
+      _ppConfig.sections.forEach(s => {
+        const sectionEls = ppPanel.querySelectorAll(`[data-pp-section="${s.id}"]`);
+        sectionEls.forEach(el => { el.style.display = s.enabled ? '' : 'none'; });
+      });
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ONGLET RISQUES DB — Gestion complète depuis la DB
+// ════════════════════════════════════════════════════════════════════════
+let _dbRisks        = [];
+let _dbTypes        = [];
+let _dbKeywords     = [];
+let _dbEPIItems     = [];
+let _dbRisksLoaded  = false;
+
+async function loadRisksFromDB() {
+  if (_dbRisksLoaded) return;
+  const [types, risks, keywords, epiItems] = await Promise.all([
+    api('GET', '/data/intervention-types/all'),
+    api('GET', '/data/risks/all'),
+    api('GET', '/data/keyword-rules/all'),
+    api('GET', '/data/epi-items?category=collectif'),
+  ]);
+  _dbTypes    = types    || [];
+  _dbRisks    = risks    || [];
+  _dbKeywords = keywords || [];
+  _dbEPIItems = epiItems || [];
+  _dbRisksLoaded = true;
+}
+
+async function renderAdminRisksDB() {
+  await loadRisksFromDB();
+  const pane = document.getElementById('admpane-risksdb');
+  if (!pane) return;
+
+  // Tabs internes
+  pane.innerHTML = `
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--cream);margin-bottom:18px;overflow-x:auto">
+    ${[
+      { id:'rdb-types',    label:'🗂️ Types d\'intervention' },
+      { id:'rdb-risks',    label:'⚠️ Risques' },
+      { id:'rdb-keywords', label:'🔍 Mots-clés IA' },
+      { id:'rdb-epi',      label:'🦺 EPI/EPC catalogue' },
+    ].map((t,i) => `<button class="adm-tab${i===0?' active':''}" onclick="switchRDBTab('${t.id}')" data-rdbtab="${t.id}">${t.label}</button>`).join('')}
+  </div>
+
+  <!-- TYPES -->
+  <div id="rdb-types">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:12px;color:#6b7280">Gérez les types d'intervention stockés en base de données.</div>
+      <button onclick="syncTypesToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser depuis le code</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      ${_dbTypes.map(t => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid ${t.hidden?'#e5e7eb':'var(--border)'};border-radius:4px;background:${t.hidden?'#f9fafb':'#fff'};opacity:${t.hidden?'.55':'1'}">
+        <input type="text" value="${escHtml(t.icon||'🔩')}" id="dbt-icon-${t._id}" style="width:44px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:18px;text-align:center"/>
+        <input type="text" value="${escHtml(t.name)}" id="dbt-name-${t._id}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;${t.source==='builtin'?'background:#e8f4fd;color:var(--accent2)':'background:#fde8e6;color:var(--accent)'}">${t.source}</span>
+        <span style="font-size:11px;color:#6b7280">Ordre: <input type="number" value="${t.order||0}" id="dbt-order-${t._id}" style="width:50px;padding:4px;border:1.5px solid var(--border);border-radius:3px;font-size:11px"/></span>
+        <button onclick="saveDBType('${t._id}')" class="adm-btn-edit">💾</button>
+        <button onclick="toggleDBTypeHidden('${t._id}',${!t.hidden})" style="padding:4px 10px;background:${t.hidden?'#e6f4ec':'#fef3e6'};color:${t.hidden?'var(--safe)':'var(--warn)'};border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">${t.hidden?'✓ Réactiver':'○ Masquer'}</button>
+        ${t.source==='custom'?`<button onclick="deleteDBType('${t._id}')" style="padding:4px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">✕</button>`:''}
+      </div>`).join('')}
+    </div>
+    <!-- Ajouter type -->
+    <div class="adm-card" style="border-color:var(--epi-c)">
+      <div class="adm-sub-title" style="color:var(--epi-c)">+ Nouveau type d'intervention</div>
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <input type="text" id="new-dbt-icon" placeholder="🔩" style="width:52px;padding:9px;border:1.5px solid var(--border);border-radius:3px;font-size:18px;text-align:center"/>
+        <input type="text" id="new-dbt-name" placeholder="Nom du type d'intervention…" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <button onclick="addDBType()" class="adm-btn-primary">+ Créer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RISQUES -->
+  <div id="rdb-risks" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px">
+      <div style="display:flex;gap:8px">
+        <select id="rdb-filter-type" onchange="renderRisksDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+          <option value="">Tous les types</option>
+          ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+        </select>
+        <select id="rdb-filter-sev" onchange="renderRisksDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+          <option value="">Toutes sévérités</option>
+          <option value="high">🔴 Critique</option>
+          <option value="medium">🟠 Modéré</option>
+          <option value="low">🟢 Faible</option>
+        </select>
+      </div>
+      <button onclick="syncRisksToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser depuis le code</button>
+    </div>
+    <div id="rdb-risks-list" style="max-height:500px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    <!-- Ajouter risque -->
+    <div class="adm-card" style="margin-top:16px">
+      <div class="adm-sub-title">+ Ajouter un risque</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px">
+        <div class="field-group" style="margin:0"><label class="field-label">Type</label>
+          <select id="new-dbr-type" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+          </select></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Nom du risque</label>
+          <input type="text" id="new-dbr-name" placeholder="Ex: Blessure par outil…" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Sévérité</label>
+          <select id="new-dbr-sev" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <option value="high">🔴 Critique</option><option value="medium" selected>🟠 Modéré</option><option value="low">🟢 Faible</option>
+          </select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><label class="field-label" style="font-size:9px">Causes (une par ligne)</label>
+          <textarea id="new-dbr-causes" style="width:100%;min-height:60px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:11px;resize:vertical" placeholder="Cause 1&#10;Cause 2"></textarea></div>
+        <div><label class="field-label" style="font-size:9px">Conséquences</label>
+          <textarea id="new-dbr-conseq" style="width:100%;min-height:60px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:11px;resize:vertical" placeholder="Conséquence 1&#10;…"></textarea></div>
+        <div><label class="field-label" style="font-size:9px">Mesures de prévention</label>
+          <textarea id="new-dbr-prev" style="width:100%;min-height:60px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:11px;resize:vertical" placeholder="Mesure 1&#10;…"></textarea></div>
+      </div>
+      <button onclick="addDBRisk()" class="adm-btn-primary">+ Ajouter ce risque</button>
+    </div>
+  </div>
+
+  <!-- MOTS-CLÉS -->
+  <div id="rdb-keywords" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <select id="rdb-filter-kw-type" onchange="renderKeywordsDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+        <option value="">Tous les types</option>
+        ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+      </select>
+      <button onclick="syncKeywordsToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser</button>
+    </div>
+    <div id="rdb-kw-list" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    <!-- Ajouter règle -->
+    <div class="adm-card" style="margin-top:14px">
+      <div class="adm-sub-title">+ Ajouter une règle de détection</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+        <div><label class="field-label" style="font-size:9px">Type</label>
+          <select id="new-dbkw-type" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+          </select></div>
+        <div><label class="field-label" style="font-size:9px">Mots-clés (virgule séparés)</label>
+          <input type="text" id="new-dbkw-words" placeholder="soudage, soudure…" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+        <div><label class="field-label" style="font-size:9px">IDs risques (virgule séparés)</label>
+          <input type="text" id="new-dbkw-risks" placeholder="s1, s2, s3…" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+        <div><label class="field-label" style="font-size:9px">Score</label>
+          <select id="new-dbkw-score" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <option value="5">5 — Très fort</option><option value="4" selected>4 — Fort</option><option value="3">3 — Moyen</option><option value="2">2 — Faible</option>
+          </select></div>
+      </div>
+      <button onclick="addDBKeyword()" class="adm-btn-primary" style="margin-top:10px">+ Ajouter</button>
+    </div>
+  </div>
+
+  <!-- EPI/EPC -->
+  <div id="rdb-epi" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <select id="rdb-filter-epi-type" onchange="renderEPIDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+        <option value="">Tous les types</option>
+        ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+      </select>
+      <select id="rdb-filter-epi-cat" onchange="renderEPIDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+        <option value="">EPC + EPI</option>
+        <option value="collectif">EPC — Collectif</option>
+        <option value="individuel">EPI — Individuel</option>
+      </select>
+      <button onclick="syncEPIToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser</button>
+    </div>
+    <div id="rdb-epi-list" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+    <!-- Ajouter EPI -->
+    <div class="adm-card" style="margin-top:14px">
+      <div class="adm-sub-title">+ Ajouter un équipement EPI/EPC</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end">
+        <div><label class="field-label" style="font-size:9px">Type d'intervention</label>
+          <select id="new-epi-type" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+          </select></div>
+        <div><label class="field-label" style="font-size:9px">Catégorie</label>
+          <select id="new-epi-cat" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <option value="collectif">EPC — Collectif</option>
+            <option value="individuel">EPI — Individuel</option>
+          </select></div>
+        <div><label class="field-label" style="font-size:9px">Libellé</label>
+          <input type="text" id="new-epi-label" placeholder="Ex: Garde-corps NF EN 13374…" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+      </div>
+      <button onclick="addDBEPI()" class="adm-btn-primary" style="margin-top:10px">+ Ajouter</button>
+    </div>
+  </div>`;
+
+  renderRisksDBList();
+}
+
+function switchRDBTab(tabId) {
+  document.querySelectorAll('[data-rdbtab]').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`[data-rdbtab="${tabId}"]`);
+  if (btn) btn.classList.add('active');
+  ['rdb-types','rdb-risks','rdb-keywords','rdb-epi'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === tabId ? 'block' : 'none';
+  });
+  if (tabId === 'rdb-risks')    renderRisksDBList();
+  if (tabId === 'rdb-keywords') renderKeywordsDBList();
+  if (tabId === 'rdb-epi')      renderEPIDBList();
+}
+
+// ── CRUD types DB ────────────────────────────────────────────
+async function addDBType() {
+  const name = document.getElementById('new-dbt-name')?.value.trim();
+  const icon = document.getElementById('new-dbt-icon')?.value.trim() || '🔩';
+  if (!name) { showToast('Entrez un nom','error'); return; }
+  const result = await api('POST', '/data/intervention-types', { name, icon });
+  if (!result) return;
+  _dbTypes.push(result); _dbRisksLoaded = false;
+  renderAdminRisksDB(); showToast('Type créé','success');
+}
+async function saveDBType(id) {
+  const name = document.getElementById('dbt-name-'+id)?.value.trim();
+  const icon = document.getElementById('dbt-icon-'+id)?.value.trim();
+  const order = parseInt(document.getElementById('dbt-order-'+id)?.value)||0;
+  const result = await api('PUT', '/data/intervention-types/'+id, { name, icon, order });
+  if (!result) return;
+  const idx = _dbTypes.findIndex(t => t._id === id);
+  if (idx >= 0) _dbTypes[idx] = result;
+  showToast('Type mis à jour','success');
+}
+async function toggleDBTypeHidden(id, hidden) {
+  await api('PUT', '/data/intervention-types/'+id, { hidden });
+  const t = _dbTypes.find(t => t._id === id);
+  if (t) t.hidden = hidden;
+  _dbRisksLoaded = false; renderAdminRisksDB(); showToast(hidden ? 'Type masqué' : 'Type réactivé','success');
+}
+async function deleteDBType(id) {
+  if (!confirm('Supprimer ce type ?')) return;
+  await api('DELETE', '/data/intervention-types/'+id);
+  _dbTypes = _dbTypes.filter(t => t._id !== id);
+  _dbRisksLoaded = false; renderAdminRisksDB(); showToast('Type supprimé','success');
+}
+async function syncTypesToDB() {
+  const btn = event.target; btn.textContent = '⏳ Synchronisation…'; btn.disabled = true;
+  await loadAllDataFromAPI();
+  _dbRisksLoaded = false; await renderAdminRisksDB();
+  btn.textContent = '🔄 Synchroniser depuis le code'; btn.disabled = false;
+  showToast('Synchronisation terminée','success');
+}
+
+// ── CRUD risques DB ──────────────────────────────────────────
+function renderRisksDBList() {
+  const container = document.getElementById('rdb-risks-list'); if (!container) return;
+  const filterType = document.getElementById('rdb-filter-type')?.value || '';
+  const filterSev  = document.getElementById('rdb-filter-sev')?.value || '';
+  let risks = _dbRisks;
+  if (filterType) risks = risks.filter(r => r.interventionType === filterType);
+  if (filterSev)  risks = risks.filter(r => r.sev === filterSev);
+
+  const sevColors = { high:['#fde8e6','var(--danger)'], medium:['#fef3e6','var(--warn)'], low:['#e6f4ec','var(--safe)'] };
+  const sevLabel  = { high:'Critique', medium:'Modéré', low:'Faible' };
+
+  container.innerHTML = risks.map(r => {
+    const [bg,col] = sevColors[r.sev] || ['#f3f4f6','#6b7280'];
+    return `<div style="border:1.5px solid var(--border);border-radius:4px;overflow:hidden;background:${r.hidden?'#f9fafb':'#fff'};opacity:${r.hidden?'.55':'1'}">
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:${bg}">
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;background:${col};color:#fff;border-radius:20px">${sevLabel[r.sev]||r.sev}</span>
+        <strong style="font-size:12.5px;flex:1">${escHtml(r.name)}</strong>
+        <span style="font-size:10px;color:#6b7280">${escHtml(r.interventionType)}</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;${r.source==='builtin'?'background:#e8f4fd;color:var(--accent2)':'background:#fde8e6;color:var(--accent)'}">${r.source}</span>
+        <button onclick="editDBRisk('${r.riskId}')" class="adm-btn-edit" style="padding:3px 10px">✎</button>
+        <button onclick="toggleDBRiskHidden('${r.riskId}',${!r.hidden})" style="padding:3px 10px;background:${r.hidden?'#e6f4ec':'#fef3e6'};color:${r.hidden?'var(--safe)':'var(--warn)'};border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">${r.hidden?'✓ Réactiver':'○ Masquer'}</button>
+        ${r.source==='custom'?`<button onclick="deleteDBRisk('${r.riskId}')" style="padding:3px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">✕</button>`:''}
+      </div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:24px;color:#9ca3af;font-style:italic">Aucun risque</div>';
+}
+
+async function addDBRisk() {
+  const type = document.getElementById('new-dbr-type')?.value;
+  const name = document.getElementById('new-dbr-name')?.value.trim();
+  const sev  = document.getElementById('new-dbr-sev')?.value;
+  const causes      = (document.getElementById('new-dbr-causes')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const consequences = (document.getElementById('new-dbr-conseq')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const solutions   = (document.getElementById('new-dbr-prev')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  if (!name || !type) { showToast('Renseignez le nom et le type','error'); return; }
+  const result = await api('POST', '/data/risks', { interventionType: type, name, sev, causes, consequences, solutions });
+  if (!result) return;
+  _dbRisks.push(result);
+  ['new-dbr-name','new-dbr-causes','new-dbr-conseq','new-dbr-prev'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  renderRisksDBList();
+  // Recharger les risques dans le moteur IA
+  await reloadRisksIntoEngine();
+  showToast(`Risque "${name}" ajouté`,'success');
+}
+
+async function toggleDBRiskHidden(riskId, hidden) {
+  await api('PUT', '/data/risks/'+riskId, { hidden });
+  const r = _dbRisks.find(x => x.riskId === riskId);
+  if (r) r.hidden = hidden;
+  renderRisksDBList();
+  await reloadRisksIntoEngine();
+  showToast(hidden ? 'Risque masqué' : 'Risque réactivé','success');
+}
+
+async function deleteDBRisk(riskId) {
+  if (!confirm('Supprimer ce risque ?')) return;
+  await api('DELETE', '/data/risks/'+riskId);
+  _dbRisks = _dbRisks.filter(r => r.riskId !== riskId);
+  renderRisksDBList();
+  await reloadRisksIntoEngine();
+  showToast('Risque supprimé','success');
+}
+
+function editDBRisk(riskId) {
+  const r = _dbRisks.find(x => x.riskId === riskId);
+  if (!r) return;
+  document.getElementById('new-dbr-type').value = r.interventionType;
+  document.getElementById('new-dbr-name').value = r.name;
+  document.getElementById('new-dbr-sev').value  = r.sev;
+  document.getElementById('new-dbr-causes').value = (r.causes||[]).join('\n');
+  document.getElementById('new-dbr-conseq').value = (r.consequences||[]).join('\n');
+  document.getElementById('new-dbr-prev').value   = (r.solutions||[]).join('\n');
+  showToast('Risque chargé dans le formulaire — modifiez et ajoutez','success');
+}
+
+async function syncRisksToDB() {
+  const btn = event.target; btn.textContent = '⏳…'; btn.disabled = true;
+  const risks = await api('GET', '/data/risks/all');
+  if (risks) _dbRisks = risks;
+  renderRisksDBList();
+  btn.textContent = '🔄 Synchroniser depuis le code'; btn.disabled = false;
+  showToast(`${_dbRisks.length} risques rechargés`,'success');
+}
+
+// ── CRUD mots-clés DB ────────────────────────────────────────
+function renderKeywordsDBList() {
+  const container = document.getElementById('rdb-kw-list'); if (!container) return;
+  const filterType = document.getElementById('rdb-filter-kw-type')?.value || '';
+  let kws = filterType ? _dbKeywords.filter(k => k.type === filterType) : _dbKeywords;
+  const sevCol = s => s>=4?'var(--danger)':s>=3?'var(--warn)':'var(--safe)';
+  const sevBg  = s => s>=4?'#fde8e6':s>=3?'#fef3e6':'#e6f4ec';
+  container.innerHTML = kws.map(k => `
+  <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid ${k.hidden?'#e5e7eb':'var(--border)'};border-radius:4px;background:${k.hidden?'#f9fafb':'#fff'};opacity:${k.hidden?'.55':'1'}">
+    <span style="font-size:11px;font-weight:700;padding:2px 8px;background:${sevBg(k.s)};color:${sevCol(k.s)};border-radius:3px;flex-shrink:0">${k.s}</span>
+    <span style="font-size:10px;color:#6b7280;flex-shrink:0;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(k.type)}</span>
+    <div style="flex:1;display:flex;flex-wrap:wrap;gap:3px">${(k.w||[]).map(w=>`<span style="padding:1px 7px;background:var(--ink);color:#fff;border-radius:10px;font-size:10px">${escHtml(w)}</span>`).join('')}</div>
+    <div style="color:#9ca3af;font-size:10px">→ ${(k.r||[]).join(', ')||'—'}</div>
+    <span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;${k.source==='builtin'?'background:#e8f4fd;color:var(--accent2)':'background:#fde8e6;color:var(--accent)'}">${k.source}</span>
+    <button onclick="toggleDBKWHidden('${k.id}',${!k.hidden})" style="padding:3px 9px;background:${k.hidden?'#e6f4ec':'#fef3e6'};color:${k.hidden?'var(--safe)':'var(--warn)'};border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">${k.hidden?'✓':'○'}</button>
+    ${k.source==='custom'?`<button onclick="deleteDBKeyword('${k.id}')" style="padding:3px 9px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">✕</button>`:''}
+  </div>`).join('') || '<div style="text-align:center;padding:20px;color:#9ca3af;font-style:italic">Aucune règle</div>';
+}
+
+async function addDBKeyword() {
+  const type  = document.getElementById('new-dbkw-type')?.value;
+  const words = (document.getElementById('new-dbkw-words')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const risks = (document.getElementById('new-dbkw-risks')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const score = parseInt(document.getElementById('new-dbkw-score')?.value)||4;
+  if (!words.length) { showToast('Entrez au moins un mot-clé','error'); return; }
+  const result = await api('POST', '/data/keyword-rules', { type, w: words, r: risks, s: score });
+  if (!result) return;
+  _dbKeywords.push({ ...result, type, source:'custom', hidden:false });
+  document.getElementById('new-dbkw-words').value = '';
+  document.getElementById('new-dbkw-risks').value = '';
+  renderKeywordsDBList();
+  await reloadKeywordsIntoEngine();
+  showToast('Règle ajoutée — active immédiatement','success');
+}
+
+async function toggleDBKWHidden(id, hidden) {
+  await api('PUT', '/data/keyword-rules/'+id, { hidden });
+  const k = _dbKeywords.find(x => x.id === id);
+  if (k) k.hidden = hidden;
+  renderKeywordsDBList();
+  await reloadKeywordsIntoEngine();
+}
+
+async function deleteDBKeyword(id) {
+  if (!confirm('Supprimer cette règle ?')) return;
+  await api('DELETE', '/data/keyword-rules/'+id);
+  _dbKeywords = _dbKeywords.filter(k => k.id !== id);
+  renderKeywordsDBList();
+  await reloadKeywordsIntoEngine();
+  showToast('Règle supprimée','success');
+}
+
+async function syncKeywordsToDB() {
+  const rules = await api('GET', '/data/keyword-rules/all');
+  if (rules) _dbKeywords = rules;
+  renderKeywordsDBList();
+  showToast(`${_dbKeywords.length} règles rechargées`,'success');
+}
+
+// ── CRUD EPI DB ──────────────────────────────────────────────
+function renderEPIDBList() {
+  const container = document.getElementById('rdb-epi-list'); if (!container) return;
+  const filterType = document.getElementById('rdb-filter-epi-type')?.value || '';
+  const filterCat  = document.getElementById('rdb-filter-epi-cat')?.value || '';
+  let items = _dbEPIItems;
+  if (filterType) items = items.filter(i => i.interventionType === filterType);
+  if (filterCat)  items = items.filter(i => i.category === filterCat);
+  const catColors = { collectif:['#ede9ff','var(--epi-c)'], individuel:['#e0f7ff','var(--epi-i)'] };
+  container.innerHTML = items.map(it => {
+    const [bg,col] = catColors[it.category] || ['#f3f4f6','#6b7280'];
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1.5px solid var(--border);border-radius:4px;background:${it.hidden?'#f9fafb':'#fff'};opacity:${it.hidden?'.55':'1'}">
+      <span style="font-size:9px;padding:2px 8px;background:${bg};color:${col};border-radius:20px;font-weight:700;white-space:nowrap">${it.category==='collectif'?'EPC':'EPI'}</span>
+      <span style="flex:1;font-size:12.5px">${escHtml(it.label)}</span>
+      <span style="font-size:10px;color:#6b7280;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(it.interventionType)}</span>
+      <span style="font-size:9px;padding:1px 6px;border-radius:10px;font-weight:700;${it.source==='builtin'?'background:#e8f4fd;color:var(--accent2)':'background:#fde8e6;color:var(--accent)'}">${it.source}</span>
+      <button onclick="toggleDBEPIHidden('${it._id}',${!it.hidden})" style="padding:3px 9px;background:${it.hidden?'#e6f4ec':'#fef3e6'};color:${it.hidden?'var(--safe)':'var(--warn)'};border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">${it.hidden?'✓':'○'}</button>
+      ${it.source==='custom'?`<button onclick="deleteDBEPI('${it._id}')" style="padding:3px 9px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">✕</button>`:''}
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:20px;color:#9ca3af;font-style:italic">Aucun item</div>';
+}
+
+async function addDBEPI() {
+  const type  = document.getElementById('new-epi-type')?.value;
+  const cat   = document.getElementById('new-epi-cat')?.value;
+  const label = document.getElementById('new-epi-label')?.value.trim();
+  if (!label) { showToast('Entrez un libellé','error'); return; }
+  const result = await api('POST', '/data/epi-items', { interventionType: type, category: cat, label });
+  if (!result) return;
+  _dbEPIItems.push(result);
+  document.getElementById('new-epi-label').value = '';
+  renderEPIDBList();
+  showToast('EPI/EPC ajouté','success');
+}
+
+async function toggleDBEPIHidden(id, hidden) {
+  await api('PUT', '/data/epi-items/'+id, { hidden });
+  const it = _dbEPIItems.find(x => x._id === id);
+  if (it) it.hidden = hidden;
+  renderEPIDBList();
+}
+
+async function deleteDBEPI(id) {
+  if (!confirm('Supprimer cet item ?')) return;
+  await api('DELETE', '/data/epi-items/'+id);
+  _dbEPIItems = _dbEPIItems.filter(x => x._id !== id);
+  renderEPIDBList();
+  showToast('Item supprimé','success');
+}
+
+async function syncEPIToDB() {
+  const items = await api('GET', '/data/epi-items');
+  if (items) _dbEPIItems = items;
+  renderEPIDBList();
+  showToast(`${_dbEPIItems.length} items rechargés`,'success');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MOTEUR IA — Rechargement des règles depuis la DB
+// ════════════════════════════════════════════════════════════════════════
+async function reloadRisksIntoEngine() {
+  try {
+    const risks = await api('GET', '/data/risks');
+    if (!risks) return;
+    // Injecter dans l'objet RISKS en mémoire
+    risks.forEach(r => {
+      if (!RISKS[r.interventionType]) RISKS[r.interventionType] = [];
+      const existing = RISKS[r.interventionType].findIndex(x => x.id === r.riskId);
+      const rObj = { id: r.riskId, name: r.name, sev: r.sev, causes: r.causes||[], consequences: r.consequences||[], solutions: r.solutions||[] };
+      if (existing >= 0) {
+        RISKS[r.interventionType][existing] = rObj;
+      } else {
+        RISKS[r.interventionType].push(rObj);
+      }
+    });
+  } catch (e) { console.warn('Impossible de recharger les risques:', e); }
+}
+
+async function reloadKeywordsIntoEngine() {
+  try {
+    const rules = await api('GET', '/data/keyword-rules');
+    if (!rules) return;
+    // Injecter dans AI_KW en mémoire
+    rules.forEach(rule => {
+      if (!AI_KW[rule.type]) AI_KW[rule.type] = [];
+      const existingIdx = AI_KW[rule.type].findIndex(r => r._dbId === rule.id);
+      const rObj = { s: rule.s, w: rule.w, r: rule.r, _dbId: rule.id };
+      if (existingIdx >= 0) {
+        AI_KW[rule.type][existingIdx] = rObj;
+      } else {
+        AI_KW[rule.type].push(rObj);
+      }
+    });
+  } catch (e) { console.warn('Impossible de recharger les mots-clés:', e); }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// HOOK — Charger depuis la DB au démarrage
+// ════════════════════════════════════════════════════════════════════════
+async function initDBRisksAndUI() {
+  await Promise.all([
+    loadUIConfig(),
+    loadPPConfig(),
+    reloadRisksIntoEngine(),
+    reloadKeywordsIntoEngine(),
+  ]);
+  applyUIConfig();
+  applyPPConfigToForm();
 }
 
 </script>
