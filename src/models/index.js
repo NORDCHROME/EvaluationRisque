@@ -1,5 +1,5 @@
 // ============================================================
-// models/index.js — Tous les modèles Mongoose
+// models/index.js — Tous les modèles Mongoose (v2 — config UI + risques DB)
 // ============================================================
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
@@ -8,7 +8,7 @@ const { Schema } = mongoose;
 const UserSchema = new Schema({
   login:      { type: String, required: true, unique: true, trim: true },
   name:       { type: String, required: true },
-  password:   { type: String, required: true }, // bcrypt hash
+  password:   { type: String, required: true },
   role:       { type: String, enum: ['admin','user','viewer'], default: 'user' },
   site:       { type: String, default: '' },
   managerId:  { type: Schema.Types.ObjectId, ref: 'User', default: null },
@@ -24,7 +24,16 @@ const CompanySchema = new Schema({
   tel:          { type: String, default: '' },
   email:        { type: String, default: '' },
   resp:         { type: String, default: '' },
-  instructions: { type: String, default: '' }
+  instructions: { type: String, default: '' },
+  // Logo (base64 ou URL)
+  logoData:     { type: String, default: '' },
+  logoUrl:      { type: String, default: '' },
+  // Couleurs de marque
+  brandColors: {
+    accent:  { type: String, default: '#c84b31' },
+    accent2: { type: String, default: '#1a4d6e' },
+    ink:     { type: String, default: '#0f1923' },
+  }
 }, { timestamps: true });
 
 // ── Carnet Entreprises extérieures ───────────────────────────
@@ -50,8 +59,8 @@ const PPlanSchema = new Schema({
   name:       { type: String, required: true },
   isTemplate: { type: Boolean, default: false },
   createdBy:  { type: String },
-  data:       { type: Schema.Types.Mixed }, // Snapshot complet du PP
-  evalState:  { type: Schema.Types.Mixed }  // Snapshot de l'évaluation
+  data:       { type: Schema.Types.Mixed },
+  evalState:  { type: Schema.Types.Mixed }
 }, { timestamps: true });
 
 // ── Rapports (historique PDF) ────────────────────────────────
@@ -78,35 +87,127 @@ const ValidationSchema = new Schema({
   treatedAt:      { type: Date, default: null }
 }, { timestamps: true });
 
-// ── Risques custom ───────────────────────────────────────────
-const CustomRiskSchema = new Schema({
-  interventionType: { type: String, required: true },
+// ════════════════════════════════════════════════════════════
+// NOUVEAU — Bibliothèque de risques (stockée en DB)
+// ════════════════════════════════════════════════════════════
+const RiskSchema = new Schema({
+  // Identifiant métier (ex: "h1", "mi6", "cx1234567890")
   riskId:           { type: String, required: true, unique: true },
+  interventionType: { type: String, required: true },
   name:             { type: String, required: true },
   sev:              { type: String, enum: ['high','medium','low'], default: 'medium' },
   causes:           [String],
   consequences:     [String],
-  solutions:        [String]
+  solutions:        [String],
+  // Source : 'builtin' = intégré natif importé, 'custom' = créé par admin
+  source:           { type: String, enum: ['builtin','custom'], default: 'custom' },
+  // Ordre d'affichage au sein du type
+  order:            { type: Number, default: 0 },
+  // Risque masqué (soft-delete)
+  hidden:           { type: Boolean, default: false },
 }, { timestamps: true });
 
-// ── Mots-clés custom ─────────────────────────────────────────
-const CustomKeywordSchema = new Schema({
-  kwId:  { type: String, required: true, unique: true },
-  type:  { type: String, required: true },
-  words: [String],
-  risks: [String],
-  score: { type: Number, default: 4 }
-}, { timestamps: true });
-
-// ── Types d'intervention custom ──────────────────────────────
-const CustomTypeSchema = new Schema({
-  name: { type: String, required: true, unique: true }
-}, { timestamps: true });
-
-// ── Risques masqués ──────────────────────────────────────────
-const HiddenRiskSchema = new Schema({
+// ── Mots-clés IA (stockés en DB) ────────────────────────────
+const KeywordRuleSchema = new Schema({
+  kwId:             { type: String, required: true, unique: true },
   interventionType: { type: String, required: true },
-  riskId:           { type: String, required: true }
+  words:            [String],
+  riskIds:          [String],
+  score:            { type: Number, default: 4 },
+  // Source : 'builtin' ou 'custom'
+  source:           { type: String, enum: ['builtin','custom'], default: 'custom' },
+  hidden:           { type: Boolean, default: false },
+}, { timestamps: true });
+
+// ── Types d'intervention (stockés en DB) ─────────────────────
+const InterventionTypeSchema = new Schema({
+  name:    { type: String, required: true, unique: true },
+  icon:    { type: String, default: '🔩' },
+  // Ordre d'affichage
+  order:   { type: Number, default: 0 },
+  // Source : 'builtin' = natif, 'custom' = créé par admin
+  source:  { type: String, enum: ['builtin','custom'], default: 'custom' },
+  hidden:  { type: Boolean, default: false },
+}, { timestamps: true });
+
+// ── EPI/EPC catalogue (stocké en DB) ─────────────────────────
+const EPIItemSchema = new Schema({
+  interventionType: { type: String, required: true },
+  category:         { type: String, enum: ['collectif','individuel'], required: true },
+  label:            { type: String, required: true },
+  source:           { type: String, enum: ['builtin','custom'], default: 'custom' },
+  order:            { type: Number, default: 0 },
+  hidden:           { type: Boolean, default: false },
+}, { timestamps: true });
+
+// ════════════════════════════════════════════════════════════
+// NOUVEAU — Configuration UI (boutons, labels, fonctionnalités)
+// ════════════════════════════════════════════════════════════
+
+// Configuration globale de l'interface
+const UIConfigSchema = new Schema({
+  // Clé unique de configuration (ex: 'buttons', 'labels', 'features', 'branding')
+  section: { type: String, required: true, unique: true },
+  config:  { type: Schema.Types.Mixed, default: {} }
+}, { timestamps: true });
+
+// ── Configuration Plan de Prévention ─────────────────────────
+const PPConfigSchema = new Schema({
+  // Configuration des sections du PP
+  sections: [{
+    id:      String,
+    label:   String,
+    enabled: { type: Boolean, default: true },
+    order:   Number,
+  }],
+  // Champs personnalisés
+  customFields: [{
+    id:          String,
+    label:       String,
+    type:        { type: String, enum: ['text','date','select','checkbox','textarea'] },
+    required:    { type: Boolean, default: false },
+    options:     [String], // pour les selects
+    section:     String,   // dans quelle section
+    order:       Number,
+  }],
+  // Permis disponibles (configurables)
+  permits: [{
+    id:      String,
+    label:   String,
+    icon:    String,
+    enabled: { type: Boolean, default: true },
+    order:   Number,
+  }],
+  // Checklist analyses préalables
+  checklist: [{
+    id:      String,
+    label:   String,
+    enabled: { type: Boolean, default: true },
+    order:   Number,
+  }],
+  // Niveaux de risque configurables
+  riskLevels: [{
+    value:  String,
+    label:  String,
+    color:  String,
+    order:  Number,
+  }],
+  // Options PDF
+  pdfOptions: {
+    showLogo:         { type: Boolean, default: true },
+    showSignatures:   { type: Boolean, default: true },
+    showEmergency:    { type: Boolean, default: true },
+    footerText:       { type: String, default: '' },
+    pageFormat:       { type: String, default: 'a4' },
+    watermark:        { type: String, default: '' },
+  },
+  // Numéros urgence par défaut
+  defaultEmergency: {
+    samu:     { type: String, default: '15' },
+    pompiers: { type: String, default: '18' },
+    police:   { type: String, default: '17' },
+    siteLabel:{ type: String, default: 'Contact site' },
+  }
 }, { timestamps: true });
 
 // ── Paramètres globaux (features, signature, etc.) ───────────
@@ -116,16 +217,19 @@ const SettingsSchema = new Schema({
 }, { timestamps: true });
 
 module.exports = {
-  User:            mongoose.model('User', UserSchema),
-  Company:         mongoose.model('Company', CompanySchema),
-  ExternalCompany: mongoose.model('ExternalCompany', ExternalCompanySchema),
-  Worker:          mongoose.model('Worker', WorkerSchema),
-  PPlan:           mongoose.model('PPlan', PPlanSchema),
-  Report:          mongoose.model('Report', ReportSchema),
-  Validation:      mongoose.model('Validation', ValidationSchema),
-  CustomRisk:      mongoose.model('CustomRisk', CustomRiskSchema),
-  CustomKeyword:   mongoose.model('CustomKeyword', CustomKeywordSchema),
-  CustomType:      mongoose.model('CustomType', CustomTypeSchema),
-  HiddenRisk:      mongoose.model('HiddenRisk', HiddenRiskSchema),
-  Settings:        mongoose.model('Settings', SettingsSchema),
+  User:              mongoose.model('User', UserSchema),
+  Company:           mongoose.model('Company', CompanySchema),
+  ExternalCompany:   mongoose.model('ExternalCompany', ExternalCompanySchema),
+  Worker:            mongoose.model('Worker', WorkerSchema),
+  PPlan:             mongoose.model('PPlan', PPlanSchema),
+  Report:            mongoose.model('Report', ReportSchema),
+  Validation:        mongoose.model('Validation', ValidationSchema),
+  // Nouveau
+  Risk:              mongoose.model('Risk', RiskSchema),
+  KeywordRule:       mongoose.model('KeywordRule', KeywordRuleSchema),
+  InterventionType:  mongoose.model('InterventionType', InterventionTypeSchema),
+  EPIItem:           mongoose.model('EPIItem', EPIItemSchema),
+  UIConfig:          mongoose.model('UIConfig', UIConfigSchema),
+  PPConfig:          mongoose.model('PPConfig', PPConfigSchema),
+  Settings:          mongoose.model('Settings', SettingsSchema),
 };
