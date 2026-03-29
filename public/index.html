@@ -4432,6 +4432,7 @@ async function renderValidationList(){
 function toggleReportDetail(id){
   const el=document.getElementById(id); if(!el) return;
   el.style.display=el.style.display==='none'?'block':'none';
+}
 async function validateReport(id, decision){
   if(decision==='rejected'){
     const comment=document.getElementById('val-comment-'+id)?.value.trim()||'';
