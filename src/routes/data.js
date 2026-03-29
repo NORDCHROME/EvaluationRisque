@@ -712,4 +712,129 @@ router.delete('/validations/:id', auth, adminOnly, async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// ─────────────────────────────────────────────────────────────
+// ROUTES LEGACY (compatibilité avec l'ancien frontend)
+// Redirigent vers les nouvelles routes DB
+// ─────────────────────────────────────────────────────────────
+
+// /data/hidden-risks → risques masqués dans la DB
+router.get('/hidden-risks', auth, async (req, res) => {
+  try {
+    const risks = await Risk.find({ hidden: true });
+    // Retourner au format ancien { interventionType: [riskId, ...] }
+    const byType = {};
+    risks.forEach(r => {
+      if (!byType[r.interventionType]) byType[r.interventionType] = [];
+      byType[r.interventionType].push(r.riskId);
+    });
+    res.json(byType);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/hidden-risks', auth, adminOnly, async (req, res) => {
+  try {
+    const { interventionType, riskId } = req.body;
+    await Risk.findOneAndUpdate({ riskId }, { hidden: true });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/hidden-risks', auth, adminOnly, async (req, res) => {
+  try {
+    const { riskId } = req.body;
+    await Risk.findOneAndUpdate({ riskId }, { hidden: false });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// /data/custom-risks → risques custom (source: 'custom')
+router.get('/custom-risks', auth, async (req, res) => {
+  try {
+    const risks = await Risk.find({ source: 'custom', hidden: false });
+    const byType = {};
+    risks.forEach(r => {
+      if (!byType[r.interventionType]) byType[r.interventionType] = [];
+      byType[r.interventionType].push({
+        id: r.riskId, name: r.name, sev: r.sev,
+        causes: r.causes, consequences: r.consequences, solutions: r.solutions
+      });
+    });
+    res.json(byType);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/custom-risks', auth, adminOnly, async (req, res) => {
+  try {
+    const { interventionType, id, name, sev, causes, consequences, solutions } = req.body;
+    const r = await Risk.findOneAndUpdate(
+      { riskId: id },
+      { riskId: id, interventionType, name, sev, causes, consequences, solutions, source: 'custom', hidden: false },
+      { upsert: true, new: true }
+    );
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/custom-risks/:riskId', auth, adminOnly, async (req, res) => {
+  try {
+    await Risk.findOneAndDelete({ riskId: req.params.riskId, source: 'custom' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// /data/custom-keywords → règles custom (source: 'custom')
+router.get('/custom-keywords', auth, async (req, res) => {
+  try {
+    const kws = await KeywordRule.find({ source: 'custom', hidden: false });
+    res.json(kws.map(k => ({ id: k.kwId, type: k.interventionType, w: k.words, r: k.riskIds, s: k.score })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/custom-keywords', auth, adminOnly, async (req, res) => {
+  try {
+    const { id, type, w, r, s } = req.body;
+    const kwId = id || ('kw' + Date.now());
+    const rule = await KeywordRule.findOneAndUpdate(
+      { kwId },
+      { kwId, interventionType: type, words: w||[], riskIds: r||[], score: s||4, source: 'custom', hidden: false },
+      { upsert: true, new: true }
+    );
+    res.json({ id: rule.kwId, type: rule.interventionType, w: rule.words, r: rule.riskIds, s: rule.score });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/custom-keywords/:kwId', auth, adminOnly, async (req, res) => {
+  try {
+    await KeywordRule.findOneAndDelete({ kwId: req.params.kwId });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// /data/custom-types → types custom (source: 'custom')
+router.get('/custom-types', auth, async (req, res) => {
+  try {
+    const types = await InterventionType.find({ source: 'custom', hidden: false });
+    res.json(types.map(t => t.name));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/custom-types', auth, adminOnly, async (req, res) => {
+  try {
+    const { name, icon } = req.body;
+    const existing = await InterventionType.findOne({ name });
+    if (!existing) {
+      await InterventionType.create({ name, icon: icon||'🔩', source: 'custom', hidden: false });
+    }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/custom-types/:name', auth, adminOnly, async (req, res) => {
+  try {
+    await InterventionType.findOneAndDelete({ name: req.params.name, source: 'custom' });
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;
