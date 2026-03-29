@@ -27,6 +27,13 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, '../public')));
+
+// ── 404 JSON pour toutes les routes /api/* non trouvées ──────
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: `Route API introuvable: ${req.method} ${req.originalUrl}` });
+});
+
+// ── Fallback SPA ─────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
