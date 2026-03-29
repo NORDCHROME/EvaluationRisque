@@ -792,10 +792,8 @@ textarea{resize:vertical;min-height:80px;}
       <button class="adm-tab active" onclick="switchAdminTab('company')" data-tab="company">🏢 Société</button>
       <button class="adm-tab" onclick="switchAdminTab('users')" data-tab="users">👥 Utilisateurs</button>
       <button class="adm-tab" onclick="switchAdminTab('interface')" data-tab="interface">🎨 Interface</button>
-      <button class="adm-tab" onclick="switchAdminTab('risksdb')" data-tab="risksdb">⚠️ Risques DB</button>
+      <button class="adm-tab" onclick="switchAdminTab('risksdb')" data-tab="risksdb">⚠️ Risques & IA</button>
       <button class="adm-tab" onclick="switchAdminTab('ppconfig')" data-tab="ppconfig">📋 Plan de Prévention</button>
-      <button class="adm-tab" onclick="switchAdminTab('risks')" data-tab="risks">📚 Bibliothèque</button>
-      <button class="adm-tab" onclick="switchAdminTab('keywords')" data-tab="keywords">🔍 Mots-clés</button>
       <button class="adm-tab" onclick="switchAdminTab('features')" data-tab="features">🧩 Fonctionnalités</button>
       <button class="adm-tab" onclick="switchAdminTab('reports')" data-tab="reports">📊 Rapports</button>
       <button class="adm-tab" onclick="switchAdminTab('carnet')" data-tab="carnet">📒 Carnet</button>
@@ -852,28 +850,70 @@ textarea{resize:vertical;min-height:80px;}
           <button class="adm-btn-primary" onclick="addUser()">+ Créer l'utilisateur</button>
         </div>
 
-        <!-- Paramètres de signature -->
+        <!-- Paramètres de signature granulaires -->
         <div class="adm-card" style="margin-top:18px;border-color:var(--accent2)">
-          <div class="adm-sub-title" style="color:var(--accent2)">🖊 Règles de signature des rapports</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-            <div style="padding:14px;border:1.5px solid var(--border);border-radius:4px">
-              <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:var(--safe)">🟢 Risque Faible</div>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-                <input type="checkbox" id="sig-auto-low" style="accent-color:var(--safe)"/>
-                Signature automatique (intervenant)
-              </label>
-              <div style="font-size:11px;color:#6b7280;margin-top:5px">Si coché, le rapport est signé automatiquement sans validation manuelle.</div>
+          <div class="adm-sub-title" style="color:var(--accent2)">🖊 Règles de signature — par niveau de gravité</div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Configurez précisément qui doit signer pour chaque niveau de risque.</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+
+            <!-- FAIBLE -->
+            <div style="padding:14px 16px;border:1.5px solid #b7e0c8;border-radius:6px;background:#f0fdf4">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-weight:700;font-size:13px;color:var(--safe)">🟢 Risque Faible</div>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px">
+                  <input type="checkbox" id="sig-low-auto" style="accent-color:var(--safe);width:15px;height:15px"/>
+                  <span style="font-weight:600">Signature automatique de l'intervenant</span>
+                </label>
+              </div>
+              <div style="font-size:11px;color:#6b7280">Si coché : aucune validation manuelle requise, le rapport est immédiatement signé.</div>
             </div>
-            <div style="padding:14px;border:1.5px solid var(--border);border-radius:4px">
-              <div style="font-weight:700;font-size:13px;margin-bottom:6px;color:var(--warn)">🟠 Risque Modéré / 🔴 Critique</div>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-                <input type="checkbox" id="sig-require-manager" style="accent-color:var(--accent)"/>
-                Signature du responsable obligatoire
-              </label>
-              <div style="font-size:11px;color:#6b7280;margin-top:5px">Si coché, une notification est envoyée au responsable pour validation.</div>
+
+            <!-- MODÉRÉ -->
+            <div style="padding:14px 16px;border:1.5px solid #f5c880;border-radius:6px;background:#fffbeb">
+              <div style="font-weight:700;font-size:13px;color:var(--warn);margin-bottom:10px">🟠 Risque Modéré</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;padding:8px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+                  <input type="checkbox" id="sig-medium-require" style="accent-color:var(--warn);width:14px;height:14px"/>
+                  Validation responsable obligatoire
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;padding:8px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+                  <input type="checkbox" id="sig-medium-any" style="accent-color:var(--warn);width:14px;height:14px"/>
+                  N'importe quel responsable suffit
+                </label>
+              </div>
+              <div style="margin-top:8px;font-size:11px;color:#6b7280">
+                <label class="field-label" style="font-size:9px;margin-bottom:4px">Responsables supplémentaires requis (IDs séparés par virgule)</label>
+                <input type="text" id="sig-medium-managers" placeholder="Ex: id1,id2" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:11.5px"/>
+              </div>
             </div>
+
+            <!-- CRITIQUE -->
+            <div style="padding:14px 16px;border:1.5px solid #f5a9a0;border-radius:6px;background:#fef2f2">
+              <div style="font-weight:700;font-size:13px;color:var(--danger);margin-bottom:10px">🔴 Risque Critique</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;padding:8px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+                  <input type="checkbox" id="sig-high-require" checked style="accent-color:var(--danger);width:14px;height:14px"/>
+                  Validation responsable obligatoire
+                </label>
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;padding:8px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+                  <input type="checkbox" id="sig-high-all" style="accent-color:var(--danger);width:14px;height:14px"/>
+                  Tous les responsables doivent valider
+                </label>
+              </div>
+              <div style="margin-top:8px;font-size:11px;color:#6b7280">
+                <label class="field-label" style="font-size:9px;margin-bottom:4px">Responsables supplémentaires requis (IDs séparés par virgule)</label>
+                <input type="text" id="sig-high-managers" placeholder="Ex: id1,id2" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:11.5px"/>
+              </div>
+              <div style="margin-top:8px;display:flex;align-items:center;gap:7px">
+                <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12.5px;padding:8px;border:1.5px solid var(--border);border-radius:4px;background:#fff;flex:1">
+                  <input type="checkbox" id="sig-high-notify-all" style="accent-color:var(--danger);width:14px;height:14px"/>
+                  Notifier tous les responsables de la hiérarchie
+                </label>
+              </div>
+            </div>
+
           </div>
-          <button class="adm-btn-primary" style="margin-top:14px" onclick="saveSignatureSettings()">💾 Enregistrer les règles</button>
+          <button class="adm-btn-primary" style="margin-top:14px" onclick="saveSignatureRules()">💾 Enregistrer les règles</button>
         </div>
       </div>
 
@@ -1426,6 +1466,11 @@ async function loadAllDataFromAPI(){
     }
     if(customTypes) _cache['customTypes'] = customTypes;
     _cache['signatureSettings'] = sigSettings || {autoLow:true,requireManager:true};
+    // Charger aussi les règles granulaires
+    try {
+      const sigRules = await api('GET','/data/signature-rules');
+      if(sigRules) _cache['signatureRules'] = sigRules;
+    } catch(e) {}
     _cache['features'] = features || {};
     _cache['hiddenInterventionTypes'] = hiddenTypes || [];
     // Appliquer les flags de fonctionnalités dès le chargement
@@ -2088,16 +2133,67 @@ function buildSummary(){
     const es=getEPI(r.id);
     const epcAll=[...es.collectif,...es.customC], epiAll=[...es.individuel,...es.customI];
     const sevLabel=r.sev==='high'?'Critique':r.sev==='medium'?'Modéré':'Faible';
-    const epcHtml=epcAll.length?epcAll.map(e=>`<div class="src-sol-line c">${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af">Non renseigné</div>';
-    const epiHtml=epiAll.length?epiAll.map(e=>`<div class="src-sol-line i">${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af">Non renseigné</div>';
+    const sevBg=r.sev==='high'?'#fde8e6':r.sev==='medium'?'#fef3e6':'#e6f4ec';
+    const sevCol=r.sev==='high'?'var(--danger)':r.sev==='medium'?'var(--warn)':'var(--safe)';
+
+    // Mesures de prévention
+    const prevHtml=r.solutions&&r.solutions.length
+      ? r.solutions.map(s=>`<div class="src-sol-line s">${s}</div>`).join('')
+      : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+
+    // EPC collectif
+    const epcHtml=epcAll.length
+      ? epcAll.map(e=>`<div style="display:flex;align-items:flex-start;gap:6px;padding:4px 0;border-bottom:1px solid var(--cream);font-size:12px;color:#374151"><span style="width:10px;height:10px;border-radius:50%;background:var(--epi-c);flex-shrink:0;margin-top:3px;display:block"></span>${e}</div>`).join('')
+      : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Aucun EPC renseigné</div>';
+
+    // EPI individuel
+    const epiHtml=epiAll.length
+      ? epiAll.map(e=>`<div style="display:flex;align-items:flex-start;gap:6px;padding:4px 0;border-bottom:1px solid var(--cream);font-size:12px;color:#374151"><span style="width:10px;height:10px;border-radius:50%;background:var(--epi-i);flex-shrink:0;margin-top:3px;display:block"></span>${e}</div>`).join('')
+      : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Aucun EPI renseigné</div>';
+
     const derog=appState.derogations[r.id];
-    const derogHtml=derog&&derog.active?`<div style="margin-top:10px;padding:8px 12px;background:#fff8f7;border:1.5px solid #f5a9a0;border-radius:4px;font-size:11.5px"><span style="font-weight:700;color:#c0392b">⚠ DÉROGATION ACCORDÉE</span>${derog.justification?' — '+derog.justification:''}${derog.signataire?'<span style="color:#9ca3af;margin-left:8px">Signataire : '+derog.signataire+'</span>':''}</div>`:'';
+    const derogHtml=derog&&derog.active
+      ?`<div style="margin-top:10px;padding:8px 12px;background:#fff8f7;border:1.5px solid #f5a9a0;border-radius:4px;font-size:11.5px">
+          <span style="font-weight:700;color:#c0392b">⚠ DÉROGATION ACCORDÉE</span>
+          ${derog.justification?' — '+derog.justification:''}
+          ${derog.signataire?'<span style="color:#9ca3af;margin-left:8px">Signataire : '+derog.signataire+'</span>':''}
+        </div>`:'';
+
     const manualBadge=r.isManual?`<span style="padding:2px 8px;background:#e8f0fe;color:var(--accent2);border-radius:10px;font-size:10px;font-weight:700;margin-left:4px">✏️ Personnalisé</span>`:'';
-    return `<div class="summary-risk-card"><div class="src-head"><span class="src-name">${r.name}</span><span class="src-int-tag">${r.interventionType}</span><span class="sev-badge sev-${r.sev}">${sevLabel}</span>${manualBadge}</div>
-    <div class="src-body"><div class="src-col-grid">
-      <div><div class="src-col-title s">Mesures de prévention</div>${r.solutions.map(s=>`<div class="src-sol-line s">${s}</div>`).join('')}</div>
-      <div><div class="src-col-title c">EPC collectif</div>${epcHtml}<div class="src-col-title i" style="margin-top:12px">EPI individuel</div>${epiHtml}</div>
-    </div>${derogHtml}</div></div>`;
+
+    return `<div class="summary-risk-card">
+      <div class="src-head">
+        <span class="src-name">${r.name}</span>
+        <span class="src-int-tag">${r.interventionType}</span>
+        <span class="sev-badge sev-${r.sev}">${sevLabel}</span>
+        ${manualBadge}
+      </div>
+      <div class="src-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+          <div>
+            <div class="src-col-title s" style="display:flex;align-items:center;gap:5px;margin-bottom:8px">
+              🛡 Mesures de prévention
+            </div>
+            ${prevHtml}
+          </div>
+          <div>
+            <div class="src-col-title c" style="display:flex;align-items:center;gap:5px;margin-bottom:8px">
+              🔵 EPC — Protection collective
+              <span style="font-size:9px;background:var(--epi-c);color:#fff;padding:1px 6px;border-radius:10px">${epcAll.length}</span>
+            </div>
+            ${epcHtml}
+          </div>
+          <div>
+            <div class="src-col-title i" style="display:flex;align-items:center;gap:5px;margin-bottom:8px">
+              🦺 EPI — Protection individuelle
+              <span style="font-size:9px;background:var(--epi-i);color:#fff;padding:1px 6px;border-radius:10px">${epiAll.length}</span>
+            </div>
+            ${epiHtml}
+          </div>
+        </div>
+        ${derogHtml}
+      </div>
+    </div>`;
   }).join('');
 
   // Afficher la zone de signature selon le niveau de risque
@@ -2106,27 +2202,57 @@ function buildSummary(){
 
 function updateSignatureZone(selected){
   const zone=document.getElementById('signatureZone'); if(!zone) return;
-  const settings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
-  const users=_cache['users']||[];
-  const manager=_cache['managerInfo']?{id:String(_cache['managerInfo']._id||''),name:_cache['managerInfo'].name}:((_cache['users']||[]).find(u=>String(u._id||u.id)===String(currentUser.managerId)));
+
   const highCount=(selected||[]).filter(r=>r.sev==='high').length;
   const level=highCount>0?'high':((selected||[]).some(r=>r.sev==='medium')?'medium':'low');
 
+  // Utiliser les règles granulaires si disponibles
+  const rules = _cache['signatureRules'];
+  const settings = _cache['signatureSettings']||{autoLow:true,requireManager:true};
+  const levelRule = rules ? (rules[level]||{}) : null;
+
+  const autoSign = levelRule
+    ? levelRule.autoSign
+    : (level==='low' && settings.autoLow!==false);
+  const requireMgr = levelRule
+    ? levelRule.require !== false
+    : ((level==='medium'||level==='high') && settings.requireManager!==false);
+
+  // Managers
+  const managerInfo = _cache['managerInfo'];
+  const managers = [];
+  if(managerInfo && managerInfo._id) managers.push({id:String(managerInfo._id), name:managerInfo.name});
+  // Extra managers depuis les règles
+  (levelRule?.requireManagers||[]).forEach(mid=>{
+    if(mid && !managers.find(m=>m.id===mid)) managers.push({id:mid, name:'Responsable additionnel'});
+  });
+
+  const levBadge = level==='high'?'🔴 Critique':level==='medium'?'🟠 Modéré':'🟢 Faible';
   let html='';
-  if(level==='low' && settings.autoLow!==false){
+
+  if(autoSign){
     html=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f0fdf4;border:1.5px solid var(--safe);border-radius:4px;font-size:12px">
       <span style="color:var(--safe);font-size:16px">✓</span>
-      <span><strong>Risque faible</strong> — signature automatique activée</span>
+      <span><strong>${levBadge}</strong> — signature automatique de l'intervenant</span>
     </div>`;
-  } else if((level==='medium'||level==='high') && settings.requireManager!==false && manager){
+  } else if(requireMgr && managers.length){
+    const names = managers.map(m=>m.name).join(', ');
     html=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fef3e6;border:1.5px solid var(--warn);border-radius:4px;font-size:12px">
       <span style="font-size:16px">🔔</span>
-      <span><strong>Signature responsable requise</strong> — ${manager.name} sera notifié</span>
+      <div>
+        <strong>${levBadge}</strong> — validation requise<br>
+        <span style="color:#6b7280">${managers.length>1?managers.length+' responsables : ':''}<strong>${names}</strong></span>
+      </div>
     </div>`;
-  } else if((level==='medium'||level==='high') && settings.requireManager!==false && !manager){
+  } else if(requireMgr && !managers.length){
     html=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fef3e6;border:1.5px solid var(--warn);border-radius:4px;font-size:12px">
       <span style="font-size:16px">⚠️</span>
-      <span><strong>Risque élevé</strong> — aucun responsable défini pour votre compte</span>
+      <span><strong>${levBadge}</strong> — aucun responsable défini pour votre compte</span>
+    </div>`;
+  } else {
+    html=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#f0f9ff;border:1.5px solid var(--accent2);border-radius:4px;font-size:12px">
+      <span style="font-size:16px">📄</span>
+      <span><strong>${levBadge}</strong> — signature de l'intervenant</span>
     </div>`;
   }
   zone.innerHTML=html;
@@ -3182,13 +3308,11 @@ function switchAdminTab(tab){
   document.querySelectorAll('.adm-pane').forEach(p=>p.style.display='none');
   const pane=document.getElementById('admpane-'+tab); if(pane) pane.style.display='block';
   if(tab==='users')     renderAdminUsers();
-  if(tab==='risks')     renderAdminRisks();
-  if(tab==='keywords')  renderAdminKeywords();
   if(tab==='features')  renderAdminFeatures();
   if(tab==='reports')   renderAdminReports();
   if(tab==='carnet')    renderAdminCarnet();
   if(tab==='interface') renderAdminInterface();
-  if(tab==='risksdb')   renderAdminRisksDB();
+  if(tab==='risksdb')   { _dbRisksLoaded=false; renderAdminRisksDB(); }
   if(tab==='ppconfig')  renderAdminPPConfig();
 }
 async function saveCompanyInfo(){
@@ -3203,14 +3327,14 @@ async function saveCompanyInfo(){
   showToast('Informations société enregistrées','success');
 }
 async function renderAdminUsers(){
-  // Toujours recharger depuis l'API pour avoir les données fraîches
-  // Cet appel est réservé aux admins (vérification côté serveur)
   if(currentUser?.role !== 'admin'){
     document.getElementById('usersBody').innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--danger)">Accès réservé aux administrateurs</td></tr>';
     return;
   }
   const freshUsers = await api('GET','/users');
   if(freshUsers) _cache['users'] = freshUsers;
+  // Charger les règles de signature pour les pré-remplir
+  await loadSignatureRules();
   // Normaliser : MongoDB retourne _id, on veut id
   const users = (_cache['users']||[]).map(u=>({...u, id: u._id||u.id}));
   const sigSettings=_cache['signatureSettings']||{autoLow:true,requireManager:true};
@@ -3320,11 +3444,62 @@ async function resetPassword(id){
   showToast('Mot de passe modifié','success');
 }
 async function saveSignatureSettings(){
-  const autoLow=document.getElementById('sig-auto-low')?.checked!==false;
-  const requireManager=document.getElementById('sig-require-manager')?.checked!==false;
+  // Compat ancien système
+  const autoLow=document.getElementById('sig-low-auto')?.checked||document.getElementById('sig-auto-low')?.checked||false;
+  const requireManager=document.getElementById('sig-high-require')?.checked||document.getElementById('sig-require-manager')?.checked||true;
   dbSet('signatureSettings',{autoLow,requireManager});
   api('PUT','/data/settings/signatureSettings',{value:{autoLow,requireManager}});
   showToast('Règles de signature enregistrées','success');
+}
+
+async function saveSignatureRules(){
+  const rules = {
+    low:{
+      autoSign:       document.getElementById('sig-low-auto')?.checked||false,
+      requireManagers:[],
+      requireAny:     false,
+    },
+    medium:{
+      autoSign:       false,
+      requireManagers:(document.getElementById('sig-medium-managers')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+      requireAny:     document.getElementById('sig-medium-any')?.checked||false,
+      require:        document.getElementById('sig-medium-require')?.checked||false,
+    },
+    high:{
+      autoSign:       false,
+      requireManagers:(document.getElementById('sig-high-managers')?.value||'').split(',').map(s=>s.trim()).filter(Boolean),
+      requireAll:     document.getElementById('sig-high-all')?.checked||false,
+      require:        document.getElementById('sig-high-require')?.checked||true,
+      notifyAll:      document.getElementById('sig-high-notify-all')?.checked||false,
+    },
+  };
+  // Compat ancien système
+  _cache['signatureRules'] = rules;
+  _cache['signatureSettings'] = { autoLow: rules.low.autoSign, requireManager: rules.high.require };
+  const [r1,r2] = await Promise.all([
+    api('PUT','/data/signature-rules', rules),
+    api('PUT','/data/settings/signatureSettings',{value:{autoLow:rules.low.autoSign,requireManager:rules.high.require}}),
+  ]);
+  if(r1&&r2) showToast('Règles de signature enregistrées','success');
+}
+
+async function loadSignatureRules(){
+  try{
+    const rules = await api('GET','/data/signature-rules');
+    if(!rules) return;
+    _cache['signatureRules'] = rules;
+    // Remplir les checkboxes
+    const setChk = (id,v)=>{ const el=document.getElementById(id); if(el) el.checked=!!v; };
+    const setVal = (id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||''; };
+    setChk('sig-low-auto',        rules.low?.autoSign);
+    setChk('sig-medium-require',  rules.medium?.require);
+    setChk('sig-medium-any',      rules.medium?.requireAny);
+    setChk('sig-high-require',    rules.high?.require!==false);
+    setChk('sig-high-all',        rules.high?.requireAll);
+    setChk('sig-high-notify-all', rules.high?.notifyAll);
+    setVal('sig-medium-managers', (rules.medium?.requireManagers||[]).join(', '));
+    setVal('sig-high-managers',   (rules.high?.requireManagers||[]).join(', '));
+  }catch(e){ console.warn('Impossible de charger les règles signature:', e); }
 }
 // ── Risques ──────────────────────────────────────────────────────────────
 function getCustomRisks(){ return _cache['customRisks']||({}); }
@@ -3838,63 +4013,66 @@ function getReportRiskLevel(){
 
 // ── Handler principal du bouton "Générer PDF" ─────────────────────────────
 async function handleGeneratePDF(){
-  const settings=_cache['signatureSettings']||{autoLow:true,requireManager:true};
-  const level=getReportRiskLevel();
-
-  // Récupérer le responsable TOUJOURS depuis l'API (jamais depuis le cache)
-  let manager=null;
-  try{
-    const mgrRaw=await api('GET','/users/manager-info');
-    console.log('[handleGeneratePDF] manager-info API response:', JSON.stringify(mgrRaw));
-    if(mgrRaw && mgrRaw._id){
-      const mgrId=String(mgrRaw._id);
-      console.log('[handleGeneratePDF] managerId extrait:', mgrId, 'longueur:', mgrId.length);
-      _cache['managerInfo']=mgrRaw;
-      manager={id:mgrId, name:mgrRaw.name||'Responsable'};
-    } else {
-      console.warn('[handleGeneratePDF] Pas de responsable (manager-info retourne null ou sans _id)');
-    }
-  }catch(e){
-    console.error('[handleGeneratePDF] Erreur récupération manager:', e);
+  const level = getReportRiskLevel();
+  // Charger règles granulaires
+  let rules = _cache['signatureRules'];
+  if(!rules){
+    const r = await api('GET','/data/signature-rules');
+    if(r){ _cache['signatureRules']=r; rules=r; }
   }
-  console.log('[handleGeneratePDF] manager final:', manager, '| currentUser.id:', currentUser.id, '| level:', level);
+  const settings = _cache['signatureSettings']||{autoLow:true,requireManager:true};
+  const levelRule = (rules||{})[level] || {};
+  const autoSign = levelRule.autoSign !== undefined ? levelRule.autoSign : (level==='low' && settings.autoLow!==false);
+  const requireValidation = levelRule.require !== undefined ? levelRule.require : ((level==='medium'||level==='high') && settings.requireManager!==false);
 
-  // Risque faible + signature auto activée → PDF direct
-  if(level==='low' && settings.autoLow!==false){
-    const sigData=buildAutoSignature();
-    _pendingSigData=sigData;
+  // Récupérer managers
+  let managers = [];
+  try{
+    const mgrRaw = await api('GET','/users/manager-info');
+    if(mgrRaw && mgrRaw._id){
+      _cache['managerInfo']=mgrRaw;
+      managers.push({id:String(mgrRaw._id), name:mgrRaw.name||'Responsable'});
+    }
+    // Managers supplémentaires configurés dans les règles
+    for(const mid of (levelRule.requireManagers||[])){
+      if(mid && managers.every(m=>m.id!==mid)) managers.push({id:mid, name:'Responsable'});
+    }
+  }catch(e){ console.error('[handleGeneratePDF]',e); }
+
+  // CAS 1 : Signature automatique
+  if(autoSign){
+    const sigData = await buildAutoSignature();
     generatePDF(sigData);
-    showToast('Rapport signé automatiquement','success');
+    showToast('Rapport signé automatiquement (risque faible)','success');
     return;
   }
 
-  // Risque modéré/critique + responsable requis + responsable défini
-  if((level==='medium'||level==='high') && settings.requireManager!==false && manager){
-    // Ouvrir modal signature de l'intervenant d'abord
+  // CAS 2 : Validation requise + managers définis
+  if(requireValidation && managers.length){
+    const managerList = managers.map(m=>m.name).join(', ');
     openSignatureModal({
       title:'Signature de l\'intervenant',
-      subtitle:'Niveau de risque '+(level==='high'?'🔴 Critique':'🟠 Modéré')+' — votre signature est requise',
+      subtitle:'Niveau '+(level==='high'?'🔴 Critique':level==='medium'?'🟠 Modéré':'🟢 Faible')+' — signature requise',
       info:`<strong>Intervenant :</strong> ${currentUser.name}<br>
             <strong>Site :</strong> ${currentUser.site||'—'}<br>
-            <strong>Responsable :</strong> ${manager.name}<br>
-            <strong>Risques :</strong> ${appState.selectedRisks.size} identifié(s)<br>
-            <em style="color:var(--warn)">Après votre signature, une notification sera envoyée à votre responsable pour validation.</em>`,
-      onSign:async (sigDataURL)=>{
-        sendToManagerForValidation(sigDataURL, level, manager);
+            <strong>Responsable(s) :</strong> ${managerList}<br>
+            <strong>Risques identifiés :</strong> ${appState.selectedRisks.size}<br>
+            <em style="color:var(--warn);margin-top:8px;display:block">Le rapport sera transmis à ${managers.length>1?'vos responsables':'votre responsable'} pour validation.</em>`,
+      onSign: async (sigDataURL) => {
+        await sendToManagerForValidation(sigDataURL, level, managers);
       }
     });
     return;
   }
 
-  // Risque modéré/critique mais pas de responsable → ouvrir signature simple
+  // CAS 3 : Signature simple
   openSignatureModal({
     title:'Signature du rapport',
-    subtitle:'Niveau de risque '+(level==='high'?'🔴 Critique':'level'==='medium'?'🟠 Modéré':'🟢 Faible'),
+    subtitle:'Niveau '+(level==='high'?'🔴 Critique':level==='medium'?'🟠 Modéré':'🟢 Faible'),
     info:`<strong>Intervenant :</strong> ${currentUser.name}<br>
-          <strong>Risques :</strong> ${appState.selectedRisks.size} identifié(s)`,
-    onSign:async (sigDataURL)=>{
-      generatePDF({operator:currentUser.name, sigDataURL});
-    }
+          <strong>Risques :</strong> ${appState.selectedRisks.size} identifié(s)<br>
+          <em style="color:#6b7280">Aucune validation hiérarchique requise pour ce niveau.</em>`,
+    onSign: async (sigDataURL) => { generatePDF({operator:currentUser.name,sigDataURL}); }
   });
 }
 
@@ -3916,23 +4094,25 @@ async function buildAutoSignature(){
 }
 
 // ── Envoi au responsable pour validation ─────────────────────────────────
-async function sendToManagerForValidation(sigDataURL, level, manager){
-  // Valider que les IDs sont des ObjectId MongoDB valides (24 hex chars)
+async function sendToManagerForValidation(sigDataURL, level, managersInput){
+  // Accepte soit un objet {id,name} soit un tableau [{id,name},...]
+  const managers = Array.isArray(managersInput) ? managersInput : (managersInput ? [managersInput] : []);
   const isValidId = id => id && String(id).length>=12 && String(id)!=='undefined' && String(id)!=='null';
-  if(!manager || !isValidId(manager.id)){
+
+  if(!managers.length || !isValidId(managers[0].id)){
     showToast('Erreur : ID responsable invalide — vérifiez sa configuration','error');
-    console.error('manager.id invalide:', manager);
     return;
   }
   if(!isValidId(currentUser.id)){
     showToast('Erreur : session invalide, reconnectez-vous','error');
     return;
   }
-  const reportId='rep'+Date.now();
-  const selected=getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
-  // Construire le payload — NE PAS inclure submittedBy (le backend utilise req.user._id depuis le JWT)
-  const payload={
-    managerId:     String(manager.id),
+
+  const selected = getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
+  const payload = {
+    // Support multi-managers
+    managerId:  String(managers[0].id),
+    managerIds: managers.map(m=>String(m.id)),
     level,
     evalSnapshot:{
       interventionTitle: appState.interventionTitle||'',
@@ -3942,36 +4122,44 @@ async function sendToManagerForValidation(sigDataURL, level, manager){
       mission:      appState.mission||'',
       missionSteps: appState.missionSteps||[],
       interventions:[...appState.selectedInterventions],
-      risks:        selected.map(r=>{
-        const es=getEPI(r.id);
-        return {id:r.id,name:r.name,sev:r.sev,type:r.interventionType,isManual:r.isManual||false,
-          solutions:r.solutions||[],
-          epc:[...es.collectif,...es.customC],
-          epi:[...es.individuel,...es.customI]};
+      // Inclure TOUTES les données EPI/EPC/solutions
+      risks: selected.map(r=>{
+        const es = getEPI(r.id);
+        return {
+          id:       r.id,
+          name:     r.name,
+          sev:      r.sev,
+          type:     r.interventionType,
+          isManual: r.isManual||false,
+          solutions: r.solutions||[],
+          epc: [...es.collectif, ...es.customC],
+          epi: [...es.individuel, ...es.customI],
+        };
       }),
-      derogations:  Object.fromEntries(Object.entries(appState.derogations||{}).filter(([,d])=>d.active)),
+      derogations: Object.fromEntries(
+        Object.entries(appState.derogations||{}).filter(([,d])=>d.active)
+      ),
     },
     sigIntervenant: sigDataURL,
   };
-  console.log('[sendToManager] payload envoyé:', JSON.stringify({...payload, sigIntervenant:'[BASE64]'}));
-  const saved=await api('POST','/data/validations', payload);
-  console.log('[sendToManager] réponse:', JSON.stringify(saved));
-  if(!saved){showToast('Erreur de sauvegarde','error');return;}
 
-  // Rafraîchir le badge (utile si même navigateur)
+  const saved = await api('POST','/data/validations', payload);
+  if(!saved){ showToast('Erreur de sauvegarde — vérifiez que les responsables sont bien configurés','error'); return; }
+
   refreshValidationBadge();
+  const names = managers.map(m=>m.name).join(', ');
+  showToast('✅ Rapport envoyé à '+names+' pour validation','success');
 
-  // Confirmation détaillée
-  showToast('✅ Rapport envoyé à '+manager.name+' pour validation','success');
-
-  // Afficher un bandeau de confirmation dans la page
-  const zone=document.getElementById('signatureZone');
+  const zone = document.getElementById('signatureZone');
   if(zone){
     zone.innerHTML=`<div style="display:flex;align-items:center;gap:10px;padding:12px 18px;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid var(--safe);border-radius:6px;flex:1">
       <span style="font-size:22px">✅</span>
       <div>
         <div style="font-weight:700;font-size:13px;color:var(--safe)">Rapport soumis pour validation</div>
-        <div style="font-size:12px;color:#374151;margin-top:2px">Envoyé à <strong>${manager.name}</strong> · En attente de signature</div>
+        <div style="font-size:12px;color:#374151;margin-top:2px">
+          Envoyé à <strong>${names}</strong> · En attente de signature
+          ${managers.length>1?'<span style="margin-left:8px;font-size:11px;color:#6b7280">('+managers.length+' responsables)</span>':''}
+        </div>
       </div>
     </div>`;
   }
@@ -4014,158 +4202,161 @@ function closeValidationPanel(){
   document.getElementById('validationPanel').style.display='none';
 }
 async function renderValidationList(){
-  // Recharger depuis l'API
-  const freshValidations=await api('GET','/data/validations')||[];
-  // Normaliser _id → id (MongoDB retourne _id)
-  const mine=freshValidations.map(v=>({...v, id:String(v._id||v.id||'')}));
-  _cache['pendingValidations']=mine;
-  const pending=mine.filter(r=>r.status==='pending');
-  const done=mine.filter(r=>r.status!=='pending');
-  const cntEl=document.getElementById('validPanelCount');
-  if(cntEl) cntEl.textContent=pending.length+' en attente';
-  const container=document.getElementById('validationList'); if(!container) return;
+  const freshValidations = await api('GET','/data/validations')||[];
+  const mine = freshValidations.map(v=>({...v, id:String(v._id||v.id||'')}));
+  _cache['pendingValidations'] = mine;
+  const pending = mine.filter(r=>r.status==='pending');
+  const done    = mine.filter(r=>r.status!=='pending');
+  const cntEl   = document.getElementById('validPanelCount');
+  if(cntEl) cntEl.textContent = pending.length+' en attente';
+  const container = document.getElementById('validationList');
+  if(!container) return;
   if(!mine.length){
     container.innerHTML='<div style="text-align:center;padding:40px;color:#9ca3af;font-style:italic">Aucun rapport à valider pour le moment.</div>';
     return;
   }
-  const levelLabel=l=>l==='high'?'<span style="padding:2px 8px;background:#fde8e6;color:var(--danger);border-radius:20px;font-size:10px;font-weight:700">🔴 CRITIQUE</span>'
-    :l==='medium'?'<span style="padding:2px 8px;background:#fef3e6;color:var(--warn);border-radius:20px;font-size:10px;font-weight:700">🟠 MODÉRÉ</span>'
-    :'<span style="padding:2px 8px;background:#e6f4ec;color:var(--safe);border-radius:20px;font-size:10px;font-weight:700">🟢 FAIBLE</span>';
-  const statusBadge=s=>s==='approved'?'<span style="padding:2px 8px;background:#e6f4ec;color:var(--safe);border-radius:20px;font-size:10px;font-weight:700">✓ Validé</span>'
-    :s==='rejected'?'<span style="padding:2px 8px;background:#fde8e6;color:var(--danger);border-radius:20px;font-size:10px;font-weight:700">✕ Refusé</span>'
-    :'<span style="padding:2px 8px;background:#fef3e6;color:var(--warn);border-radius:20px;font-size:10px;font-weight:700">⏳ En attente</span>';
-  let html='';
+
+  const levelLabel = l => l==='high'
+    ?`<span style="padding:2px 8px;background:#fde8e6;color:var(--danger);border-radius:20px;font-size:10px;font-weight:700">🔴 CRITIQUE</span>`
+    :l==='medium'
+    ?`<span style="padding:2px 8px;background:#fef3e6;color:var(--warn);border-radius:20px;font-size:10px;font-weight:700">🟠 MODÉRÉ</span>`
+    :`<span style="padding:2px 8px;background:#e6f4ec;color:var(--safe);border-radius:20px;font-size:10px;font-weight:700">🟢 FAIBLE</span>`;
+
+  const statusBadge = s => s==='approved'
+    ?`<span style="padding:2px 8px;background:#e6f4ec;color:var(--safe);border-radius:20px;font-size:10px;font-weight:700">✓ Validé</span>`
+    :s==='rejected'
+    ?`<span style="padding:2px 8px;background:#fde8e6;color:var(--danger);border-radius:20px;font-size:10px;font-weight:700">✕ Refusé</span>`
+    :`<span style="padding:2px 8px;background:#fef3e6;color:var(--warn);border-radius:20px;font-size:10px;font-weight:700">⏳ En attente</span>`;
+
+  // ── Helper : rendu d'une ligne risque avec EPI/EPC/solutions ─────────
+  function riskDetailRow(x){
+    const [bg,col] = x.sev==='high'?['#fde8e6','var(--danger)']:x.sev==='medium'?['#fef3e6','var(--warn)']:['#e6f4ec','var(--safe)'];
+    const sevLbl   = x.sev==='high'?'CRITIQUE':x.sev==='medium'?'MODÉRÉ':'FAIBLE';
+    const sols  = Array.isArray(x.solutions) ? x.solutions : [];
+    // Support epc/epi directs OU depuis epiSnapshot si vide
+    let epcData = Array.isArray(x.epc) ? x.epc : [];
+    let epiData = Array.isArray(x.epi) ? x.epi : [];
+    // Fallback depuis epiSnapshot si les tableaux sont vides
+    const snap = (x._snap || (typeof ev!=='undefined' && ev.epiSnapshot ? ev.epiSnapshot[x.id] : null));
+    if(!epcData.length && snap){ epcData = [...(snap.collectif||[]),...(snap.customC||[])]; }
+    if(!epiData.length && snap){ epiData = [...(snap.individuel||[]),...(snap.customI||[])]; }
+    const noData = '<div style="font-size:11px;color:#9ca3af;font-style:italic">— Non renseigné</div>';
+    const mkList = (items,col2,sym)=>items.length
+      ? items.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;border-bottom:1px solid #f9fafb;color:#374151;line-height:1.4">
+          <span style="position:absolute;left:0;font-weight:700;color:${col2}">${sym}</span>${s}
+        </div>`).join('')
+      : noData;
+    return `<div style="border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;overflow:hidden">
+      <div style="padding:8px 12px;background:${bg};display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;background:${col};color:#fff;border-radius:20px">${sevLbl}</span>
+        <strong style="font-size:12.5px;flex:1">${x.name||''}</strong>
+        <span style="font-size:10px;color:#6b7280">${x.type||x.interventionType||''}</span>
+        ${x.isManual?'<span style="font-size:9px;background:#e8f0fe;color:var(--accent2);padding:1px 6px;border-radius:10px">✏ Perso</span>':''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff">
+        <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--safe);margin-bottom:6px">
+            🛡 Prévention (${sols.length})
+          </div>
+          ${mkList(sols,'var(--safe)','→')}
+        </div>
+        <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5b3fb5;margin-bottom:6px">
+            🔵 EPC collectif (${epcData.length})
+          </div>
+          ${mkList(epcData,'#5b3fb5','✓')}
+        </div>
+        <div style="padding:9px 11px">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#0e7490;margin-bottom:6px">
+            🦺 EPI individuel (${epiData.length})
+          </div>
+          ${mkList(epiData,'#0e7490','✓')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+
+  // ── Rendu d'une carte validation ────────────────────────────────────
+  function validCard(r, isPending){
+    const ev  = r.evalSnapshot||{};
+    const uid = 'vdet_'+r.id;
+    const risks = ev.risks||[];
+    const stepsHtml = (ev.missionSteps||[]).map((s,i)=>`
+      <div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid var(--cream)">
+        <span style="background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${i+1}</span>
+        <span style="font-size:12px">${s}</span>
+      </div>`).join('');
+
+    const borderCol = r.status==='approved'?'var(--safe)':r.status==='rejected'?'var(--danger)':'var(--warn)';
+    const titleTxt  = ev.interventionTitle||ev.mission||'Rapport sans titre';
+
+    return `<div style="border:1.5px solid ${borderCol};border-radius:8px;margin-bottom:18px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      <!-- En-tête -->
+      <div style="background:linear-gradient(135deg,#fffbeb,#fef9e6);padding:14px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid #fde68a">
+        <div style="flex:1">
+          ${ev.interventionTitle?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:4px">🏷️ ${ev.interventionTitle}</div>`:''}
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+            <strong style="font-size:15px">${r.submitterName||'—'}</strong>
+            <span style="font-size:11px;color:#6b7280;background:var(--cream);padding:2px 8px;border-radius:20px">${r.submitterSite||'—'}</span>
+            ${levelLabel(r.level)} ${statusBadge(r.status)}
+          </div>
+          <div style="font-size:12px;color:#374151;display:flex;gap:16px;flex-wrap:wrap">
+            <span>📍 <strong>${ev.location||'—'}</strong></span>
+            <span>📅 <strong>${ev.date?new Date(ev.date).toLocaleDateString('fr-FR'):'—'}</strong></span>
+            <span>⚠️ <strong>${risks.length} risque(s)</strong></span>
+            <span>📋 <strong>${(ev.interventions||[]).length} type(s)</strong></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${r.sigIntervenant?`<img src="${r.sigIntervenant}" style="height:52px;border:1px solid var(--border);border-radius:4px;background:#fff" title="Signature intervenant"/>`:''}
+          <button onclick="toggleReportDetail('${uid}')" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">👁 Voir le rapport complet</button>
+        </div>
+      </div>
+
+      <!-- Détail complet (caché par défaut) -->
+      <div id="${uid}" style="display:none;background:#fff;padding:20px 18px 4px">
+        ${stepsHtml?`<div style="margin-bottom:16px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:8px">📋 Étapes de l'intervention</div>
+          ${stepsHtml}
+        </div>`:''}
+        ${(ev.interventions||[]).length?`<div style="margin-bottom:14px;display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink);margin-right:4px">Types :</span>
+          ${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}
+        </div>`:''}
+        <div style="margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">
+            ⚠️ Risques · Mesures de prévention · EPC · EPI (${risks.length} risque(s))
+          </div>
+          ${risks.length ? risks.map(riskDetailRow).join('') : '<div style="color:#9ca3af;font-style:italic;font-size:12px">Aucun risque enregistré dans ce rapport.</div>'}
+        </div>
+        ${r.sigIntervenant?`<div style="padding:10px 0;border-top:1px solid var(--cream);display:flex;gap:20px">
+          <div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature intervenant</div><img src="${r.sigIntervenant}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>
+        </div>`:''}
+      </div>
+
+      <!-- Actions (uniquement pour les rapports en attente) -->
+      ${isPending?`<div style="padding:12px 18px;background:#fff;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--cream)">
+        <input type="text" placeholder="Commentaire (optionnel)…" id="val-comment-${r.id}" style="flex:1;min-width:160px;padding:8px 12px;border:1.5px solid var(--border);border-radius:4px;font-size:12px"/>
+        <button onclick="validateReport('${r.id}','approved')" style="padding:9px 22px;background:var(--safe);color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">✓ Valider et signer</button>
+        <button onclick="validateReport('${r.id}','rejected')" style="padding:9px 16px;background:#fde8e6;color:var(--danger);border:1.5px solid var(--danger);border-radius:4px;font-size:12px;font-weight:700;cursor:pointer">✕ Refuser</button>
+      </div>`:`<div style="padding:10px 18px;background:#f9fafb;display:flex;align-items:center;gap:10px;border-top:1px solid var(--cream)">
+        ${r.comment?`<span style="font-size:12px;color:#6b7280;font-style:italic">💬 ${r.comment}</span>`:''}
+        <button onclick="downloadValidatedReport('${r.id}')" style="margin-left:auto;padding:6px 14px;background:var(--ink);color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">📄 Télécharger PDF</button>
+      </div>`}
+    </div>`;
+  }
+
+  let html = '';
   if(pending.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--warn);margin-bottom:12px">⏳ En attente de validation (${pending.length})</div>`;
-    pending.forEach(r=>{
-      const ev=r.evalSnapshot||{};
-      const risksList=(ev.risks||[]).map(x=>`<span style="font-size:10px;padding:2px 8px;background:${x.sev==='high'?'#fde8e6':x.sev==='medium'?'#fef3e6':'#e6f4ec'};color:${x.sev==='high'?'var(--danger)':x.sev==='medium'?'var(--warn)':'var(--safe)'};border-radius:10px;margin:2px;display:inline-block">${x.name}</span>`).join('');
-      const stepsHtml=(ev.missionSteps||[]).map((s,i)=>`<div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid var(--cream)"><span style="background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${i+1}</span><span style="font-size:12px">${s}</span></div>`).join('');
-      html+=`<div style="border:1.5px solid var(--warn);border-radius:8px;margin-bottom:18px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
-        <!-- En-tête rapport -->
-        <div style="background:linear-gradient(135deg,#fffbeb,#fef9e6);padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid #fde68a">
-          <div style="flex:1">
-            ${(r.evalSnapshot||{}).interventionTitle?`<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);margin-bottom:4px">🏷️ ${r.evalSnapshot.interventionTitle}</div>`:''}
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
-              <strong style="font-size:15px">${r.submitterName}</strong>
-              <span style="font-size:11px;color:#6b7280;background:var(--cream);padding:2px 8px;border-radius:20px">${r.submitterSite}</span>
-              ${levelLabel(r.level)}
-              ${statusBadge(r.status)}
-            </div>
-            <div style="font-size:12px;color:#374151;display:flex;gap:16px;flex-wrap:wrap">
-              <span>📍 <strong>${ev.location||'—'}</strong></span>
-              <span>📅 <strong>${ev.date?new Date(ev.date).toLocaleDateString('fr-FR'):'—'}</strong></span>
-              <span>⚠️ <strong>${(ev.risks||[]).length} risque(s)</strong></span>
-              <span>📋 <strong>${(ev.interventions||[]).length} type(s)</strong></span>
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center">
-            ${r.sigIntervenant?`<img src="${r.sigIntervenant}" style="height:52px;border:1px solid var(--border);border-radius:4px;background:#fff" title="Signature intervenant"/>`:''}
-            <button onclick="toggleReportDetail('detail-${r.id}')" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">👁 Lire le rapport</button>
-          </div>
-        </div>
-        <!-- Détail complet du rapport (masqué par défaut) -->
-        <div id="detail-${r.id}" style="display:none;background:#fff;padding:20px 20px 4px;border-bottom:1px solid var(--cream)">
-          ${stepsHtml?`<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:8px">Étapes de l'intervention</div>${stepsHtml}</div>`:''}
-          ${(ev.interventions||[]).length?`<div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:8px">Types d'intervention</div><div style="display:flex;flex-wrap:wrap;gap:6px">${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}</div></div>`:''}
-          <div style="margin-bottom:16px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:8px">Risques identifiés (${(ev.risks||[]).length})</div>
-            ${(ev.risks||[]).map((x,i)=>{
-              const solHtml=(x.solutions||[]).length?x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid var(--cream)"><span style="position:absolute;left:0;font-weight:700;color:var(--safe)">→</span>${s}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-              const epcHtml=(x.epc||[]).length?x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid var(--cream)"><span style="position:absolute;left:0;font-weight:700;color:#5b3fb5">✓</span>${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-              const epiHtml=(x.epi||[]).length?x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid var(--cream)"><span style="position:absolute;left:0;font-weight:700;color:#0e7490">✓</span>${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-              return `<div style="border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden">
-                <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:${x.sev==='high'?'#fde8e6':x.sev==='medium'?'#fef3e6':'#e6f4ec'}">
-                  ${levelLabel(x.sev)} <strong style="font-size:12.5px">${x.name}</strong>
-                  <span style="font-size:10px;color:#6b7280;margin-left:auto">${x.type}</span>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;background:#fff">
-                  <div style="padding:10px 12px;border-right:1px solid var(--cream)">
-                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--safe);margin-bottom:6px">Prévention</div>${solHtml}
-                  </div>
-                  <div style="padding:10px 12px;border-right:1px solid var(--cream)">
-                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5b3fb5;margin-bottom:6px">EPC collectif</div>${epcHtml}
-                  </div>
-                  <div style="padding:10px 12px">
-                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#0e7490;margin-bottom:6px">EPI individuel</div>${epiHtml}
-                  </div>
-                </div>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
-        <!-- Actions -->
-        <div style="padding:14px 20px;background:#fff;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <input type="text" placeholder="Commentaire (optionnel)…" id="val-comment-${r.id}" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--border);border-radius:4px;font-size:12px"/>
-          <button onclick="validateReport('${r.id}','approved')" style="padding:9px 22px;background:var(--safe);color:#fff;border:none;border-radius:4px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px">✓ Valider et signer</button>
-          <button onclick="validateReport('${r.id}','rejected')" style="padding:9px 16px;background:#fde8e6;color:var(--danger);border:1.5px solid var(--danger);border-radius:4px;font-size:12px;font-weight:700;cursor:pointer">✕ Refuser</button>
-        </div>
-      </div>`;
-    });
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--warn);margin-bottom:14px">⏳ En attente de validation (${pending.length})</div>`;
+    pending.forEach(r => { html += validCard(r, true); });
   }
   if(done.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9ca3af;margin:24px 0 12px">Traités (${done.length})</div>`;
-    done.slice(0,20).forEach(r=>{
-      const ev=r.evalSnapshot||{};
-      const uid='done-'+r.id;
-      const borderCol=r.status==='approved'?'var(--safe)':'var(--danger)';
-      const sevLbl2=s=>s==='high'?'CRITIQUE':s==='medium'?'MODÉRÉ':'FAIBLE';
-      html+=`<div style="border:1.5px solid ${borderCol};border-radius:8px;margin-bottom:10px;overflow:hidden;background:#fff;opacity:.9">
-        <div style="padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <div style="flex:1">
-            ${ev.interventionTitle?`<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">🏷️ ${ev.interventionTitle}</div>`:''}
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <strong style="font-size:13px">${r.submitterName}</strong>
-              <span style="font-size:11px;color:#6b7280">${r.submitterSite||'—'}</span>
-              ${levelLabel(r.level)} ${statusBadge(r.status)}
-            </div>
-            <div style="font-size:11px;color:#9ca3af;margin-top:3px">
-              📍 ${ev.location||'—'} · 📅 ${ev.date?new Date(ev.date).toLocaleDateString('fr-FR'):'—'} · ${(ev.risks||[]).length} risque(s)
-            </div>
-          </div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap">
-            <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'" style="padding:5px 12px;background:#e8f4fd;color:var(--accent2);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">👁 Détail complet</button>
-            <button onclick="downloadValidatedReport('${r.id}')" style="padding:5px 12px;background:var(--ink);color:#fff;border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">📄 PDF</button>
-          </div>
-        </div>
-        ${r.comment?`<div style="padding:6px 18px;background:#f9fafb;border-top:1px solid var(--cream);font-size:11.5px;color:#4b5563;font-style:italic">💬 ${r.comment}</div>`:''}
-        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
-          ${(ev.missionSteps||[]).length?`<div style="padding:12px 18px;border-bottom:1px solid #f3f4f6">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:8px">📋 Phases</div>
-            ${(ev.missionSteps||[]).map((s,i)=>`<div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #f9fafb"><span style="background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${i+1}</span><span style="font-size:12px">${s}</span></div>`).join('')}
-          </div>`:''}
-          <div style="padding:12px 18px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques, prévention & protections</div>
-            ${(ev.risks||[]).length?ev.risks.map(x=>{
-              const [bg2]=x.sev==='high'?['#fde8e6']:x.sev==='medium'?['#fef3e6']:['#e6f4ec'];
-              const solH=(x.solutions||[]).length?x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;color:var(--safe);font-weight:700">→</span>${s}</div>`).join(''):'<span style="font-size:11px;color:#9ca3af;font-style:italic">—</span>';
-              const epcH=(x.epc||[]).length?x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;color:#5b3fb5;font-weight:700">✓</span>${e}</div>`).join(''):'<span style="font-size:11px;color:#9ca3af;font-style:italic">—</span>';
-              const epiH=(x.epi||[]).length?x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;color:#0e7490;font-weight:700">✓</span>${e}</div>`).join(''):'<span style="font-size:11px;color:#9ca3af;font-style:italic">—</span>';
-              return `<div style="border:1px solid #e5e7eb;border-radius:5px;margin-bottom:8px;overflow:hidden">
-                <div style="padding:7px 11px;background:${bg2};display:flex;align-items:center;gap:8px">
-                  <strong style="font-size:12px">${x.name}</strong><span style="font-size:10px;color:#6b7280;margin-left:auto">${x.type||''}</span>
-                  <span style="font-size:9px;padding:1px 7px;background:var(--ink);color:#fff;border-radius:10px">${sevLbl2(x.sev)}</span>
-                </div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff">
-                  <div style="padding:8px 10px;border-right:1px solid #f3f4f6"><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--safe);margin-bottom:5px">Prévention</div>${solH}</div>
-                  <div style="padding:8px 10px;border-right:1px solid #f3f4f6"><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#5b3fb5;margin-bottom:5px">EPC</div>${epcH}</div>
-                  <div style="padding:8px 10px"><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#0e7490;margin-bottom:5px">EPI</div>${epiH}</div>
-                </div>
-              </div>`;
-            }).join(''):'<div style="color:#9ca3af;font-style:italic;font-size:12px">Aucun risque enregistré</div>'}
-          </div>
-          ${r.sigIntervenant||r.sigManager?`<div style="padding:10px 18px;border-top:1px solid #f3f4f6;display:flex;gap:20px">
-            ${r.sigIntervenant?`<div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature intervenant</div><img src="${r.sigIntervenant}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>`:''}
-            ${r.sigManager?`<div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature responsable</div><img src="${r.sigManager}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>`:''}
-          </div>`:''}
-        </div>
-      </div>`;
-    });
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9ca3af;margin:${pending.length?'24px':0} 0 14px">Traités (${done.length})</div>`;
+    done.slice(0,30).forEach(r => { html += validCard(r, false); });
   }
-  container.innerHTML=html;
-}
-function toggleReportDetail(id){
-  const el=document.getElementById(id); if(!el) return;
-  el.style.display=el.style.display==='none'?'block':'none';
+  container.innerHTML = html;
 }
 async function validateReport(id, decision){
   if(decision==='rejected'){
@@ -4860,10 +5051,16 @@ function generatePDF(sigData){
   footer();
   const pdfTitle=(appState.interventionTitle||('EvalRisque_'+appState.date)||'rapport').replace(/[^a-z0-9À-ÿ\s_-]/gi,'_').replace(/\s+/g,'_');
   doc.save(pdfTitle+'.pdf');
-  // Sauvegarder avec titre + snapshot complet pour rechargement
+  // Sauvegarder l'évaluation complète en DB + localStorage
   const selForSave=getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
   const epiSnapshot={};
-  selForSave.forEach(r=>{ const es=getEPI(r.id); epiSnapshot[r.id]={collectif:[...es.collectif],individuel:[...es.individuel],customC:[...es.customC],customI:[...es.customI]}; });
+  selForSave.forEach(r=>{
+    const es=getEPI(r.id);
+    epiSnapshot[r.id]={
+      collectif:[...es.collectif],individuel:[...es.individuel],
+      customC:[...es.customC],customI:[...es.customI]
+    };
+  });
   const evalToSave={
     id:'eval_'+Date.now(),
     savedAt:new Date().toISOString(),
@@ -4875,10 +5072,17 @@ function generatePDF(sigData){
     derogations:appState.derogations||{},
     epiSnapshot,
     selectedRisksCount:appState.selectedRisks.size,
-    status:'local'
+    status:'draft'
   };
-  saveReport('eval',evalToSave);
+  // Sauvegarder en DB (async, non bloquant)
+  _saveEvalToDB(evalToSave).then(saved=>{
+    if(saved) console.log('Évaluation sauvegardée en DB:', saved._id);
+  });
+  // Garder aussi en localStorage comme backup
   _saveLocalEval(evalToSave);
+  // Historique admin
+  saveReport('eval',{...evalToSave, operator:appState.operator, location:appState.location,
+    interventions:[...appState.selectedInterventions], selectedRisksCount:appState.selectedRisks.size});
   refreshMyEvalsBadge();
 }
 
@@ -5197,49 +5401,75 @@ function generatePP(){
 // MES ÉVALUATIONS PANEL
 // ══════════════════════════════════════════════════════════════════════════
 async function openMyEvals(){
-  await renderMyEvals();
   document.getElementById('myEvalsPanel').style.display='flex';
+  await renderMyEvals();
 }
 function closeMyEvals(){
   document.getElementById('myEvalsPanel').style.display='none';
 }
 async function refreshMyEvalsBadge(){
-  const btn=document.getElementById('btnMyEvals');
-  const badge=document.getElementById('myEvalsBadge');
+  const btn   = document.getElementById('btnMyEvals');
+  const badge = document.getElementById('myEvalsBadge');
   if(!btn||!currentUser) return;
-  const local=_getLocalEvals();
-  let pending=0;
+
+  let pending = 0, dbCount = 0;
   try{
-    const vals=await api('GET','/data/validations')||[];
-    const mine=vals.filter(v=>v.submitterName===currentUser.name||String(v.submittedBy)===String(currentUser.id));
-    // Badge = évals en attente uniquement (pour alerter)
-    pending=mine.filter(v=>v.status==='pending').length;
+    // Validations en attente soumises par l'utilisateur
+    const vals = await api('GET','/data/validations/mine')||[];
+    pending = vals.filter(v=>v.status==='pending').length;
+    // Évals en DB
+    const evals = await api('GET','/data/evaluations')||[];
+    dbCount = evals.length;
   }catch(e){}
-  const total=local.length; // total local pour info
-  // Badge orange sur les "en attente" uniquement
+
+  const local = _getLocalEvals();
+  const total = dbCount + local.length;
+
   if(badge){
     if(pending>0){
       badge.style.display='flex';
       badge.style.background='var(--warn)';
-      badge.textContent=pending>9?'9+':String(pending);
+      badge.textContent = pending>9?'9+':String(pending);
     } else if(total>0){
       badge.style.display='flex';
       badge.style.background='#7c3aed';
-      badge.textContent=total>9?'9+':String(total);
+      badge.textContent = total>9?'9+':String(total);
     } else {
       badge.style.display='none';
     }
   }
 }
 function _getLocalEvals(){
+  // Fallback localStorage pour compat
   try{ return JSON.parse(localStorage.getItem('myEvals_'+currentUser.id)||'[]'); }catch(e){ return []; }
 }
+async function _saveEvalToDB(ev){
+  // Sauvegarder l'évaluation en MongoDB
+  try{
+    const payload = {
+      interventionTitle: ev.interventionTitle||'',
+      operator:          ev.operator||currentUser.name,
+      location:          ev.location||'',
+      date:              ev.date||'',
+      mission:           ev.mission||'',
+      missionSteps:      ev.missionSteps||[],
+      interventions:     ev.interventions||[...appState.selectedInterventions],
+      selectedRisks:     ev.selectedRisks||[...appState.selectedRisks],
+      derogations:       ev.derogations||appState.derogations||{},
+      epiSnapshot:       ev.epiSnapshot||{},
+      selectedRisksCount:ev.selectedRisksCount||appState.selectedRisks.size,
+      status:            'draft',
+    };
+    const saved = await api('POST','/data/evaluations', payload);
+    if(saved) return saved;
+  }catch(e){ console.warn('Erreur sauvegarde eval DB:',e); }
+  return null;
+}
 function _saveLocalEval(ev){
+  // Garder aussi en localStorage comme cache offline
   const list=_getLocalEvals();
-  // Éviter doublons par id
   const idx=list.findIndex(e=>e.id===ev.id);
   if(idx>=0) list[idx]=ev; else list.unshift(ev);
-  // Garder les 50 dernières
   if(list.length>50) list.splice(50);
   localStorage.setItem('myEvals_'+currentUser.id, JSON.stringify(list));
 }
@@ -5247,154 +5477,223 @@ async function renderMyEvals(){
   const container=document.getElementById('myEvalsList');
   const countEl=document.getElementById('myEvalsCount');
   if(!container) return;
-  container.innerHTML='<div style="text-align:center;padding:24px;color:#9ca3af">Chargement…</div>';
+  container.innerHTML=`<div style="text-align:center;padding:24px;color:#9ca3af;display:flex;align-items:center;justify-content:center;gap:10px"><span class="ai-spinner"></span> Chargement de vos évaluations…</div>`;
 
-  const local=_getLocalEvals();
-  let submitted=[];
-  try{
-    const vals=await api('GET','/data/validations')||[];
-    submitted=vals.filter(v=>v.submitterName===currentUser.name||String(v.submittedBy)===String(currentUser.id))
-      .map(v=>({...v,id:String(v._id||v.id||'')}));
-  }catch(e){}
+  const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'—';
 
-  const total=local.length+submitted.length;
-  if(countEl) countEl.textContent=total;
+  // ── Charger depuis DB ──────────────────────────────────────────────────
+  let dbEvals = [];
+  try {
+    dbEvals = await api('GET','/data/evaluations') || [];
+  } catch(e) { console.warn('Erreur chargement évals DB:', e); }
 
-  if(!total){
-    container.innerHTML='<div style="text-align:center;padding:48px;color:#9ca3af;font-style:italic">Aucune évaluation enregistrée.<br><small>Générez votre premier rapport PDF pour le voir ici.</small></div>';
+  // ── Validations soumises par cet utilisateur ───────────────────────────
+  let myValidations = [];
+  try {
+    myValidations = await api('GET','/data/validations/mine') || [];
+  } catch(e) { console.warn('Erreur chargement validations:', e); }
+
+  // ── Compléter avec localStorage (évals pas encore en DB) ──────────────
+  const local = _getLocalEvals();
+
+  const total = dbEvals.length + local.length;
+  if(countEl) countEl.textContent = total;
+
+  if(!total && !myValidations.length){
+    container.innerHTML=`<div style="text-align:center;padding:48px;color:#9ca3af">
+      <div style="font-size:40px;margin-bottom:12px">📋</div>
+      <div style="font-weight:600;margin-bottom:6px">Aucune évaluation enregistrée</div>
+      <div style="font-size:13px">Générez un rapport PDF pour le voir ici.</div>
+    </div>`;
     return;
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-  const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR'):'—';
-  const levelRgb=s=>s==='high'?['#fde8e6','var(--danger)','🔴']:s==='medium'?['#fef3e6','var(--warn)','🟠']:['#e6f4ec','var(--safe)','🟢'];
+  // ══════════════════════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════════════════════
+  const sevRgb = s => s==='high'?['#fde8e6','var(--danger)','🔴']:s==='medium'?['#fef3e6','var(--warn)','🟠']:['#e6f4ec','var(--safe)','🟢'];
 
-  function statusBlock(s,comment){
-    const cfg={
-      approved:{bg:'#f0fdf4',border:'var(--safe)',icon:'✅',label:'Rapport validé',sublabel:'Votre responsable a signé et approuvé ce rapport.',color:'var(--safe)'},
-      rejected:{bg:'#fef2f2',border:'var(--danger)',icon:'❌',label:'Rapport refusé',sublabel:'Votre responsable a refusé ce rapport.',color:'var(--danger)'},
-      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours de validation par votre responsable.',color:'var(--warn)'},
-    }[s]||{bg:'#f3f4f6',border:'#d1d5db',icon:'💾',label:'Brouillon local',sublabel:'Rapport non encore soumis.',color:'#6b7280'};
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 18px;background:${cfg.bg};border-top:1px solid ${cfg.border}">
-      <span style="font-size:20px;flex-shrink:0">${cfg.icon}</span>
-      <div>
-        <div style="font-weight:700;font-size:13px;color:${cfg.color}">${cfg.label}</div>
-        <div style="font-size:11.5px;color:#4b5563;margin-top:2px">${cfg.sublabel}</div>
-        ${comment?`<div style="margin-top:5px;font-size:11.5px;font-style:italic;color:#374151">💬 Commentaire : ${comment}</div>`:''}
+  function statusBadge(s, managerName){
+    const cfgs = {
+      approved:{ bg:'#f0fdf4', border:'var(--safe)',   icon:'✅', label:'Validé',             color:'var(--safe)'   },
+      rejected:{ bg:'#fef2f2', border:'var(--danger)', icon:'❌', label:'Refusé',              color:'var(--danger)' },
+      pending: { bg:'#fffbeb', border:'var(--warn)',   icon:'⏳', label:'En attente',          color:'var(--warn)'   },
+      draft:   { bg:'#f3f4f6', border:'#d1d5db',      icon:'💾', label:'Brouillon',           color:'#6b7280'        },
+      submitted:{ bg:'#fffbeb', border:'var(--warn)',  icon:'📤', label:'Soumis',              color:'var(--warn)'   },
+    };
+    const cfg = cfgs[s] || cfgs.draft;
+    return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:${cfg.bg};border:1.5px solid ${cfg.border};border-radius:20px;font-size:11px;font-weight:700;color:${cfg.color}">
+      ${cfg.icon} ${cfg.label}${managerName?' — '+managerName:''}
+    </span>`;
+  }
+
+  function riskRow(x){
+    const solHtml = (x.solutions||[]).length
+      ? x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;border-bottom:1px solid #f3f4f6;color:#374151"><span style="position:absolute;left:0;font-weight:700;color:var(--safe)">→</span>${s}</div>`).join('')
+      : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+    const epcHtml = (x.epc||[]).length
+      ? x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;border-bottom:1px solid #f3f4f6;color:#374151"><span style="position:absolute;left:0;font-weight:700;color:#5b3fb5">✓</span>${e}</div>`).join('')
+      : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+    const epiHtml = (x.epi||[]).length
+      ? x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;border-bottom:1px solid #f3f4f6;color:#374151"><span style="position:absolute;left:0;font-weight:700;color:#0e7490">✓</span>${e}</div>`).join('')
+      : '<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+    const sevLabel = x.sev==='high'?'CRITIQUE':x.sev==='medium'?'MODÉRÉ':'FAIBLE';
+    const [bg] = sevRgb(x.sev);
+    return `<div style="border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;overflow:hidden">
+      <div style="padding:8px 12px;background:${bg};display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;background:${x.sev==='high'?'var(--danger)':x.sev==='medium'?'var(--warn)':'var(--safe)'};color:#fff;border-radius:20px">${sevLabel}</span>
+        <strong style="font-size:12.5px;flex:1">${x.name||''}</strong>
+        <span style="font-size:10px;color:#6b7280">${x.type||''}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff">
+        <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--safe);margin-bottom:6px">🛡 Prévention</div>${solHtml}
+        </div>
+        <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5b3fb5;margin-bottom:6px">🔵 EPC collectif</div>${epcHtml}
+        </div>
+        <div style="padding:9px 11px">
+          <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#0e7490;margin-bottom:6px">🦺 EPI individuel</div>${epiHtml}
+        </div>
       </div>
     </div>`;
   }
 
-  function riskDetailHtml(risks){
-    if(!risks||!risks.length) return '<div style="padding:16px;color:#9ca3af;font-style:italic;text-align:center">Aucun risque renseigné</div>';
-    const sevLbl=s=>s==='high'?'CRITIQUE':s==='medium'?'MODÉRÉ':'FAIBLE';
-    return risks.map(x=>{
-      const [bg,col]=levelRgb(x.sev);
-      const solHtml=(x.solutions||[]).length
-        ?x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:var(--safe)">→</span>${s}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      const epcHtml=(x.epc||[]).length
-        ?x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:#5b3fb5">✓</span>${e}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      const epiHtml=(x.epi||[]).length
-        ?x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:#0e7490">✓</span>${e}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      return `<div style="border:1px solid #e5e7eb;border-radius:6px;margin-bottom:9px;overflow:hidden">
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:${bg}">
-          <span style="font-size:10px;font-weight:700;padding:2px 8px;background:${col};color:#fff;border-radius:20px">${sevLbl(x.sev)}</span>
-          <strong style="font-size:12.5px;color:var(--ink);flex:1">${x.name}</strong>
-          <span style="font-size:10px;color:#6b7280">${x.type||''}</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff">
-          <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--safe);margin-bottom:6px">🛡 Prévention</div>${solHtml}
-          </div>
-          <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5b3fb5;margin-bottom:6px">🔵 EPC collectif</div>${epcHtml}
-          </div>
-          <div style="padding:9px 11px">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#0e7490;margin-bottom:6px">🦺 EPI individuel</div>${epiHtml}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
+  function evalCard(ev, validInfo){
+    const uid = 'ev_'+Math.random().toString(36).slice(2);
+    const title = ev.interventionTitle || ev.mission || 'Évaluation sans titre';
+    const risks = ev.risks || (ev.selectedRisks||[]).map(id=>{
+      const r=findRisk(id); return r?{...r,id:r.id,type:r.interventionType,epc:[],epi:[]}:null;
+    }).filter(Boolean);
 
-  function stepsHtml(steps){
-    if(!steps||!steps.length) return '';
-    return steps.map((s,i)=>`<div style="display:flex;gap:9px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #f3f4f6">
-      <span style="background:var(--accent2);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px">${i+1}</span>
+    // Reconstuire epc/epi depuis epiSnapshot si dispo
+    if(ev.epiSnapshot && risks.length){
+      risks.forEach(r=>{
+        const snap = ev.epiSnapshot[r.id];
+        if(snap){
+          if(!r.epc||!r.epc.length) r.epc=[...(snap.collectif||[]),...(snap.customC||[])];
+          if(!r.epi||!r.epi.length) r.epi=[...(snap.individuel||[]),...(snap.customI||[])];
+        }
+      });
+    }
+
+    const statusStr = validInfo ? validInfo.status : (ev.status||'draft');
+    const managerName = validInfo ? validInfo.managerName : '';
+    const borderCol = statusStr==='approved'?'var(--safe)':statusStr==='rejected'?'var(--danger)':statusStr==='pending'||statusStr==='submitted'?'var(--warn)':'#d1d5db';
+
+    const stepsHtml = (ev.missionSteps||[]).map((s,i)=>`<div style="display:flex;gap:9px;align-items:flex-start;padding:4px 0;border-bottom:1px solid #f3f4f6">
+      <span style="background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${i+1}</span>
       <span style="font-size:12.5px;color:#374151;line-height:1.45">${s}</span>
     </div>`).join('');
+
+    return `<div style="border:2px solid ${borderCol};border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+      <!-- En-tête -->
+      <div style="padding:14px 18px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between;border-bottom:1px solid #f3f4f6">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px;word-break:break-word">${title}</div>
+          <div style="font-size:12px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+            <span>👤 ${ev.operator||ev.submitterName||currentUser.name}</span>
+            <span>📍 ${ev.location||'—'}</span>
+            <span>📅 ${fmt(ev.date||ev.createdAt||ev.savedAt)}</span>
+            <span>⚠️ ${risks.length} risque(s)</span>
+            <span>📋 ${(ev.interventions||[]).length} type(s)</span>
+          </div>
+          <div>${statusBadge(statusStr, managerName)}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+          <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
+            style="padding:6px 14px;background:var(--ink);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">
+            👁 Voir le rapport
+          </button>
+          ${validInfo&&validInfo.status==='approved'?`<button onclick="downloadValidatedReport('${validInfo.id||validInfo._id}')" style="padding:6px 14px;background:var(--accent2);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">📄 PDF Validé</button>`:''}
+          ${ev._id?`<button onclick="loadDBEval('${ev._id}')" style="padding:6px 14px;background:#7c3aed;color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">🔄 Recharger</button>`:''}
+        </div>
+      </div>
+      <!-- Barre progression validation -->
+      ${validInfo ? renderValidationProgress(validInfo) : ''}
+      <!-- Détail expansible -->
+      <div id="${uid}" style="display:none">
+        ${stepsHtml?`<div style="padding:12px 18px;border-bottom:1px solid #f3f4f6">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:8px">📋 Étapes</div>
+          ${stepsHtml}
+        </div>`:''}
+        ${(ev.interventions||[]).length?`<div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:5px;align-items:center">
+          <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink);margin-right:4px">Types :</span>
+          ${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}
+        </div>`:''}
+        ${risks.length?`<div style="padding:12px 18px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques · Prévention · EPC · EPI</div>
+          ${risks.map(riskRow).join('')}
+        </div>`:''}
+      </div>
+    </div>`;
   }
 
-  let html='';
+  function renderValidationProgress(val){
+    const steps = [
+      { label:'Soumis',   done: true },
+      { label:'En attente', done: val.status !== 'pending', active: val.status === 'pending' },
+      { label:val.status==='approved'?'Validé ✅':val.status==='rejected'?'Refusé ❌':'Décision', done: val.status==='approved'||val.status==='rejected', rejected: val.status==='rejected' },
+    ];
+    return `<div style="padding:10px 18px;background:#f9fafb;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:0">
+      <span style="font-size:11px;font-weight:700;color:#9ca3af;margin-right:12px">Validation :</span>
+      ${steps.map((s,i)=>`
+        ${i>0?`<div style="flex:1;height:2px;background:${s.done&&!s.rejected?'var(--safe)':s.rejected?'var(--danger)':'var(--border)'}"></div>`:''}
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+            background:${s.rejected?'var(--danger)':s.done?'var(--safe)':s.active?'var(--warn)':'#e5e7eb'};
+            color:${s.done||s.active||s.rejected?'#fff':'#9ca3af'}">${s.rejected?'✕':s.done?'✓':i+1}</div>
+          <span style="font-size:9px;font-weight:600;color:${s.rejected?'var(--danger)':s.done?'var(--safe)':s.active?'var(--warn)':'#9ca3af'};white-space:nowrap">${s.label}</span>
+        </div>`).join('')}
+      ${val.comment?`<span style="margin-left:16px;font-size:11px;color:#6b7280;font-style:italic">💬 ${val.comment}</span>`:''}
+    </div>`;
+  }
 
-  // ── Évaluations soumises ──────────────────────────────────────────────
-  if(submitted.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:14px">📤 Soumises au responsable (${submitted.length})</div>`;
-    submitted.forEach(r=>{
-      const ev=r.evalSnapshot||{};
-      const title=ev.interventionTitle||ev.mission||'Évaluation sans titre';
-      const uid='myev-sub-'+r.id;
-      const borderCol=r.status==='approved'?'var(--safe)':r.status==='rejected'?'var(--danger)':'var(--warn)';
-      html+=`<div style="border:2px solid ${borderCol};border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)">
-        <!-- En-tête -->
-        <div style="padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px;word-break:break-word">${title}</div>
-            <div style="font-size:12px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap">
-              <span>👤 ${r.submitterName||currentUser.name}</span>
-              <span>📍 ${ev.location||'—'}</span>
-              <span>📅 ${fmt(r.createdAt)}</span>
-              <span>⚠️ ${(ev.risks||[]).length} risque(s)</span>
-              <span>📋 ${(ev.interventions||[]).length} intervention(s)</span>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
-            <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
-              style="padding:6px 14px;background:var(--ink);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">
-              👁 Voir le détail
-            </button>
-            ${r.status==='approved'?`<button onclick="downloadValidatedReport('${r.id}')" style="padding:6px 14px;background:var(--accent2);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">📄 Télécharger PDF</button>`:''}
-          </div>
-        </div>
-        <!-- Bandeau statut -->
-        ${statusBlock(r.status,r.comment||'')}
-        <!-- Détail expansible -->
-        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
-          ${ev.missionSteps&&ev.missionSteps.length?`
-          <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:10px">📋 Phases de l'intervention</div>
-            ${stepsHtml(ev.missionSteps)}
-          </div>`:''}
-          ${(ev.interventions||[]).length?`
-          <div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-right:4px">Types :</span>
-            ${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}
-          </div>`:''}
-          <div style="padding:14px 18px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques, prévention & protections</div>
-            ${riskDetailHtml(ev.risks)}
-          </div>
-          ${r.sigIntervenant?`<div style="padding:10px 18px;border-top:1px solid #f3f4f6;display:flex;gap:16px;align-items:center">
-            <div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature intervenant</div><img src="${r.sigIntervenant}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>
-          </div>`:''}
-        </div>
-      </div>`;
+  // ══════════════════════════════════════════════════════════════
+  // RENDU
+  // ══════════════════════════════════════════════════════════════
+  let html = '';
+
+  // ── Évaluations depuis DB ──────────────────────────────────────────────
+  if(dbEvals.length){
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:14px">🗄️ Évaluations sauvegardées (${dbEvals.length})</div>`;
+    dbEvals.forEach(ev=>{
+      // Trouver la validation associée si elle existe
+      const val = myValidations.find(v=>
+        v.evalSnapshot&&(
+          (v.evalSnapshot.interventionTitle&&v.evalSnapshot.interventionTitle===ev.interventionTitle) ||
+          String(v.submittedBy)===String(ev.submittedBy)
+        )
+      ) || myValidations.find(v=>String(v.submittedBy)===String(currentUser.id)&&
+        v.evalSnapshot&&v.evalSnapshot.date===ev.date);
+      html += evalCard(ev, val ? {...val, id:String(val._id||val.id)} : null);
     });
   }
 
-  // ── Évaluations locales ───────────────────────────────────────────────
+  // ── Validations soumises (non encore liées à une eval DB) ─────────────
+  const linkedDates = new Set(dbEvals.map(e=>e.date));
+  const unlinkedVals = myValidations.filter(v=>!linkedDates.has(v.evalSnapshot?.date));
+  if(unlinkedVals.length){
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--warn);margin:${dbEvals.length?'24px':0} 0 14px">📤 Rapports soumis pour validation (${unlinkedVals.length})</div>`;
+    unlinkedVals.forEach(val=>{
+      const ev = val.evalSnapshot||{};
+      ev.risks = ev.risks || [];
+      html += evalCard(ev, {...val, id:String(val._id||val.id)});
+    });
+  }
+
+  // ── Brouillons locaux ──────────────────────────────────────────────────
   if(local.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c3aed;margin:${submitted.length?'24px':0} 0 14px">💾 Évaluations locales (${local.length})</div>`;
+    html += `<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c3aed;margin:${(dbEvals.length||unlinkedVals.length)?'24px':0} 0 14px">💾 Brouillons locaux (${local.length})
+      <span style="font-weight:400;font-size:10px;color:#9ca3af;text-transform:none;letter-spacing:0"> — non encore synchronisés avec la DB</span>
+    </div>`;
     local.forEach((ev,i)=>{
-      const title=ev.interventionTitle||ev.mission||'Évaluation sans titre';
-      const uid='myev-loc-'+i;
-      html+=`<div style="border:2px solid #ddd5fe;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#fff">
-        <div style="padding:14px 18px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px;word-break:break-word">${title}</div>
+      const uid = 'loc_'+i;
+      const title = ev.interventionTitle||ev.mission||'Brouillon sans titre';
+      html += `<div style="border:2px solid #ddd5fe;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff">
+        <div style="padding:12px 18px;display:flex;align-items:center;gap:12px;justify-content:space-between">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px">${title}</div>
             <div style="font-size:12px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap">
               <span>👤 ${ev.operator||currentUser.name}</span>
               <span>📍 ${ev.location||'—'}</span>
@@ -5402,39 +5701,61 @@ async function renderMyEvals(){
               <span>⚠️ ${(ev.selectedRisks||[]).length} risque(s)</span>
             </div>
           </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
-            <span style="padding:3px 10px;background:#f3f4f6;color:#6b7280;border-radius:20px;font-size:10px;font-weight:700">💾 Brouillon local</span>
-            <div style="display:flex;gap:6px">
-              <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
-                style="padding:5px 10px;background:#e0e7ff;color:#4f46e5;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">👁 Détail</button>
-              <button onclick="loadLocalEval(${i})" style="padding:5px 12px;background:#7c3aed;color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer" title="Charger pour continuer ou créer un nouveau rapport">🔄 Charger</button>
-              <button onclick="deleteLocalEval(${i})" style="padding:5px 8px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:11px;color:#9ca3af;cursor:pointer" title="Supprimer">✕</button>
-            </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button onclick="loadLocalEval(${i})" style="padding:5px 12px;background:#7c3aed;color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">🔄 Charger</button>
+            <button onclick="deleteLocalEval(${i})" style="padding:5px 8px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:11px;color:#9ca3af;cursor:pointer">✕</button>
           </div>
-        </div>
-        <!-- Détail local expansible -->
-        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
-          ${ev.missionSteps&&ev.missionSteps.length?`
-          <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:10px">📋 Phases de l'intervention</div>
-            ${stepsHtml(ev.missionSteps)}
-          </div>`:''}
-          ${(ev.interventions||[]).length?`
-          <div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-right:4px">Types :</span>
-            ${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}
-          </div>`:''}
-          ${ev.epiSnapshot&&Object.keys(ev.epiSnapshot).length?`
-          <div style="padding:14px 18px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques & protections enregistrés</div>
-            <div style="font-size:12px;color:#6b7280;font-style:italic">Les EPI/EPC sont enregistrés dans ce brouillon. Chargez-le pour voir le détail complet.</div>
-          </div>`:'<div style="padding:14px 18px;color:#9ca3af;font-size:12px;font-style:italic">Aucun détail de risques enregistré dans ce brouillon.</div>'}
         </div>
       </div>`;
     });
   }
 
-  container.innerHTML=html;
+  container.innerHTML = html || `<div style="text-align:center;padding:48px;color:#9ca3af">Aucune évaluation</div>`;
+}
+
+// Charger une éval depuis DB dans le formulaire
+async function loadDBEval(evalId){
+  if(!confirm('Charger cette évaluation ? Le formulaire actuel sera remplacé.')) return;
+  closeMyEvals();
+  const evals = await api('GET','/data/evaluations')||[];
+  const ev = evals.find(e=>String(e._id)===String(evalId)); if(!ev) return;
+  if(document.getElementById('interventionTitle')) document.getElementById('interventionTitle').value=ev.interventionTitle||'';
+  if(document.getElementById('operator')) document.getElementById('operator').value=ev.operator||'';
+  if(document.getElementById('location')) document.getElementById('location').value=ev.location||'';
+  if(document.getElementById('evalDate')) document.getElementById('evalDate').value=ev.date||'';
+  const stepsBody=document.getElementById('missionStepsBody');
+  if(stepsBody&&(ev.missionSteps||[]).length){
+    stepsBody.innerHTML='';
+    ev.missionSteps.forEach((step,i)=>{
+      const tr=document.createElement('tr'); tr.setAttribute('data-step',i+1);
+      tr.innerHTML=`<td class="step-num-cell">${i+1}</td>
+        <td><textarea class="step-desc-input" rows="2" oninput="onStepInput(this)">${step}</textarea></td>
+        <td><div class="step-risks-zone" id="step-risks-${i+1}"><span class="step-risks-placeholder">…</span></div></td>
+        <td><button class="pp-del-btn" onclick="delMissionStep(this)">×</button></td>`;
+      stepsBody.appendChild(tr);
+    });
+  }
+  appState.interventionTitle=ev.interventionTitle||'';
+  appState.operator=ev.operator||'';
+  appState.location=ev.location||'';
+  appState.date=ev.date||new Date().toISOString().split('T')[0];
+  appState.mission=ev.mission||'';
+  appState.missionSteps=ev.missionSteps||[];
+  appState.selectedInterventions=new Set(ev.interventions||[]);
+  appState.selectedRisks=new Set(ev.selectedRisks||[]);
+  appState.derogations=ev.derogations||{};
+  if(ev.epiSnapshot){
+    Object.entries(ev.epiSnapshot).forEach(([riskId,epi])=>{
+      const type=getInterventionType(riskId);
+      if(!epiState[type]) epiState[type]={collectif:new Set(),individuel:new Set(),customC:[],customI:[]};
+      epiState[type].collectif=new Set(epi.collectif||[]);
+      epiState[type].individuel=new Set(epi.individuel||[]);
+      epiState[type].customC=epi.customC||[];
+      epiState[type].customI=epi.customI||[];
+    });
+  }
+  goStep(0);
+  showToast('Évaluation rechargée depuis la base de données','success');
 }
 
 function deleteLocalEval(idx){
@@ -6751,11 +7072,35 @@ async function deleteDBType(id) {
   _dbRisksLoaded = false; renderAdminRisksDB(); showToast('Type supprimé','success');
 }
 async function syncTypesToDB() {
-  const btn = event.target; btn.textContent = '⏳ Synchronisation…'; btn.disabled = true;
-  await loadAllDataFromAPI();
-  _dbRisksLoaded = false; await renderAdminRisksDB();
-  btn.textContent = '🔄 Synchroniser depuis le code'; btn.disabled = false;
-  showToast('Synchronisation terminée','success');
+  const btn = event?.target;
+  if(btn){ btn.textContent='⏳ Import…'; btn.disabled=true; }
+
+  // Importer tous les types natifs depuis RISKS
+  const nativeTypes = Object.keys(RISKS);
+  const ICONS = {
+    'Travaux en hauteur':'🏗️','Travaux électriques':'⚡','Manutention & levage':'🏋️',
+    'Travaux en espace confiné':'🕳️','Produits chimiques & dangereux':'🧪',
+    'Soudage & découpe thermique':'🔥','Travaux sur voirie & route':'🚧',
+    'Maintenance industrielle':'🔧','Travaux de démolition':'🪨',
+    'Travaux de toiture & étanchéité':'🏠','Terrassement & fouilles':'⛏️',
+    'Peinture & traitement de surface':'🖌️','Outils numériques & IA':'🤖',
+  };
+  let created = 0;
+  for(let i=0; i<nativeTypes.length; i++){
+    const name = nativeTypes[i];
+    const existing = _dbTypes.find(t=>t.name===name);
+    if(!existing){
+      const r = await api('POST','/data/intervention-types',{name, icon:ICONS[name]||'🔩', order:i, source:'builtin'});
+      if(r){ _dbTypes.push(r); created++; }
+    }
+  }
+  if(created) showToast(created+' types importés','success');
+
+  // Recharger l'affichage
+  _dbRisksLoaded = false;
+  await renderAdminRisksDB();
+  if(btn){ btn.textContent='🔄 Synchroniser depuis le code'; btn.disabled=false; }
+  if(!created) showToast('Tous les types sont déjà en DB','success');
 }
 
 // ── CRUD risques DB ──────────────────────────────────────────
@@ -6835,12 +7180,41 @@ function editDBRisk(riskId) {
 }
 
 async function syncRisksToDB() {
-  const btn = event.target; btn.textContent = '⏳…'; btn.disabled = true;
-  const risks = await api('GET', '/data/risks/all');
-  if (risks) _dbRisks = risks;
+  const btn = event?.target || document.getElementById('btn-sync-risks');
+  if(btn){ btn.textContent = '⏳ Import en cours…'; btn.disabled = true; }
+
+  // Construire la liste des risques natifs depuis l'objet RISKS en mémoire
+  const risksToSync = [];
+  let order = 0;
+  Object.entries(RISKS).forEach(([type, list]) => {
+    (list||[]).forEach(r => {
+      risksToSync.push({
+        riskId:           r.id,
+        interventionType: type,
+        name:             r.name,
+        sev:              r.sev,
+        causes:           r.causes||[],
+        consequences:     r.consequences||[],
+        solutions:        r.solutions||[],
+        source:           'builtin',
+        order:            order++,
+      });
+    });
+  });
+
+  const result = await api('POST', '/data/risks/bulk-import', { risks: risksToSync });
+  if(!result){ if(btn){ btn.textContent='🔄 Synchroniser depuis le code'; btn.disabled=false; } return; }
+
+  showToast(`✅ ${result.created} créés, ${result.updated} déjà présents`,'success');
+
+  // Recharger la liste DB
+  _dbRisksLoaded = false;
+  const fresh = await api('GET', '/data/risks/all');
+  if(fresh) _dbRisks = fresh;
   renderRisksDBList();
-  btn.textContent = '🔄 Synchroniser depuis le code'; btn.disabled = false;
-  showToast(`${_dbRisks.length} risques rechargés`,'success');
+  await reloadRisksIntoEngine();
+
+  if(btn){ btn.textContent='🔄 Synchroniser depuis le code'; btn.disabled=false; }
 }
 
 // ── CRUD mots-clés DB ────────────────────────────────────────
@@ -6896,10 +7270,28 @@ async function deleteDBKeyword(id) {
 }
 
 async function syncKeywordsToDB() {
-  const rules = await api('GET', '/data/keyword-rules/all');
-  if (rules) _dbKeywords = rules;
+  const btn = event?.target;
+  if(btn){ btn.textContent='⏳ Import…'; btn.disabled=true; }
+
+  // Construire la liste des règles depuis AI_KW en mémoire
+  const rulesToSync = [];
+  let idx = 0;
+  Object.entries(AI_KW).forEach(([type, rules]) => {
+    (rules||[]).forEach(rule => {
+      if(rule._customId || rule._dbId) return; // déjà en DB
+      const kwId = 'kw_builtin_' + type.replace(/[^a-z0-9]/gi,'_') + '_' + idx++;
+      rulesToSync.push({ id: kwId, type, w: rule.w||[], r: rule.r||[], s: rule.s||3 });
+    });
+  });
+
+  const result = await api('POST', '/data/keyword-rules/bulk-import', { rules: rulesToSync });
+  if(result) showToast('✅ '+result.created+' règles importées','success');
+
+  const fresh = await api('GET', '/data/keyword-rules/all');
+  if(fresh) _dbKeywords = fresh;
   renderKeywordsDBList();
-  showToast(`${_dbKeywords.length} règles rechargées`,'success');
+  await reloadKeywordsIntoEngine();
+  if(btn){ btn.textContent='🔄 Synchroniser'; btn.disabled=false; }
 }
 
 // ── CRUD EPI DB ──────────────────────────────────────────────
@@ -6953,10 +7345,34 @@ async function deleteDBEPI(id) {
 }
 
 async function syncEPIToDB() {
-  const items = await api('GET', '/data/epi-items');
-  if (items) _dbEPIItems = items;
+  const btn = event?.target;
+  if(btn){ btn.textContent='⏳ Import…'; btn.disabled=true; }
+
+  // Construire la liste EPI/EPC depuis EPI_COL et EPI_IND en mémoire
+  const itemsToSync = [];
+  let order = 0;
+  if(typeof EPI_COL !== 'undefined'){
+    Object.entries(EPI_COL).forEach(([type, list]) => {
+      (list||[]).forEach(label => {
+        itemsToSync.push({ interventionType:type, category:'collectif', label, source:'builtin', order:order++ });
+      });
+    });
+  }
+  if(typeof EPI_IND !== 'undefined'){
+    Object.entries(EPI_IND).forEach(([type, list]) => {
+      (list||[]).forEach(label => {
+        itemsToSync.push({ interventionType:type, category:'individuel', label, source:'builtin', order:order++ });
+      });
+    });
+  }
+
+  const result = await api('POST', '/data/epi-items/bulk-import', { items: itemsToSync });
+  if(result) showToast('✅ '+result.created+' items EPI/EPC importés','success');
+
+  const fresh = await api('GET', '/data/epi-items');
+  if(fresh) _dbEPIItems = fresh;
   renderEPIDBList();
-  showToast(`${_dbEPIItems.length} items rechargés`,'success');
+  if(btn){ btn.textContent='🔄 Synchroniser'; btn.disabled=false; }
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -6965,38 +7381,72 @@ async function syncEPIToDB() {
 async function reloadRisksIntoEngine() {
   try {
     const risks = await api('GET', '/data/risks');
-    if (!risks) return;
-    // Injecter dans l'objet RISKS en mémoire
+    if (!risks || !risks.length) return;
+
+    const processedTypes = new Set();
     risks.forEach(r => {
-      if (!RISKS[r.interventionType]) RISKS[r.interventionType] = [];
-      const existing = RISKS[r.interventionType].findIndex(x => x.id === r.riskId);
-      const rObj = { id: r.riskId, name: r.name, sev: r.sev, causes: r.causes||[], consequences: r.consequences||[], solutions: r.solutions||[] };
-      if (existing >= 0) {
-        RISKS[r.interventionType][existing] = rObj;
+      const type = r.interventionType;
+      if (!RISKS[type]) RISKS[type] = [];
+
+      // 1er passage sur ce type : vider les anciens enregistrements DB pour éviter doublons
+      if (!processedTypes.has(type)) {
+        processedTypes.add(type);
+        RISKS[type] = RISKS[type].filter(x => x._fromDB !== true);
+      }
+      if (r.hidden) return; // Ne pas injecter les risques masqués
+
+      const rObj = {
+        id:           r.riskId,
+        name:         r.name,
+        sev:          r.sev,
+        causes:       r.causes||[],
+        consequences: r.consequences||[],
+        solutions:    r.solutions||[],
+        _fromDB:      true,
+      };
+      const idx = RISKS[type].findIndex(x => x.id === r.riskId);
+      if (idx >= 0) RISKS[type][idx] = rObj;
+      else          RISKS[type].push(rObj);
+    });
+
+    console.log('[reloadRisksIntoEngine] '+risks.length+' risques chargés depuis DB');
+    if(typeof buildInterventionGrid === 'function') buildInterventionGrid();
+  } catch (e) { console.warn('Impossible de recharger les risques:', e); }
+}
+
+async function reloadEPIFromDB() {
+  try {
+    const items = await api('GET', '/data/epi-items');
+    if (!items || !items.length) return;
+    // Reconstruire EPI_COL et EPI_IND depuis la DB
+    items.forEach(it => {
+      if (it.category === 'collectif') {
+        if (!EPI_COL[it.interventionType]) EPI_COL[it.interventionType] = [];
+        if (!EPI_COL[it.interventionType].includes(it.label)) EPI_COL[it.interventionType].push(it.label);
       } else {
-        RISKS[r.interventionType].push(rObj);
+        if (!EPI_IND[it.interventionType]) EPI_IND[it.interventionType] = [];
+        if (!EPI_IND[it.interventionType].includes(it.label)) EPI_IND[it.interventionType].push(it.label);
       }
     });
-  } catch (e) { console.warn('Impossible de recharger les risques:', e); }
+    console.log('[reloadEPIFromDB] '+items.length+' items EPI/EPC chargés depuis DB');
+  } catch (e) { console.warn('Impossible de recharger EPI/EPC:', e); }
 }
 
 async function reloadKeywordsIntoEngine() {
   try {
     const rules = await api('GET', '/data/keyword-rules');
-    if (!rules) return;
-    // Injecter dans AI_KW en mémoire
+    if (!rules || !rules.length) return;
     rules.forEach(rule => {
       if (!AI_KW[rule.type]) AI_KW[rule.type] = [];
-      const existingIdx = AI_KW[rule.type].findIndex(r => r._dbId === rule.id);
+      const idx = AI_KW[rule.type].findIndex(r => r._dbId === rule.id);
       const rObj = { s: rule.s, w: rule.w, r: rule.r, _dbId: rule.id };
-      if (existingIdx >= 0) {
-        AI_KW[rule.type][existingIdx] = rObj;
-      } else {
-        AI_KW[rule.type].push(rObj);
-      }
+      if (idx >= 0) { AI_KW[rule.type][idx] = rObj; }
+      else { AI_KW[rule.type].push(rObj); }
     });
+    console.log('[reloadKeywordsIntoEngine] '+rules.length+' règles chargées depuis DB');
   } catch (e) { console.warn('Impossible de recharger les mots-clés:', e); }
 }
+
 
 // ════════════════════════════════════════════════════════════════════════
 // HOOK — Charger depuis la DB au démarrage
@@ -7007,9 +7457,12 @@ async function initDBRisksAndUI() {
     loadPPConfig(),
     reloadRisksIntoEngine(),
     reloadKeywordsIntoEngine(),
+    reloadEPIFromDB(),
+    loadSignatureRules(),
   ]);
   applyUIConfig();
   applyPPConfigToForm();
+  console.log('[initDBRisksAndUI] Tout chargé depuis la DB');
 }
 
 </script>
