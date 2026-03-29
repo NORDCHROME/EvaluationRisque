@@ -74,6 +74,8 @@ const ReportSchema = new Schema({
 // ── Validations en attente ───────────────────────────────────
 const ValidationSchema = new Schema({
   managerId:      { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  // Support multi-managers
+  managerIds:     [{ type: Schema.Types.ObjectId, ref: 'User' }],
   submittedBy:    { type: Schema.Types.ObjectId, ref: 'User', required: true },
   submitterName:  { type: String },
   submitterSite:  { type: String, default: '—' },
@@ -85,6 +87,27 @@ const ValidationSchema = new Schema({
   managerName:    { type: String, default: '' },
   comment:        { type: String, default: '' },
   treatedAt:      { type: Date, default: null }
+}, { timestamps: true });
+
+// ── Évaluations sauvegardées en DB ───────────────────────────
+const EvaluationSchema = new Schema({
+  submittedBy:       { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  submitterName:     { type: String, default: '' },
+  submitterSite:     { type: String, default: '' },
+  interventionTitle: { type: String, default: '' },
+  operator:          { type: String, default: '' },
+  location:          { type: String, default: '' },
+  date:              { type: String, default: '' },
+  mission:           { type: String, default: '' },
+  missionSteps:      [String],
+  interventions:     [String],
+  selectedRisks:     [String],
+  derogations:       { type: Schema.Types.Mixed, default: {} },
+  epiSnapshot:       { type: Schema.Types.Mixed, default: {} },
+  selectedRisksCount:{ type: Number, default: 0 },
+  // Lien vers la validation si soumis pour approbation
+  validationId:      { type: Schema.Types.ObjectId, ref: 'Validation', default: null },
+  status:            { type: String, enum: ['draft','submitted','approved','rejected'], default: 'draft' },
 }, { timestamps: true });
 
 // ════════════════════════════════════════════════════════════
@@ -224,7 +247,7 @@ module.exports = {
   PPlan:             mongoose.model('PPlan', PPlanSchema),
   Report:            mongoose.model('Report', ReportSchema),
   Validation:        mongoose.model('Validation', ValidationSchema),
-  // Nouveau
+  Evaluation:        mongoose.model('Evaluation', EvaluationSchema),
   Risk:              mongoose.model('Risk', RiskSchema),
   KeywordRule:       mongoose.model('KeywordRule', KeywordRuleSchema),
   InterventionType:  mongoose.model('InterventionType', InterventionTypeSchema),
