@@ -7,7 +7,7 @@ const {
   PPlan, Report, Settings,
   Risk, KeywordRule, InterventionType, EPIItem,
   UIConfig, PPConfig,
-  Validation, User
+  Validation, Evaluation, User
 } = require('../models');
 
 // ─────────────────────────────────────────────────────────────
@@ -533,29 +533,125 @@ router.put('/settings/:key', auth, adminOnly, async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Route dédiée aux règles de signature (plus granulaire)
+router.get('/signature-rules', auth, async (req, res) => {
+  try {
+    const s = await Settings.findOne({ key: 'signatureRules' });
+    res.json(s ? s.value : {
+      low:    { autoSign: true,  requireManagers: [], requireAny: false },
+      medium: { autoSign: false, requireManagers: [], requireAny: true  },
+      high:   { autoSign: false, requireManagers: [], requireAny: true  },
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/signature-rules', auth, adminOnly, async (req, res) => {
+  try {
+    await Settings.findOneAndUpdate(
+      { key: 'signatureRules' },
+      { key: 'signatureRules', value: req.body },
+      { upsert: true }
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+
+// ─────────────────────────────────────────────────────────────
+// ÉVALUATIONS (sauvegarde en DB)
+// ─────────────────────────────────────────────────────────────
+router.get('/evaluations', auth, async (req, res) => {
+  try {
+    // L'utilisateur voit ses propres évals; admin voit tout
+    const filter = req.user.role === 'admin' ? {} : { submittedBy: req.user._id };
+    const evals = await Evaluation.find(filter).sort('-createdAt').limit(100);
+    res.json(evals);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/evaluations', auth, async (req, res) => {
+  try {
+    const ev = await Evaluation.create({
+      ...req.body,
+      submittedBy: req.user._id,
+      submitterName: req.user.name,
+      submitterSite: req.user.site || '—',
+    });
+    res.status(201).json(ev);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/evaluations/:id', auth, async (req, res) => {
+  try {
+    const ev = await Evaluation.findById(req.params.id);
+    if (!ev) return res.status(404).json({ error: 'Évaluation introuvable' });
+    if (String(ev.submittedBy) !== String(req.user._id) && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Non autorisé' });
+    Object.assign(ev, req.body);
+    await ev.save();
+    res.json(ev);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/evaluations/:id', auth, async (req, res) => {
+  try {
+    const ev = await Evaluation.findById(req.params.id);
+    if (!ev) return res.status(404).json({ error: 'Évaluation introuvable' });
+    if (String(ev.submittedBy) !== String(req.user._id) && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Non autorisé' });
+    await ev.deleteOne();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ─────────────────────────────────────────────────────────────
 // VALIDATIONS (inchangées)
 // ─────────────────────────────────────────────────────────────
 router.get('/validations', auth, async (req, res) => {
-  try { res.json(await Validation.find({ managerId: req.user._id }).sort('-createdAt')); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    // Manager peut voir les validations où il est manager principal OU dans managerIds
+    const query = {
+      $or: [
+        { managerId: req.user._id },
+        { managerIds: req.user._id }
+      ]
+    };
+    res.json(await Validation.find(query).sort('-createdAt'));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.post('/validations', auth, async (req, res) => {
   try {
-    const { managerId, level, evalSnapshot, sigIntervenant } = req.body;
-    if (!managerId || !mongoose.Types.ObjectId.isValid(String(managerId))) {
-      return res.status(400).json({ error: 'managerId invalide' });
-    }
-    const manager = await User.findById(managerId).select('name site');
-    if (!manager) return res.status(404).json({ error: 'Responsable introuvable.' });
+    const { managerId, managerIds, level, evalSnapshot, sigIntervenant } = req.body;
 
+    // Support managers multiples : managerIds[] OU managerId unique
+    let allManagerIds = [];
+    if (Array.isArray(managerIds) && managerIds.length > 0) {
+      allManagerIds = managerIds.map(String);
+    } else if (managerId) {
+      allManagerIds = [String(managerId)];
+    }
+    if (!allManagerIds.length) return res.status(400).json({ error: 'Au moins un responsable requis.' });
+    for (const mid of allManagerIds) {
+      if (!mongoose.Types.ObjectId.isValid(mid)) return res.status(400).json({ error: 'managerId invalide: ' + mid });
+    }
+
+    const managers = await User.find({ _id: { $in: allManagerIds } }).select('name site');
+    if (!managers.length) return res.status(404).json({ error: 'Aucun responsable trouvé.' });
+    const managerNames = managers.map(m => m.name).join(', ');
+
+    // Préserver TOUT le snapshot sans nettoyer epc/epi/solutions
     const cleanSnapshot = JSON.parse(JSON.stringify(evalSnapshot || {}));
     if (cleanSnapshot.risks) {
       cleanSnapshot.risks = cleanSnapshot.risks.map(r => ({
-        id: String(r.id||''), name: String(r.name||''), sev: String(r.sev||'medium'),
-        type: String(r.type||''), isManual: r.isManual||false,
-        solutions: r.solutions||[], epc: r.epc||[], epi: r.epi||[]
+        id:       String(r.id   || ''),
+        name:     String(r.name || ''),
+        sev:      String(r.sev  || 'medium'),
+        type:     String(r.type || ''),
+        isManual: r.isManual || false,
+        solutions: Array.isArray(r.solutions) ? r.solutions : [],
+        epc:       Array.isArray(r.epc)       ? r.epc       : [],
+        epi:       Array.isArray(r.epi)       ? r.epi       : [],
       }));
     }
     if (cleanSnapshot.derogations && typeof cleanSnapshot.derogations === 'object') {
@@ -565,25 +661,47 @@ router.post('/validations', auth, async (req, res) => {
         cleanSnapshot.derogations[k] = { active: true, justification: String(d.justification||''), signataire: String(d.signataire||'') };
       });
     }
+
     const v = await Validation.create({
-      managerId: new mongoose.Types.ObjectId(managerId), submittedBy: req.user._id,
-      submitterName: req.user.name||'', submitterSite: req.user.site||'—',
-      level: level||'medium', status: 'pending', evalSnapshot: cleanSnapshot,
-      sigIntervenant: sigIntervenant||null, sigManager: null, managerName: manager.name||'', comment: ''
+      managerId:      new mongoose.Types.ObjectId(allManagerIds[0]),
+      managerIds:     allManagerIds.map(id => new mongoose.Types.ObjectId(id)),
+      submittedBy:    req.user._id,
+      submitterName:  req.user.name  || '',
+      submitterSite:  req.user.site  || '—',
+      level:          level          || 'medium',
+      status:         'pending',
+      evalSnapshot:   cleanSnapshot,
+      sigIntervenant: sigIntervenant || null,
+      sigManager:     null,
+      managerName:    managerNames,
+      comment:        ''
     });
     res.status(201).json(v);
-  } catch (e) { console.error(e); res.status(500).json({ error: e.message }); }
+  } catch (e) { console.error('[POST /validations]', e); res.status(500).json({ error: e.message }); }
+});
+
+// GET validations soumises PAR l'utilisateur connecté (pour "Mes Évaluations")
+router.get('/validations/mine', auth, async (req, res) => {
+  try {
+    const vals = await Validation.find({ submittedBy: req.user._id }).sort('-createdAt');
+    res.json(vals);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.put('/validations/:id', auth, async (req, res) => {
   try {
     const v = await Validation.findById(req.params.id);
     if (!v) return res.status(404).json({ error: 'Validation introuvable' });
-    if (String(v.managerId) !== String(req.user._id)) return res.status(403).json({ error: 'Non autorisé' });
-    if (req.body.status)              v.status     = req.body.status;
-    if (req.body.comment !== undefined) v.comment  = req.body.comment;
-    if (req.body.sigManager)          v.sigManager = req.body.sigManager;
-    v.treatedAt = new Date(); v.managerName = req.user.name;
+    // Autoriser si l'user est manager principal OU dans managerIds
+    const mgrIds = (v.managerIds||[]).map(String);
+    const isPrimary = String(v.managerId) === String(req.user._id);
+    const isInList  = mgrIds.includes(String(req.user._id));
+    if (!isPrimary && !isInList) return res.status(403).json({ error: 'Non autorisé' });
+    if (req.body.status !== undefined)  v.status     = req.body.status;
+    if (req.body.comment !== undefined) v.comment    = req.body.comment;
+    if (req.body.sigManager)            v.sigManager = req.body.sigManager;
+    v.treatedAt  = new Date();
+    v.managerName = req.user.name;
     await v.save();
     res.json(v);
   } catch (e) { res.status(500).json({ error: e.message }); }
