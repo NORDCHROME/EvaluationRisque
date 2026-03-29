@@ -1427,25 +1427,17 @@ async function _apiSync(key, val){
 // ── Chargement initial de toutes les données depuis l'API ─────────────────
 async function loadAllDataFromAPI(){
   try{
-    // Charger en parallèle
-    const [co, companies, workers, ppList, hiddenRisks,
-           customRisks, customKWs, customTypes,
-           sigSettings, features, hiddenTypes] = await Promise.all([
+    // Charger les données de base en parallèle
+    const [co, companies, workers, ppList,
+           sigSettings, features] = await Promise.all([
       api('GET','/data/company'),
       api('GET','/data/companies'),
       api('GET','/data/workers'),
       api('GET','/data/pplist'),
-      api('GET','/data/hidden-risks'),
-      api('GET','/data/custom-risks'),
-      api('GET','/data/custom-keywords'),
-      api('GET','/data/custom-types'),
       api('GET','/data/settings/signatureSettings'),
       api('GET','/data/settings/features'),
-      api('GET','/data/settings/hiddenInterventionTypes'),
     ]);
 
-    // Mettre en cache — normaliser _id → id partout
-    // Users chargés séparément (admin seulement) — voir ci-dessous
     if(co) _cache['company'] = co;
     if(companies) _cache['companies'] = companies.map(c=>({...c,id:c._id||c.id}));
     if(workers)   _cache['workers']   = workers.map(w=>({...w,id:w._id||w.id}));
@@ -1454,6 +1446,65 @@ async function loadAllDataFromAPI(){
       createdBy: p.createdBy, updatedAt: p.updatedAt,
       createdAt: p.createdAt, data: p.data, evalState: p.evalState
     }));
+    _cache['signatureSettings'] = sigSettings || {autoLow:true,requireManager:true};
+    _cache['features'] = features || {};
+
+    // Charger depuis les nouvelles routes DB (avec fallback silencieux)
+    const [dbTypes, dbRisksVisible, dbKwRules,
+           hiddenRisks, customRisks, customKWs, customTypes,
+           sigRules, hiddenTypes] = await Promise.all([
+      api('GET','/data/intervention-types').catch(()=>null),
+      api('GET','/data/risks').catch(()=>null),
+      api('GET','/data/keyword-rules').catch(()=>null),
+      api('GET','/data/hidden-risks').catch(()=>null),
+      api('GET','/data/custom-risks').catch(()=>null),
+      api('GET','/data/custom-keywords').catch(()=>null),
+      api('GET','/data/custom-types').catch(()=>null),
+      api('GET','/data/signature-rules').catch(()=>null),
+      api('GET','/data/settings/hiddenInterventionTypes').catch(()=>null),
+    ]);
+
+    // Types d'intervention depuis DB
+    if(dbTypes && dbTypes.length){
+      _cache['dbInterventionTypes'] = dbTypes;
+      // Synchroniser avec RISKS (si type renommé en DB, on le reflète)
+      dbTypes.forEach(t => {
+        if(!RISKS[t.name] && t.source==='builtin') {
+          // Chercher l'ancienne clé (en cas de renommage)
+          const oldKey = Object.keys(RISKS).find(k => k!==t.name && k.toLowerCase().includes(t.name.toLowerCase().slice(0,8)));
+          if(oldKey){ RISKS[t.name] = RISKS[oldKey]; }
+        }
+      });
+    }
+
+    // Risques DB → injecter dans RISKS (sans doublons)
+    if(dbRisksVisible && dbRisksVisible.length){
+      const processedTypes = new Set();
+      dbRisksVisible.forEach(r => {
+        const type = r.interventionType;
+        if(!RISKS[type]) RISKS[type] = [];
+        if(!processedTypes.has(type)){
+          processedTypes.add(type);
+          RISKS[type] = RISKS[type].filter(x => x._fromDB !== true);
+        }
+        if(r.hidden) return;
+        const rObj = { id:r.riskId, name:r.name, sev:r.sev, causes:r.causes||[], consequences:r.consequences||[], solutions:r.solutions||[], _fromDB:true };
+        const idx = RISKS[type].findIndex(x=>x.id===r.riskId);
+        if(idx>=0) RISKS[type][idx]=rObj; else RISKS[type].push(rObj);
+      });
+    }
+
+    // Mots-clés DB → injecter dans AI_KW
+    if(dbKwRules && dbKwRules.length){
+      dbKwRules.forEach(rule => {
+        if(rule.hidden) return;
+        if(!AI_KW[rule.type]) AI_KW[rule.type]=[];
+        const exists = AI_KW[rule.type].find(r=>r._dbId===rule.id);
+        if(!exists) AI_KW[rule.type].push({s:rule.s,w:rule.w,r:rule.r,_dbId:rule.id});
+      });
+    }
+
+    // Compat legacy (pour le code existant qui utilise _cache['customRisks'], etc.)
     if(hiddenRisks) _cache['hiddenRisks'] = hiddenRisks;
     if(customRisks) _cache['customRisks'] = customRisks;
     if(customKWs){
@@ -1465,14 +1516,9 @@ async function loadAllDataFromAPI(){
       });
     }
     if(customTypes) _cache['customTypes'] = customTypes;
-    _cache['signatureSettings'] = sigSettings || {autoLow:true,requireManager:true};
-    // Charger aussi les règles granulaires
-    try {
-      const sigRules = await api('GET','/data/signature-rules');
-      if(sigRules) _cache['signatureRules'] = sigRules;
-    } catch(e) {}
-    _cache['features'] = features || {};
+    if(sigRules) _cache['signatureRules'] = sigRules;
     _cache['hiddenInterventionTypes'] = hiddenTypes || [];
+
     // Appliquer les flags de fonctionnalités dès le chargement
     setTimeout(()=>{ applyFeatureFlags(); buildInterventionGrid(); }, 0);
 
@@ -1691,13 +1737,17 @@ async function initUI(){
   document.getElementById('headerUserInfo').style.display='inline-flex';
   document.getElementById('btnLogout').style.display='inline-flex';
   document.getElementById('evalDate').valueAsDate=new Date();
-  refreshValidationBadge();
-  // ── Nouveau : charger config UI + risques DB ──
+
+  // Charger config UI + risques DB + badges
   try {
     await initDBRisksAndUI();
   } catch(e) {
     console.warn('initDBRisksAndUI error:', e);
   }
+
+  // Rafraîchir les badges APRÈS le chargement complet
+  refreshValidationBadge();
+  refreshMyEvalsBadge();
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -1789,23 +1839,38 @@ const INTERVENTION_ICONS = {
 function buildInterventionGrid(){
   const grid = document.getElementById('interventionGrid');
   if(!grid) return;
-  const hidden = _cache['hiddenInterventionTypes'] || [];
-  // Types natifs (clés de RISKS) + types custom
-  const allTypes = [
-    ...Object.keys(RISKS),
-    ...(_cache['customTypes'] || []).filter(t => !Object.keys(RISKS).includes(t))
-  ];
-  const visible = allTypes.filter(t => !hidden.includes(t));
-  if(!visible.length){
-    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:24px;color:#9ca3af;font-style:italic">Aucun type d\'intervention actif.<br><small>Activez des types dans Admin → Fonctionnalités.</small></div>';
+
+  // Priorité : types depuis la DB (renommés, réordonnés, avec icônes à jour)
+  const dbTypes = _cache['dbInterventionTypes'] || [];
+  const hidden  = _cache['hiddenInterventionTypes'] || [];
+  let typeItems = [];
+
+  if(dbTypes.length){
+    typeItems = dbTypes
+      .filter(t => !t.hidden)
+      .sort((a,b)=>(a.order||0)-(b.order||0))
+      .map(t => ({ name: t.name, icon: t.icon || INTERVENTION_ICONS[t.name] || '🔩' }));
+  } else {
+    // Fallback: types depuis RISKS en mémoire
+    const allTypes = [
+      ...Object.keys(RISKS),
+      ...(_cache['customTypes'] || []).filter(t => !Object.keys(RISKS).includes(t))
+    ];
+    typeItems = allTypes
+      .filter(t => !hidden.includes(t))
+      .map(t => ({ name: t, icon: INTERVENTION_ICONS[t] || '🔩' }));
+  }
+
+  if(!typeItems.length){
+    grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:24px;color:#9ca3af;font-style:italic">Aucun type d\'intervention actif.</div>';
     return;
   }
-  grid.innerHTML = visible.map(t => {
-    const icon = INTERVENTION_ICONS[t] || '🔩';
+
+  grid.innerHTML = typeItems.map(({name: t, icon}) => {
     const isSel = appState.selectedInterventions.has(t);
-    // Tronquer les libellés longs pour l'affichage
     const shortLabel = t.length > 22 ? t.substring(0,20)+'…' : t;
-    return `<div class="option-card${isSel?' selected':''}" id="icard-${CSS.escape(t)}" onclick="toggleIntervention(this,'${t.replace(/'/g,"&#39;")}')">
+    const safeT = t.replace(/'/g,"&#39;");
+    return `<div class="option-card${isSel?' selected':''}" id="icard-${CSS.escape(t)}" onclick="toggleIntervention(this,'${safeT}')">
       <div class="opt-check">${isSel?'✓':''}</div>
       <span class="opt-icon">${icon}</span>
       <span class="opt-label" title="${t}">${shortLabel}</span>
@@ -4167,29 +4232,35 @@ async function sendToManagerForValidation(sigDataURL, level, managersInput){
 
 // ── Badge notifications ───────────────────────────────────────────────────
 async function refreshValidationBadge(){
-  const btn=document.getElementById('btnValidation');
-  const badge=document.getElementById('validationBadge');
+  const btn   = document.getElementById('btnValidation');
+  const badge = document.getElementById('validationBadge');
   if(!btn||!currentUser) return;
 
-  // Vérifier subordonnés via route accessible à tous
-  const subs=await api('GET','/users/subordinates')||[];
-  const hasSubs=subs.length>0;
-
-  if(!hasSubs){
+  try{
+    // Vérifier si l'utilisateur a des subordonnés
+    const subs = await api('GET','/users/subordinates') || [];
+    if(!subs.length){
+      btn.style.display='none';
+      if(badge) badge.style.display='none';
+      return;
+    }
+    // Charger les validations en attente pour cet utilisateur (manager)
+    const allValidations = await api('GET','/data/validations') || [];
+    _cache['pendingValidations'] = allValidations;
+    const count = allValidations.filter(r=>r.status==='pending').length;
+    btn.style.display='inline-flex';
+    if(badge){
+      if(count>0){
+        badge.style.display='flex';
+        badge.textContent = count>9?'9+':String(count);
+      } else {
+        badge.style.display='none';
+      }
+    }
+  } catch(e){
+    console.warn('[refreshValidationBadge]', e);
     btn.style.display='none';
     if(badge) badge.style.display='none';
-    return;
-  }
-
-  // Charger les validations en attente
-  const allValidations=await api('GET','/data/validations')||[];
-  _cache['pendingValidations']=allValidations;
-  const count=allValidations.filter(r=>r.status==='pending').length;
-
-  btn.style.display='inline-flex';
-  if(badge){
-    badge.style.display=count>0?'flex':'none';
-    if(count>0) badge.textContent=count>9?'9+':String(count);
   }
 }
 
@@ -7057,7 +7128,13 @@ async function saveDBType(id) {
   if (!result) return;
   const idx = _dbTypes.findIndex(t => t._id === id);
   if (idx >= 0) _dbTypes[idx] = result;
-  showToast('Type mis à jour','success');
+  // Mettre à jour le cache global et reconstruire la grille d'étape 2
+  const freshTypes = await api('GET', '/data/intervention-types');
+  if(freshTypes){
+    _cache['dbInterventionTypes'] = freshTypes;
+    buildInterventionGrid(); // Rebuild étape 2 avec le nouveau nom
+  }
+  showToast('Type mis à jour — la grille d'étape 2 a été rafraîchie','success');
 }
 async function toggleDBTypeHidden(id, hidden) {
   await api('PUT', '/data/intervention-types/'+id, { hidden });
@@ -7434,16 +7511,31 @@ async function reloadEPIFromDB() {
 
 async function reloadKeywordsIntoEngine() {
   try {
+    // IMPORTANT : Ne PAS vider AI_KW - seulement AJOUTER les règles DB par-dessus les règles natives
+    // Les règles natives (définies dans le code) restent toujours actives
     const rules = await api('GET', '/data/keyword-rules');
     if (!rules || !rules.length) return;
+
     rules.forEach(rule => {
+      if (rule.hidden) return; // Ignorer les règles masquées
       if (!AI_KW[rule.type]) AI_KW[rule.type] = [];
-      const idx = AI_KW[rule.type].findIndex(r => r._dbId === rule.id);
-      const rObj = { s: rule.s, w: rule.w, r: rule.r, _dbId: rule.id };
-      if (idx >= 0) { AI_KW[rule.type][idx] = rObj; }
-      else { AI_KW[rule.type].push(rObj); }
+
+      // Vérifier si cette règle DB existe déjà (par _dbId)
+      const existingIdx = AI_KW[rule.type].findIndex(r => r._dbId === rule.id);
+      const rObj = { s: rule.s, w: Array.isArray(rule.w)?rule.w:[], r: Array.isArray(rule.r)?rule.r:[], _dbId: rule.id };
+
+      if (existingIdx >= 0) {
+        AI_KW[rule.type][existingIdx] = rObj; // Mettre à jour
+      } else {
+        // Vérifier que cette règle n'est pas déjà présente comme règle native (même mots)
+        const alreadyNative = AI_KW[rule.type].some(r =>
+          !r._dbId && !r._customId && r.w && r.w.length &&
+          r.w.every(w => rule.w.includes(w)) && rule.w.every(w => r.w.includes(w))
+        );
+        if (!alreadyNative) AI_KW[rule.type].push(rObj);
+      }
     });
-    console.log('[reloadKeywordsIntoEngine] '+rules.length+' règles chargées depuis DB');
+    console.log('[reloadKeywordsIntoEngine] '+rules.length+' règles DB chargées (mots-clés natifs conservés)');
   } catch (e) { console.warn('Impossible de recharger les mots-clés:', e); }
 }
 
