@@ -7134,7 +7134,7 @@ async function saveDBType(id) {
     _cache['dbInterventionTypes'] = freshTypes;
     buildInterventionGrid(); // Rebuild étape 2 avec le nouveau nom
   }
-  showToast('Type mis à jour — la grille d'étape 2 a été rafraîchie','success');
+  showToast('Type mis à jour — la grille d étape 2 a été rafraîchie','success');
 }
 async function toggleDBTypeHidden(id, hidden) {
   await api('PUT', '/data/intervention-types/'+id, { hidden });
