@@ -841,9 +841,12 @@ textarea{resize:vertical;min-height:80px;}
               </select>
             </div>
             <div class="field-group"><label class="field-label">Site / Atelier</label><input type="text" id="new-user-site" placeholder="ex: Atelier Nord, Site A…"/></div>
-            <div class="field-group"><label class="field-label">Responsable (login)</label>
-              <select id="new-user-manager" style="padding:11px 14px;border:1.5px solid var(--border);border-radius:3px;width:100%">
-                <option value="">— Aucun —</option>
+            <div class="field-group" style="grid-column:span 3">
+              <label class="field-label" style="display:flex;align-items:center;justify-content:space-between">
+                Responsables (ctrl+clic pour sélectionner plusieurs)
+                <span style="font-weight:400;font-size:10px;color:var(--accent2)">Multi-sélection autorisée</span>
+              </label>
+              <select id="new-user-manager" multiple style="padding:8px 14px;border:1.5px solid var(--border);border-radius:3px;width:100%;height:80px">
               </select>
             </div>
           </div>
@@ -1161,6 +1164,7 @@ textarea{resize:vertical;min-height:80px;}
 
 
 <script>
+
 const EPI_COL={
   'Travaux en hauteur':['Garde-corps provisoires NF EN 13374','Filets de sécurité anti-chute','Plateforme individuelle roulante (PIRL)','Échafaudage fixe homologué','Filet pare-gravats','Balisage et signalisation périmètre','Ligne de vie collective horizontale','Éclairage de chantier'],
   'Travaux électriques':['Consignation LOTO (verrouillage)','Balisage zone de travail','Panneaux signalisation électrique','Extincteur CO2 à proximité','Tapis isolants de sol','Armoire électrique cadenassée','Éclairage de secours','Détecteur de présence tension'],
@@ -3406,9 +3410,8 @@ async function renderAdminUsers(){
   // Remplir le select responsable pour le formulaire
   const mgrSel=document.getElementById('new-user-manager');
   if(mgrSel){
-    const prev=mgrSel.value;
-    mgrSel.innerHTML='<option value="">— Aucun —</option>'+
-      users.map(u=>`<option value="${u.id}" ${prev===u.id?'selected':''}>${u.name} (${u.login})</option>`).join('');
+    const prevVals=Array.from(mgrSel.selectedOptions||[]).map(o=>o.value);
+    mgrSel.innerHTML=users.map(u=>`<option value="${u._id||u.id}" ${prevVals.includes(String(u._id||u.id))?'selected':''}>${u.name} (${u.login})</option>`).join('');
   }
   // Charger les paramètres de signature
   const cbLow=document.getElementById('sig-auto-low');
@@ -3418,14 +3421,20 @@ async function renderAdminUsers(){
   // Rendu tableau
   document.getElementById('usersBody').innerHTML=users.map(u=>{
     const uid=u._id||u.id;
-    const managerId=u.managerId?._id||u.managerId||'';
-    const managerUser=users.find(x=>(x._id||x.id)===managerId);
-    const managerName=managerUser?managerUser.name:(managerId?managerId:'—');
+    // Construire la liste de tous les managers (principal + additionnels)
+    const allMgrIds = [];
+    const primId = String(u.managerId?._id||u.managerId||'');
+    if(primId) allMgrIds.push(primId);
+    (u.managerIds||[]).forEach(m=>{ const mid=String(m._id||m||''); if(mid&&!allMgrIds.includes(mid)) allMgrIds.push(mid); });
+    const managerNames = allMgrIds.map(mid=>{
+      const mu=users.find(x=>String(x._id||x.id)===mid);
+      return mu?mu.name:mid.slice(-4);
+    }).join(', ') || '—';
     return `<tr>
       <td><strong>${u.login}</strong></td>
       <td>${u.name}</td>
       <td style="color:#6b7280;font-size:12px">${u.site||'—'}</td>
-      <td style="font-size:12px">${managerName}</td>
+      <td style="font-size:12px">${managerNames}${allMgrIds.length>1?` <span style="font-size:10px;background:#e8f4fd;color:var(--accent2);padding:1px 6px;border-radius:10px">${allMgrIds.length} resp.</span>`:''}</td>
       <td><span class="role-badge role-${u.role}">${u.role}</span></td>
       <td style="color:#6b7280;font-size:11px">${u.lastLogin?new Date(u.lastLogin).toLocaleDateString('fr-FR'):'—'}</td>
       <td><div style="display:flex;gap:5px">
@@ -3438,32 +3447,46 @@ async function renderAdminUsers(){
 }
 function editUser(id){
   const users=(_cache['users']||[]).map(u=>({...u,id:u._id||u.id}));
-  const u=users.find(x=>String(x.id)===String(id)||String(x._id)===String(id)); 
+  const u=users.find(x=>String(x.id)===String(id)||String(x._id)===String(id));
   if(!u){showToast('Utilisateur introuvable','error');return;}
-  const uid=u._id||u.id;
-  const currentMgrId=u.managerId?._id||u.managerId||'';
   const otherUsers=users.filter(x=>String(x.id)!==String(id));
-  const mgrOptions='<option value="">— Aucun —</option>'+otherUsers.map(x=>`<option value="${x._id||x.id}"${String(currentMgrId)===String(x._id||x.id)?' selected':''}>${x.name} (${x.login})</option>`).join('');
+
+  // Collecter tous les IDs managers actuels de cet utilisateur
+  const currentAllMgrIds=new Set();
+  const primId=String(u.managerId?._id||u.managerId||'');
+  if(primId) currentAllMgrIds.add(primId);
+  (u.managerIds||[]).forEach(m=>{ const mid=String(m._id||m||''); if(mid) currentAllMgrIds.add(mid); });
+
   const html=`<div style="background:#fff;border:1.5px solid var(--border);border-radius:6px;padding:20px;margin-top:10px;box-shadow:0 4px 20px rgba(0,0,0,.08)" id="editUserForm-${id}">
-    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2);margin-bottom:12px">Éditer : ${u.name}</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-      <div><label class="field-label">Nom complet</label><input type="text" id="eu-name-${id}" value="${u.name}" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/></div>
-      <div><label class="field-label">Site / Atelier</label><input type="text" id="eu-site-${id}" value="${u.site||''}" placeholder="ex: Atelier Nord" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/></div>
-      <div><label class="field-label">Responsable</label><select id="eu-mgr-${id}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%">${mgrOptions}</select></div>
+    <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2);margin-bottom:14px">✎ Éditer : ${u.name}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div><label class="field-label">Nom complet</label>
+        <input type="text" id="eu-name-${id}" value="${u.name}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/></div>
+      <div><label class="field-label">Site / Atelier</label>
+        <input type="text" id="eu-site-${id}" value="${u.site||''}" placeholder="ex: Atelier Nord" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/></div>
       <div><label class="field-label">Rôle</label>
-        <select id="eu-role-${id}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+        <select id="eu-role-${id}" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%">
           <option value="user"${u.role==='user'?' selected':''}>Utilisateur</option>
           <option value="admin"${u.role==='admin'?' selected':''}>Administrateur</option>
           <option value="viewer"${u.role==='viewer'?' selected':''}>Lecture seule</option>
         </select>
       </div>
+      <div>
+        <label class="field-label" style="display:flex;align-items:center;justify-content:space-between">
+          Responsables
+          <span style="font-size:9px;font-weight:400;color:#9ca3af;text-transform:none;letter-spacing:0">Ctrl+clic = plusieurs</span>
+        </label>
+        <select id="eu-mgrs-${id}" multiple style="padding:8px 12px;border:1.5px solid var(--accent2);border-radius:3px;width:100%;height:90px;background:#f0f7ff">
+          ${otherUsers.map(x=>`<option value="${x._id||x.id}" ${currentAllMgrIds.has(String(x._id||x.id))?'selected':''}>${x.name} (${x.login})</option>`).join('')}
+        </select>
+        <div style="font-size:10px;color:#6b7280;margin-top:3px">1er = responsable principal · Suivants = responsables additionnels</div>
+      </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:12px">
+    <div style="display:flex;gap:8px;margin-top:14px">
       <button class="adm-btn-primary" onclick="saveEditUser('${id}')">💾 Enregistrer</button>
       <button onclick="document.getElementById('editUserForm-${id}').remove()" style="padding:8px 16px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:12px;cursor:pointer">Annuler</button>
     </div>
   </div>`;
-  // Insérer après la ligne dans le tableau
   const existing=document.getElementById(`editUserForm-${id}`);
   if(existing){existing.remove();return;}
   document.getElementById('adm-users-table-wrap').insertAdjacentHTML('afterend',html);
@@ -3471,10 +3494,13 @@ function editUser(id){
 async function saveEditUser(id){
   const name=document.getElementById('eu-name-'+id)?.value.trim();
   const site=document.getElementById('eu-site-'+id)?.value.trim()||'';
-  const managerId=document.getElementById('eu-mgr-'+id)?.value||null;
   const role=document.getElementById('eu-role-'+id)?.value;
+  // Récupérer TOUS les managers sélectionnés (multi-select)
+  const mgrsSel=document.getElementById('eu-mgrs-'+id);
+  const allMgrIds=mgrsSel?Array.from(mgrsSel.selectedOptions).map(o=>o.value):[];
+  const managerId=allMgrIds[0]||null;
   if(!name){showToast('Le nom est requis','error');return;}
-  const result=await api('PUT','/users/'+id,{name,site,managerId:managerId||null,role});
+  const result=await api('PUT','/users/'+id,{name,site,managerId:managerId||null,managerIds:allMgrIds,role});
   if(!result) return;
   document.getElementById('editUserForm-'+id)?.remove();
   await renderAdminUsers();
@@ -3486,9 +3512,12 @@ async function addUser(){
   const pass=document.getElementById('new-user-pass').value;
   const role=document.getElementById('new-user-role').value;
   const site=document.getElementById('new-user-site').value.trim();
-  const managerId=document.getElementById('new-user-manager').value||null;
+  // Multi-managers depuis le select multiple
+  const mgrSel2=document.getElementById('new-user-manager');
+  const allMgrIds2=mgrSel2?Array.from(mgrSel2.selectedOptions).map(o=>o.value):[];
+  const managerId=allMgrIds2[0]||null;
   if(!login||!name||!pass){showToast('Remplissez tous les champs obligatoires.','error');return;}
-  const result=await api('POST','/users',{login,name,password:pass,role,site,managerId});
+  const result=await api('POST','/users',{login,name,password:pass,role,site,managerId,managerIds:allMgrIds2});
   if(!result) return;
   ['new-user-login','new-user-name','new-user-pass','new-user-site'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   // Recharger la liste des users dans le cache
@@ -4090,17 +4119,24 @@ async function handleGeneratePDF(){
   const autoSign = levelRule.autoSign !== undefined ? levelRule.autoSign : (level==='low' && settings.autoLow!==false);
   const requireValidation = levelRule.require !== undefined ? levelRule.require : ((level==='medium'||level==='high') && settings.requireManager!==false);
 
-  // Récupérer managers
+  // Récupérer TOUS les responsables de l'utilisateur (multi-managers)
   let managers = [];
   try{
-    const mgrRaw = await api('GET','/users/manager-info');
-    if(mgrRaw && mgrRaw._id){
-      _cache['managerInfo']=mgrRaw;
-      managers.push({id:String(mgrRaw._id), name:mgrRaw.name||'Responsable'});
+    const allMgrs = await api('GET','/users/all-managers') || [];
+    if(allMgrs.length){
+      managers = allMgrs.map(m=>({id:String(m._id||m.id||''), name:m.name||'Responsable'}));
+      if(managers[0]) _cache['managerInfo'] = allMgrs[0];
+    } else {
+      // Fallback manager unique
+      const mgrRaw = await api('GET','/users/manager-info');
+      if(mgrRaw && mgrRaw._id){
+        _cache['managerInfo']=mgrRaw;
+        managers.push({id:String(mgrRaw._id), name:mgrRaw.name||'Responsable'});
+      }
     }
-    // Managers supplémentaires configurés dans les règles
+    // Responsables supplémentaires depuis les règles de signature
     for(const mid of (levelRule.requireManagers||[])){
-      if(mid && managers.every(m=>m.id!==mid)) managers.push({id:mid, name:'Responsable'});
+      if(mid && managers.every(m=>m.id!==mid)) managers.push({id:mid, name:'Responsable additionnel'});
     }
   }catch(e){ console.error('[handleGeneratePDF]',e); }
 
@@ -4272,6 +4308,13 @@ async function openValidationPanel(){
 function closeValidationPanel(){
   document.getElementById('validationPanel').style.display='none';
 }
+// ── Afficher/masquer le détail d'un rapport de validation ──────────────────
+function toggleReportDetail(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
 async function renderValidationList(){
   const freshValidations = await api('GET','/data/validations')||[];
   const mine = freshValidations.map(v=>({...v, id:String(v._id||v.id||'')}));
@@ -4428,10 +4471,6 @@ async function renderValidationList(){
     done.slice(0,30).forEach(r => { html += validCard(r, false); });
   }
   container.innerHTML = html;
-}
-function toggleReportDetail(id){
-  const el=document.getElementById(id); if(!el) return;
-  el.style.display=el.style.display==='none'?'block':'none';
 }
 async function validateReport(id, decision){
   if(decision==='rejected'){
@@ -5972,9 +6011,7 @@ function _applyKwOverrides(){
   }catch(e){}
 }
 
-</script>
 
-<script>
 
 // Corrected IA Detection Engine (Option C)
 // Normalize text, robust matching, apply rules, leverage variants
@@ -6008,9 +6045,7 @@ if(typeof window !== 'undefined'){
   window.IA_Detect = { normalizeText, matchKeywords, detectRisksFromText };
 }
 
-</script>
 
-<script>
 // ════════════════════════════════════════════════════════
 // ADMIN UI v3 — Config Interface, Risques DB, PP Config
 // ════════════════════════════════════════════════════════
@@ -7034,12 +7069,19 @@ async function renderAdminRisksDB() {
 
   <!-- MOTS-CLÉS -->
   <div id="rdb-keywords" style="display:none">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap">
       <select id="rdb-filter-kw-type" onchange="renderKeywordsDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
         <option value="">Tous les types</option>
         ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
       </select>
-      <button onclick="syncKeywordsToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="exportKeywordsXLS()" style="padding:7px 14px;background:var(--safe);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">📥 Exporter XLS</button>
+        <label style="padding:7px 14px;background:#e8f4fd;color:var(--accent2);border:1.5px solid var(--accent2);border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+          📤 Importer XLS
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="importKeywordsXLS(this)" style="display:none"/>
+        </label>
+        <button onclick="syncKeywordsToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser</button>
+      </div>
     </div>
     <div id="rdb-kw-list" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
     <!-- Ajouter règle -->
@@ -7138,7 +7180,7 @@ async function saveDBType(id) {
     _cache['dbInterventionTypes'] = freshTypes;
     buildInterventionGrid(); // Rebuild étape 2 avec le nouveau nom
   }
-  showToast('Type mis à jour — la grille d étape 2 a été rafraîchie','success');
+  showToast('Type mis à jour — la grille d\'étape 2 a été rafraîchie','success');
 }
 async function toggleDBTypeHidden(id, hidden) {
   await api('PUT', '/data/intervention-types/'+id, { hidden });
@@ -7547,7 +7589,320 @@ async function reloadKeywordsIntoEngine() {
 // ════════════════════════════════════════════════════════════════════════
 // HOOK — Charger depuis la DB au démarrage
 // ════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════
+// EXPORT / IMPORT MOTS-CLÉS IA  (format XLS via SheetJS CDN)
+// ════════════════════════════════════════════════════════════════════════
+
+function _loadSheetJS(cb){
+  if(window.XLSX){ cb(); return; }
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=cb; s.onerror=()=>showToast('Impossible de charger SheetJS','error');
+  document.head.appendChild(s);
+}
+
+async function exportKeywordsXLS(){
+  _loadSheetJS(async ()=>{
+    // Récupérer toutes les règles (DB + natives)
+    const dbRules = await api('GET','/data/keyword-rules/all') || [];
+
+    // Construire les lignes de données
+    const rows = [];
+
+    // 1. Règles DB
+    dbRules.forEach(r=>{
+      rows.push({
+        Source:           r.source||'custom',
+        Type_Intervention: r.type||'',
+        Mots_cles:        (r.w||[]).join(' | '),
+        IDs_Risques:      (r.r||[]).join(' | '),
+        Score:            r.s||4,
+        Masque:           r.hidden?'OUI':'NON',
+        ID_Regle:         r.id||''
+      });
+    });
+
+    // 2. Règles natives (non encore en DB)
+    Object.entries(AI_KW).forEach(([type, rules])=>{
+      rules.forEach(rule=>{
+        if(rule._dbId || rule._customId) return; // déjà en DB
+        rows.push({
+          Source:           'builtin_memory',
+          Type_Intervention: type,
+          Mots_cles:        (rule.w||[]).join(' | '),
+          IDs_Risques:      (rule.r||[]).join(' | '),
+          Score:            rule.s||3,
+          Masque:           'NON',
+          ID_Regle:         ''
+        });
+      });
+    });
+
+    if(!rows.length){ showToast('Aucune règle à exporter','error'); return; }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Largeurs colonnes
+    ws['!cols'] = [
+      {wch:14},{wch:30},{wch:60},{wch:20},{wch:8},{wch:8},{wch:28}
+    ];
+
+    // Onglet d'aide
+    const helpRows = [
+      {Colonne:'Source',          Description:'builtin=natif | custom=créé admin | builtin_memory=natif non encore en DB'},
+      {Colonne:'Type_Intervention',Description:'Nom exact du type (ex: Maintenance industrielle)'},
+      {Colonne:'Mots_cles',       Description:'Mots séparés par " | " (ex: soudure | soudage | soudeur)'},
+      {Colonne:'IDs_Risques',     Description:'IDs risques séparés par " | " (ex: s1 | s2 | s3)'},
+      {Colonne:'Score',           Description:'5=Très fort | 4=Fort | 3=Moyen | 2=Faible'},
+      {Colonne:'Masque',          Description:'OUI=masqué (inactif) | NON=actif'},
+      {Colonne:'ID_Regle',        Description:'Laisser vide pour créer | remplir pour modifier'},
+    ];
+    const wsHelp = XLSX.utils.json_to_sheet(helpRows);
+    wsHelp['!cols'] = [{wch:22},{wch:70}];
+
+    XLSX.utils.book_append_sheet(wb, ws,     'Mots-clés IA');
+    XLSX.utils.book_append_sheet(wb, wsHelp, 'Guide');
+    XLSX.writeFile(wb, 'mots_cles_IA_evalrisque.xlsx');
+    showToast(`${rows.length} règles exportées en XLS`,'success');
+  });
+}
+
+async function importKeywordsXLS(input){
+  const file = input.files[0];
+  if(!file){ return; }
+  input.value = '';
+
+  _loadSheetJS(async ()=>{
+    const reader = new FileReader();
+    reader.onload = async e => {
+      try{
+        const wb   = XLSX.read(e.target.result, {type:'binary'});
+        const wsName = wb.SheetNames.find(n=>n.toLowerCase().includes('mot')) || wb.SheetNames[0];
+        const ws   = wb.Sheets[wsName];
+        const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+
+        if(!rows.length){ showToast('Fichier vide ou format incorrect','error'); return; }
+
+        let created=0, updated=0, skipped=0;
+
+        for(const row of rows){
+          const type  = String(row['Type_Intervention']||'').trim();
+          const words = String(row['Mots_cles']||'').split('|').map(w=>w.trim()).filter(Boolean);
+          const risks = String(row['IDs_Risques']||'').split('|').map(r=>r.trim()).filter(Boolean);
+          const score = parseInt(row['Score'])||4;
+          const masked= String(row['Masque']||'').toUpperCase()==='OUI';
+          const existingId = String(row['ID_Regle']||'').trim();
+
+          if(!type||!words.length){ skipped++; continue; }
+
+          if(existingId){
+            // Mettre à jour règle existante
+            const r = await api('PUT','/data/keyword-rules/'+existingId,{type,w:words,r:risks,s:score,hidden:masked});
+            if(r) updated++; else skipped++;
+          } else {
+            // Créer nouvelle règle
+            const r = await api('POST','/data/keyword-rules',{type,w:words,r:risks,s:score});
+            if(r){
+              // Injecter en mémoire
+              if(!AI_KW[type]) AI_KW[type]=[];
+              AI_KW[type].push({s:score,w:words,r:risks,_dbId:r.id});
+              created++;
+            } else skipped++;
+          }
+        }
+
+        // Recharger la liste
+        const fresh = await api('GET','/data/keyword-rules/all');
+        if(fresh) _dbKeywords = fresh;
+        renderKeywordsDBList();
+        showToast(`Import XLS : ${created} créées, ${updated} mises à jour, ${skipped} ignorées`,'success');
+      }catch(err){
+        console.error('[importKeywordsXLS]',err);
+        showToast('Erreur lors de l\'import : '+err.message,'error');
+      }
+    };
+    reader.readAsBinaryString(file);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// HANDLEGENERATE PDF — utiliser /all-managers pour multi-responsables
+// ════════════════════════════════════════════════════════════════════════
+// (override de la version existante - sera définie APRÈS donc prend le dessus)
+
+// ════════════════════════════════════════════════════════════════════════
+// 200 NOUVEAUX MOTS-CLÉS IA — extension de AI_KW
+// Injectés après le chargement initial pour ne pas écraser les natifs
+// ════════════════════════════════════════════════════════════════════════
+function injectExtra200Keywords(){
+  const extra = {
+    'Maintenance industrielle': [
+      // Opérations terrain très précises
+      {s:5,w:['remplacement roulement','changement roulement','depose roulement'],r:['mi6','mi7','mi8']},
+      {s:5,w:['changement joint','remplacement joint','joint torique'],r:['mi2','mi6']},
+      {s:5,w:['remplacement courroie','tension courroie','alignement courroie'],r:['mi1','mi3']},
+      {s:5,w:['remplacement filtre','changement filtre huile','changement filtre air'],r:['mi2','ch4']},
+      {s:5,w:['purge circuit','purge hydraulique','purge pneumatique'],r:['mi2','mi1']},
+      {s:5,w:['vidange huile','vidange carter','huile moteur'],r:['ch4','mi3']},
+      {s:5,w:['graissage','graisseur','lubrification roulement','nipple graissage'],r:['mi3','ch4']},
+      {s:5,w:['reglage jeu','reglage alignement','reglage serrage'],r:['mi1','mi3']},
+      {s:5,w:['test etancheite','controle etancheite','fuite detectee'],r:['mi2','ch4']},
+      {s:4,w:['nettoyage filtre','nettoyage echangeur','nettoyage radiateur'],r:['mi2','ch1']},
+      {s:4,w:['verification debit','controle pression hydraulique','pression basse'],r:['mi2','mi3']},
+      {s:4,w:['bruit anormal','bruit roulement','bruit engrenage','grincement'],r:['mi1','mi3']},
+      {s:4,w:['vibration excessive','balourd','desalignement arbre'],r:['mi1','mi3']},
+      {s:4,w:['surchauffe moteur','temperature moteur','thermistance'],r:['mi2','mi4','e3']},
+      {s:4,w:['court circuit moteur','isolation moteur','resistance isolement'],r:['e1','e3','mi4']},
+      {s:5,w:['blocage mecanique','coincement','piece bloquee'],r:['mi1','mi6']},
+      {s:5,w:['arrachement','cisaillement','rupture boulon'],r:['mi6','mi7']},
+      {s:4,w:['capteur defaillant','sonde defaillante','encoder defectueux'],r:['mi1','ia3']},
+      {s:4,w:['variateur frequence','onduleur','demarrage progressif'],r:['e1','mi1']},
+      {s:4,w:['serrage couple','cle dynamometrique','couple serrage'],r:['mi6','mi1']},
+    ],
+    'Travaux électriques': [
+      {s:5,w:['intervention basse tension','bt','230v','400v'],r:['e1','e3']},
+      {s:5,w:['changement fusible','remplacement disjoncteur','calibrage protection'],r:['e1','e3']},
+      {s:5,w:['tirage cable','pose cable','raccordement cable'],r:['e1','e4']},
+      {s:5,w:['raccordement armoire','cablage armoire','modification tableau'],r:['e1','e2']},
+      {s:5,w:['mise en service electrique','test electrique','essai moteur'],r:['e1','e2']},
+      {s:4,w:['mesure resistance','megohmmetre','test isolement cable'],r:['e1','e3']},
+      {s:4,w:['thermographie armoire','point chaud electrique','connexion desserree'],r:['e2','e3']},
+      {s:5,w:['travaux voisinage','distance voisinage','ligne proche'],r:['e1','h5']},
+      {s:4,w:['eclairage chantier','projecteur temporaire','tableau chantier'],r:['e1','e3']},
+      {s:4,w:['groupe electrogene','generateur portatif','alimentation secours'],r:['e1','e3']},
+      {s:5,w:['intervention poste ht','cellule ht','disjoncteur ht'],r:['e1','e2','e4']},
+      {s:4,w:['protection differentielle','disjoncteur differentiel','fuite terre'],r:['e1','e3']},
+    ],
+    'Travaux en hauteur': [
+      {s:5,w:['travail sur pylone','antenne radio','mat telecommunications'],r:['h1','h5']},
+      {s:5,w:['travail sur eolienne','nacelle eolienne','pale eolienne'],r:['h1','h4']},
+      {s:5,w:['travail sur silo','haut silo','sommet reservoir'],r:['h1','h2','ec1']},
+      {s:5,w:['inspection visuelle facade','visite toiture','controle bardage'],r:['h1','h2']},
+      {s:5,w:['nettoyage facade','nettoyage vitrage hauteur'],r:['h1','h4']},
+      {s:4,w:['travaux sous pont','dessous passerelle','inspection structure'],r:['h1','h2']},
+      {s:4,w:['ligne vie permanente','systeme antichute collectif'],r:['h1','h3']},
+      {s:5,w:['travaux toiture fibrociment','desamiantage toiture','amiante toiture'],r:['h1','d2']},
+      {s:4,w:['plateforme suspendue','nacelle suspendue','echafaudage volant'],r:['h1','h3']},
+      {s:4,w:['acces difficile hauteur','zone non accessible','structure complexe'],r:['h1','h3']},
+    ],
+    'Travaux en espace confiné': [
+      {s:5,w:['descente dans fosse','intervention fosse','travail fosse septic'],r:['ec1','ec2','ec4']},
+      {s:5,w:['intervention regard','nettoyage regard','curage regard'],r:['ec1','ec2']},
+      {s:5,w:['travaux canalisation','inspection canalisation','camera canalisation'],r:['ec1','ec2','ec4']},
+      {s:5,w:['intervention transformateur','huile transformateur','cuve transformateur'],r:['ec1','ec2','ch4']},
+      {s:5,w:['intervention bac stockage','nettoyage cuve','inspection interne cuve'],r:['ec1','ec2','ec3']},
+      {s:4,w:['mesure oxygene','analyseur gaz','detecteur co'],r:['ec1','ec2']},
+      {s:4,w:['plan sauvetage','exercice sauvetage','secours espace confine'],r:['ec4']},
+      {s:4,w:['autorisation penetration','permis espace confine','permis confinement'],r:['ec1','ec4']},
+    ],
+    'Produits chimiques & dangereux': [
+      {s:5,w:['acide chlorhydrique','acide sulfurique','acide nitrique'],r:['ch1','ch2']},
+      {s:5,w:['soude caustique','potasse','base forte'],r:['ch1','ch2']},
+      {s:5,w:['chromage','nickelage','galvanisation','electrolyse'],r:['ch1','ch2','ch3']},
+      {s:5,w:['traitement surface','decapage chimique','passivation'],r:['ch1','ch2']},
+      {s:5,w:['produit cancero','substance cmr','produit reprotoxique'],r:['ch1']},
+      {s:5,w:['vapeur solvant','evaporation solvant','concentration solvant'],r:['ch1','ch3']},
+      {s:4,w:['transvasement produit','vidange bac','remplissage cuve chimique'],r:['ch2','ch4']},
+      {s:4,w:['neutralisation chimique','traitement effluent','ph neutre'],r:['ch4']},
+      {s:4,w:['reagent laboratoire','produit analyse','produit essai'],r:['ch1','ch2']},
+      {s:5,w:['bichromate','chrome hexavalent','chrome vi'],r:['ch1','ch2']},
+      {s:4,w:['bain chimique','bain electrolytique','anode cathode'],r:['ch1','ch2','ch3']},
+      {s:4,w:['rinçage piece','bain de rinçage','eau de rinçage'],r:['ch2','ch4']},
+    ],
+    'Soudage & découpe thermique': [
+      {s:5,w:['soudage inox','soudage inox tig','fumee chrome inox'],r:['s1','s4']},
+      {s:5,w:['soudage acier galvanise','zinc','fumee zinc'],r:['s4']},
+      {s:5,w:['soudage aluminium','soudage alu','oxyde aluminium'],r:['s1','s4']},
+      {s:5,w:['soudage tuyauterie','soudage tube','raccordement soudure'],r:['s1','s3']},
+      {s:5,w:['soudage charpente','soudage structure','soudage assemblage'],r:['s1','s2','s3']},
+      {s:4,w:['prechauffage piece','post chauffage','traitement thermique'],r:['s1','s3']},
+      {s:4,w:['controle non destructif soudure','radiographie soudure','ultrasons soudure'],r:['s1']},
+      {s:5,w:['meulage soudure','reprise soudure','finition soudure'],r:['s2','s3']},
+      {s:4,w:['ressuage soudure','magnetoscopie','controle soudure'],r:['s1']},
+      {s:5,w:['soudage position difficile','soudage vertical','soudage horizontal'],r:['s1','h1']},
+    ],
+    'Travaux sur voirie & route': [
+      {s:5,w:['intervention autoroute','travaux autoroute','voie rapide'],r:['r1']},
+      {s:5,w:['night shift voirie','travaux nuit route','intervention nocturne route'],r:['r1','r2']},
+      {s:4,w:['balisage routier','panneau deviation','cones signalisation'],r:['r1']},
+      {s:4,w:['fermeture bretelle','fermeture voie','alternat circulation'],r:['r1']},
+      {s:4,w:['fraisage enrobe','pose enrobe','reprise enrobe'],r:['r1','d4']},
+      {s:5,w:['pose canalisation voirie','tranchee route','intervention sous chaussee'],r:['r2','r3','tf1']},
+      {s:4,w:['radar chantier','signalisation lumineuse','feux tricolores'],r:['r1']},
+    ],
+    'Terrassement & fouilles': [
+      {s:5,w:['fouille profonde','excavation profonde','tranchee profonde'],r:['tf1','tf2']},
+      {s:5,w:['pose canalisations','pose tuyaux enterres','collecteur'],r:['tf1','tf3']},
+      {s:5,w:['travaux fondations','semelle beton','pieux fondation'],r:['tf1','tf2']},
+      {s:4,w:['talus instable','remblai instable','glissement terrain'],r:['tf1']},
+      {s:4,w:['drainage terrain','pompage fouille','exhaure'],r:['tf4']},
+      {s:5,w:['detection reseaux','reperage reseaux souterrains','grille reseaux'],r:['tf3']},
+      {s:4,w:['compactage sol','plaque vibrante','cylindre compacteur'],r:['tf1','tf2']},
+    ],
+    'Peinture & traitement de surface': [
+      {s:5,w:['primaire antirouille','couche primaire','couche de fond'],r:['p1','p2']},
+      {s:5,w:['laque bicomposant','vernis bicomposant','durcisseur'],r:['p1']},
+      {s:5,w:['sablage metal','grenaillage pieces','decapage sablage'],r:['p1','p2','d4']},
+      {s:4,w:['cabine peinture','cabine de peinture','cabine spray'],r:['p1','p2']},
+      {s:5,w:['peinture anticorrosion','protection anticorrosion','revetement anticorrosion'],r:['p1','p2']},
+      {s:4,w:['application pistolet','pistolet hvlp','pistolet airless'],r:['p1','p2']},
+      {s:4,w:['sechage four','passage four','polymerisation four'],r:['p1','p2']},
+      {s:5,w:['decapage thermique','chalumeau decapage','bruleur decapage'],r:['p1','s3']},
+    ],
+    'Outils numériques & IA': [
+      {s:5,w:['jumeau numerique','simulation digitale','modelisation 3d'],r:['ia1','ia4']},
+      {s:5,w:['maintenance predictive','analyse vibration ia','surveillance ia capteur'],r:['ia1','ia3']},
+      {s:5,w:['robot inspection','drone inspection','drone industriel'],r:['ia6','ia1']},
+      {s:5,w:['systeme vision','vision artificielle','camera intelligente'],r:['ia6','ia3']},
+      {s:4,w:['api externe','service cloud industriel','micro service'],r:['ia2','ia5']},
+      {s:4,w:['formation algorithme','biais algorithme','erreur prediction'],r:['ia1','ia4']},
+      {s:5,w:['cybersecurite ot','pentest industriel','audit securite si'],r:['ia2']},
+      {s:4,w:['donnees capteur temps reel','streaming iot','edge computing maintenance'],r:['ia3']},
+      {s:5,w:['automate programmable','plc siemens','plc schneider','automate s7'],r:['ia2','ia6']},
+      {s:4,w:['ihm superviseur','supervision scada','wincc','wonderware'],r:['ia1','ia2']},
+      {s:4,w:['certificat ssl','authentification token','jwt securite'],r:['ia2','ia5']},
+      {s:5,w:['robot mobile amr','agv entrepot','chariot autonome'],r:['ia6','m3']},
+    ],
+    'Travaux de démolition': [
+      {s:5,w:['demolition partielle','demolition interieure','cloison porteur'],r:['d1','d3']},
+      {s:5,w:['demolition industrielle','deconstruction site industriel'],r:['d1','d2','d4']},
+      {s:4,w:['evacuation gravats','tri dechets demolition','benne demolition'],r:['d3','d4']},
+      {s:5,w:['reperage amiante avant demolition','diagnostic amiante','dta demolition'],r:['d2']},
+      {s:4,w:['gants manutention demolition','equipement protection demolition'],r:['d1','d3']},
+    ],
+    'Travaux de toiture & étanchéité': [
+      {s:5,w:['etancheite terrasse','membrane terrasse','bac acier couverture'],r:['t1','t2','t3']},
+      {s:5,w:['zinguerie','gouttiere','descente pluviale','cheneaux'],r:['t1','t4']},
+      {s:5,w:['couverture tuile','remplacement tuile','faitage'],r:['t1','t4']},
+      {s:5,w:['isolation toiture','soufflage laine','isolation combles'],r:['t1','t2']},
+      {s:4,w:['pénétration toiture','traversee toiture','lanterneau'],r:['t1','t2']},
+    ],
+  };
+
+  Object.entries(extra).forEach(([type, rules])=>{
+    if(!AI_KW[type]) AI_KW[type]=[];
+    rules.forEach(rule=>{
+      // Éviter les doublons exacts
+      const dup = AI_KW[type].some(r=>
+        r.w && rule.w && r.w.length===rule.w.length &&
+        r.w.every((w,i)=>w===rule.w[i])
+      );
+      if(!dup) AI_KW[type].push({s:rule.s, w:rule.w, r:rule.r, _extra:true});
+    });
+  });
+
+  // Compter
+  let total=0;
+  Object.values(AI_KW).forEach(arr=>{ total+=arr.filter(r=>r._extra).length; });
+  console.log('[injectExtra200Keywords] '+total+' règles supplémentaires injectées');
+}
+
 async function initDBRisksAndUI() {
+  // Injecter les 200 mots-clés supplémentaires en premier (synchrone)
+  injectExtra200Keywords();
+
   await Promise.all([
     loadUIConfig(),
     loadPPConfig(),
@@ -7560,7 +7915,7 @@ async function initDBRisksAndUI() {
   applyPPConfigToForm();
   console.log('[initDBRisksAndUI] Tout chargé depuis la DB');
 }
-
 </script>
+
 </body>
 </html>
