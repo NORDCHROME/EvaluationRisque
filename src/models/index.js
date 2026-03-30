@@ -12,8 +12,6 @@ const UserSchema = new Schema({
   role:       { type: String, enum: ['admin','user','viewer'], default: 'user' },
   site:       { type: String, default: '' },
   managerId:  { type: Schema.Types.ObjectId, ref: 'User', default: null },
-  // Support multi-managers : liste de tous les responsables de cet utilisateur
-  managerIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   lastLogin:  { type: Date, default: null },
   createdAt:  { type: Date, default: Date.now }
 });
