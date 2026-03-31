@@ -683,8 +683,18 @@ router.post('/validations', auth, async (req, res) => {
 // GET validations soumises PAR l'utilisateur connecté (pour "Mes Évaluations")
 router.get('/validations/mine', auth, async (req, res) => {
   try {
-    const vals = await Validation.find({ submittedBy: req.user._id }).sort('-createdAt');
-    res.json(vals);
+    // Retourner toutes les validations soumises PAR cet utilisateur
+    // Chaque validation a son propre managerName (figé au moment de la validation)
+    const vals = await Validation.find({ submittedBy: req.user._id })
+      .sort('-createdAt')
+      .lean(); // lean() = objets JS simples, plus rapide
+    // S'assurer que chaque validation a un id normalisé
+    const normalized = vals.map(v => ({
+      ...v,
+      id: String(v._id),
+      // managerName est figé par validation dans la DB, ne pas le modifier ici
+    }));
+    res.json(normalized);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
