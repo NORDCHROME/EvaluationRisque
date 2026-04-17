@@ -3213,6 +3213,19 @@ function getPPData(){
   });
   const checks={};
   ['visite','plan','reseaux','amiante','ppsps','secours','formation','sst','signalement'].forEach(id=>{checks[id]=document.getElementById('chk-'+id)?.checked||false;});
+  // Snapshot des données permis remplis (champs texte sans signatures)
+  const permisSnapshot={};
+  Object.entries(_permisData||{}).forEach(([key,data])=>{
+    permisSnapshot[key]={};
+    Object.entries(data||{}).forEach(([k,v])=>{ if(!k.endsWith('_sig')) permisSnapshot[key][k]=v; });
+  });
+  // Signatures canvas (conservées localement, non envoyées en BDD car volumineuses)
+  const permisSignatures={};
+  Object.entries(_permisData||{}).forEach(([key,data])=>{
+    const sigs={};
+    Object.entries(data||{}).forEach(([k,v])=>{ if(k.endsWith('_sig')&&v) sigs[k]=v; });
+    if(Object.keys(sigs).length) permisSignatures[key]=sigs;
+  });
   return {
     eu:document.getElementById('pp-eu')?.value||'',
     euRep:document.getElementById('pp-eu-rep')?.value||'',
@@ -3226,6 +3239,8 @@ function getPPData(){
     samu:document.getElementById('pp-samu')?.value||'15',
     pompiers:document.getElementById('pp-pompiers')?.value||'18',
     siteTel:document.getElementById('pp-site-tel')?.value||'',
+    permisSnapshot,
+    permisSignatures,
   };
 }
 
@@ -3259,6 +3274,18 @@ async function loadPP(id){
   setVal('pp-date-fin',pp.dateFin); setVal('pp-instructions',pp.instructions);
   setVal('pp-samu',pp.samu); setVal('pp-pompiers',pp.pompiers);
   setVal('pp-site-tel',pp.siteTel);
+  // Restaurer les données des permis remplis depuis la sauvegarde
+  if(pp.permisSnapshot){
+    Object.entries(pp.permisSnapshot).forEach(([key,data])=>{
+      _permisData[key] = {...(data||{})};
+    });
+  }
+  if(pp.permisSignatures){
+    Object.entries(pp.permisSignatures).forEach(([key,sigs])=>{
+      if(!_permisData[key]) _permisData[key]={};
+      Object.assign(_permisData[key], sigs);
+    });
+  }
   // Permis
   ppPermits.clear();
   document.querySelectorAll('.pp-permit-card').forEach(el=>el.classList.remove('active'));
@@ -3311,7 +3338,25 @@ async function loadPP(id){
   document.getElementById('ppArrow').textContent='▲';
   document.getElementById('pp-save-name').value=entry.name;
   closePPLibrary();
-  showToast('"'+entry.name+'" chargé','success');
+  // Notifier des permis rechargés
+  const permisReloaded=Object.keys(_permisData).filter(k=>_permisData[k]&&Object.keys(_permisData[k]).length);
+  const msg=permisReloaded.length
+    ? '"'+entry.name+'" chargé · '+permisReloaded.length+' permis restauré(s)'
+    : '"'+entry.name+'" chargé';
+  showToast(msg,'success');
+  // Afficher un bandeau récap des permis disponibles si présents
+  if(permisReloaded.length){
+    const ppPanel=document.getElementById('ppPanel');
+    let banner=document.getElementById('permis-restore-banner');
+    if(!banner){
+      banner=document.createElement('div');
+      banner.id='permis-restore-banner';
+      banner.style.cssText='padding:10px 16px;background:#f0fdf4;border:1.5px solid var(--safe);border-radius:4px;margin-bottom:14px;font-size:12px;color:var(--safe);display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+      ppPanel.insertBefore(banner,ppPanel.firstChild);
+    }
+    banner.innerHTML='<strong>✓ Permis restaurés depuis la sauvegarde :</strong> '
+      +permisReloaded.map(k=>`<button onclick="openPermisForm('${k.replace(/'/g,"\'")}')" style="padding:3px 10px;background:var(--safe);color:#fff;border:none;border-radius:20px;font-size:11px;cursor:pointer;font-weight:600">${k}</button>`).join(' ');
+  }
   window.scrollTo({top:document.getElementById('ppPanel').getBoundingClientRect().top+window.scrollY-100,behavior:'smooth'});
 }
 async function deletePP(id){
@@ -3339,7 +3384,7 @@ function renderPPLibrary(){
     return `<div class="ppl-item">
       <div class="ppl-item-info">
         <div class="ppl-item-name">${entry.name} ${entry.isTemplate?'<span class="ppl-badge ppl-badge-template">Modèle</span>':'<span class="ppl-badge ppl-badge-saved">Sauvegardé</span>'}</div>
-        <div class="ppl-item-sub">Par ${entry.createdBy} · ${date} · EE : ${entry.data?.ee||'—'}</div>
+        <div class="ppl-item-sub">Par ${entry.createdBy} · ${date} · EE : ${entry.data?.ee||'—'}${(entry.data?.permits||[]).length?(' · '+entry.data.permits.length+' permis'):''}${entry.autoSaved?(' · <span style="color:var(--safe);font-weight:600">✓ Auto-sauvé</span>'):''}</div>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn-edit" onclick="loadPP('${entry.id}')">✎ Charger</button>
@@ -5610,7 +5655,187 @@ function generatePP(){
   y+=42;
   footer();
 
-  doc.save('PlanPrevention_NORDCHROME_'+(pp.dateDebut||'doc')+'.pdf');
+  // ── ANNEXES PERMIS ───────────────────────────────────────────────────────
+  const permisActifs=[...ppPermits].filter(name=>
+    typeof PERMIS_FORMS!=='undefined' && (PERMIS_FORMS[name]||PERMIS_FORMS[PERMIS_NAME_MAP?.[name]])
+  );
+  if(permisActifs.length>0){
+    const hexRgb=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+
+    permisActifs.forEach((permitName,pi)=>{
+      const key=(typeof PERMIS_NAME_MAP!=='undefined'&&PERMIS_NAME_MAP[permitName])||permitName;
+      const form=PERMIS_FORMS[key]; if(!form) return;
+      const pdata=_permisData[key]||{};
+      const [cr,cg,cb]=hexRgb(form.color||'#1a4d6e');
+      const IW2=W-2*mg;
+
+      // Page de séparation d'annexe
+      doc.addPage(); footer();
+      doc.setFillColor(cr,cg,cb); doc.rect(0,0,W,38,'F');
+      doc.setFillColor(15,25,35); doc.rect(0,35,W,3,'F');
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(9); doc.setFont('helvetica','bold');
+      doc.text('PLAN DE PRÉVENTION — ANNEXE '+(pi+1),W/2,10,{align:'center'});
+      doc.setFontSize(16); doc.setFont('helvetica','bold');
+      doc.text(permitName.toUpperCase(),W/2,22,{align:'center'});
+      doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(255,255,220);
+      doc.text(form.description||'',W/2,30,{align:'center'});
+      y=46;
+
+      const LH2=4.6;
+      function chkY2(n){if(y+n>H-14){doc.addPage();footer();y=20;}}
+
+      form.sections.forEach(sec=>{
+        chkY2(12);
+        doc.setFillColor(cr,cg,cb); doc.rect(mg,y,IW2,8,'F');
+        doc.setFillColor(Math.round(cr*.65),Math.round(cg*.65),Math.round(cb*.65)); doc.rect(mg,y,3,8,'F');
+        doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+        doc.text(sec.title,mg+6,y+5.5); y+=11;
+
+        sec.fields.forEach(f=>{
+          const val=pdata[f.id];
+
+          if(f.type==='signature'){
+            const sig=pdata[f.id+'_sig'];
+            chkY2(24);
+            doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(cr,cg,cb);
+            doc.text(f.label.toUpperCase(),mg,y); y+=5;
+            doc.setFillColor(252,252,252); doc.rect(mg,y,IW2,17,'F');
+            doc.setDrawColor(cr,cg,cb); doc.rect(mg,y,IW2,17,'S');
+            if(sig){
+              try{ doc.addImage(sig,'PNG',mg+2,y+1,IW2-4,15); }catch(e){}
+              doc.setFillColor(240,253,244);
+              doc.setFontSize(6); doc.setFont('helvetica','bold'); doc.setTextColor(45,106,79);
+              doc.text('✓ Signé',IW2+mg-20,y+15.5);
+            } else {
+              doc.setFontSize(8); doc.setTextColor(190,190,190);
+              doc.text('Signature : ___________________________  Date : _______________',mg+6,y+10);
+            }
+            y+=20; return;
+          }
+
+          doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(cr,cg,cb);
+          doc.text(f.label.toUpperCase(),mg,y); y+=5;
+
+          if(f.type==='checkboxes'){
+            const chk=Array.isArray(val)?val:(val?String(val).split('||'):[]);
+            const cols=2; const colW=(IW2-3)/cols; let col=0;
+            (f.options||[]).forEach((opt,oi)=>{
+              if(col===0&&oi>0) y+=7;
+              chkY2(8);
+              const ok=chk.includes(opt);
+              const bx=mg+col*(colW+3);
+              doc.setFillColor(ok?cr:255,ok?cg:255,ok?cb:255);
+              doc.roundedRect(bx,y-1,4,4,0.5,0.5,'F');
+              doc.setDrawColor(ok?cr:170,ok?cg:170,ok?cb:170);
+              doc.roundedRect(bx,y-1,4,4,0.5,0.5,'S');
+              if(ok){doc.setTextColor(255,255,255);doc.setFontSize(5);doc.setFont('helvetica','bold');doc.text('✓',bx+0.8,y+2.5);}
+              doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.setTextColor(30,40,50);
+              const ls=doc.splitTextToSize(opt,colW-7);
+              doc.text(ls,bx+6,y+2.5);
+              col=(col+1)%cols;
+              if(col===0) y+=7;
+            });
+            if(col!==0) y+=7;
+          } else {
+            const display=val?String(Array.isArray(val)?val.join(', '):val):'—';
+            const ls=doc.splitTextToSize(display,IW2-6);
+            const bh=Math.max(ls.length*LH2+4,8);
+            chkY2(bh+2);
+            doc.setFillColor(252,252,250);doc.rect(mg,y-1,IW2,bh,'F');
+            doc.setDrawColor(220,215,205);doc.rect(mg,y-1,IW2,bh,'S');
+            doc.setFontSize(8);doc.setFont('helvetica','normal');doc.setTextColor(30,40,50);
+            doc.text(ls,mg+3,y+3);
+            y+=bh+3;
+          }
+        });
+        y+=4;
+      });
+      footer();
+    });
+
+    // Récap couverture des annexes (page finale)
+    doc.addPage(); footer();
+    doc.setFillColor(15,25,35); doc.rect(0,0,W,28,'F');
+    doc.setFillColor(200,75,49); doc.rect(0,25,W,3,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text('RÉCAPITULATIF DES PERMIS ET AUTORISATIONS',W/2,16,{align:'center'});
+    y=38;
+    const hexRgbR=h=>[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];
+    permisActifs.forEach((permitName,pi)=>{
+      const key2=(typeof PERMIS_NAME_MAP!=='undefined'&&PERMIS_NAME_MAP[permitName])||permitName;
+      const form2=PERMIS_FORMS[key2]||{}; const pdata2=_permisData[key2]||{};
+      const [r2,g2,b2]=hexRgbR(form2.color||'#1a4d6e');
+      // Compter les signatures
+      const sigsCount=Object.keys(pdata2).filter(k=>k.endsWith('_sig')&&pdata2[k]).length;
+      // Compter les champs remplis
+      const filledCount=Object.keys(pdata2).filter(k=>!k.endsWith('_sig')&&pdata2[k]&&(Array.isArray(pdata2[k])?pdata2[k].length:String(pdata2[k]).trim())).length;
+
+      doc.setFillColor(r2,g2,b2); doc.rect(mg,y,3,20,'F');
+      doc.setFillColor(252,252,252); doc.rect(mg+3,y,IW-3,20,'F');
+      doc.setDrawColor(220,215,205); doc.rect(mg,y,IW,20,'S');
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(15,25,35);
+      doc.text((form2.icon||'📋')+' Annexe '+(pi+1)+' — '+permitName,mg+8,y+7);
+      doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(80,90,100);
+      doc.text(form2.description||'',mg+8,y+13);
+      // Badge signature
+      if(sigsCount>0){
+        doc.setFillColor(45,106,79); doc.roundedRect(W-mg-38,y+5,36,9,2,2,'F');
+        doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+        doc.text('✓ '+sigsCount+' signature(s)',W-mg-20,y+11,{align:'center'});
+      } else {
+        doc.setFillColor(217,119,6); doc.roundedRect(W-mg-38,y+5,36,9,2,2,'F');
+        doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+        doc.text('En attente sign.',W-mg-20,y+11,{align:'center'});
+      }
+      doc.text(filledCount+' champ(s) rempli(s)',W-mg-80,y+11);
+      y+=23;
+    });
+    footer();
+  }
+
+  const pdfName='PlanPrevention_NORDCHROME_'+(pp.dateDebut||new Date().toISOString().split('T')[0])+'.pdf';
+  doc.save(pdfName);
+
+  // ── Sauvegarde automatique en BDD après génération ───────────────────────
+  _autosavePPtoDB(pp, pdfName);
+}
+
+// Sauvegarde automatique du PP (avec permis) en BDD
+async function _autosavePPtoDB(ppData, pdfName){
+  try{
+    const autoName = 'PP — '+(ppData.ee||'EE?')+' — '+(ppData.dateDebut||new Date().toISOString().split('T')[0]);
+    const result = await api('POST','/data/pplist',{
+      name:       autoName,
+      isTemplate: false,
+      data:       ppData,  // contient permisSnapshot
+      evalState:{
+        operator:     appState.operator||currentUser?.name||'',
+        location:     appState.location||'',
+        date:         appState.date||'',
+        mission:      appState.mission||'',
+        interventions:[...appState.selectedInterventions],
+        risks:        [...appState.selectedRisks],
+      },
+      autoSaved:  true,
+      pdfName,
+    });
+    if(result){
+      const list=await api('GET','/data/pplist');
+      if(list) _cache['ppList']=list.map(p=>({
+        id:p._id,name:p.name,isTemplate:p.isTemplate,
+        createdBy:p.createdBy,updatedAt:p.updatedAt,
+        createdAt:p.createdAt,data:p.data,evalState:p.evalState,
+        autoSaved:p.autoSaved
+      }));
+      // Aussi enregistrer dans les rapports admin
+      await saveReport('pp',{ee:ppData.ee,dateDebut:ppData.dateDebut,permits:[...ppPermits],
+        permisCount:Object.keys(ppData.permisSnapshot||{}).length});
+      showToast('Plan de prévention enregistré en base de données','success');
+    }
+  }catch(e){
+    console.warn('[_autosavePPtoDB]',e);
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════
