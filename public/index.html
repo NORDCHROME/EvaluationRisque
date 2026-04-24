@@ -15,6 +15,16 @@
 }
 *{margin:0;padding:0;box-sizing:border-box;}
 .ai-spinner{display:inline-block;width:13px;height:13px;border:2px solid rgba(26,77,110,.2);border-top-color:var(--accent2);border-radius:50%;animation:ai-spin .7s linear infinite;flex-shrink:0;}
+/* Signature canvas — désactiver tous les gestes navigateur sur tablette/stylet */
+canvas[id^="permcs-"],canvas[id="sigCanvas"]{
+  touch-action:none!important;
+  -ms-touch-action:none!important;
+  overscroll-behavior:none;
+  user-select:none;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  cursor:crosshair;
+}
 @keyframes ai-spin{to{transform:rotate(360deg)}}
 body{background:var(--paper);color:var(--ink);font-family:'DM Sans',sans-serif;font-weight:300;min-height:100vh;}
 header{background:var(--ink);color:var(--paper);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:70px;position:sticky;top:0;z-index:200;border-bottom:3px solid var(--accent);}
@@ -751,7 +761,7 @@ textarea{resize:vertical;min-height:80px;}
       <!-- Canvas signature -->
       <div style="margin-bottom:14px">
         <label class="field-label">Tracez votre signature ci-dessous</label>
-        <canvas id="sigCanvas" width="468" height="120" style="border:1.5px solid var(--border);border-radius:4px;background:#fff;cursor:crosshair;touch-action:none;display:block;width:100%"></canvas>
+        <canvas id="sigCanvas" width="468" height="120" style="border:1.5px solid var(--border);border-radius:4px;background:#fff;cursor:crosshair;touch-action:none;display:block;width:100%;user-select:none;-webkit-user-select:none;-ms-touch-action:none;overscroll-behavior:none"></canvas>
         <button onclick="clearSignature()" style="margin-top:6px;padding:4px 12px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:11px;cursor:pointer;color:#6b7280">🗑 Effacer</button>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end">
@@ -4847,44 +4857,81 @@ function closeSignatureModal(){
 function initSignatureCanvas(){
   const canvas=document.getElementById('sigCanvas'); if(!canvas) return;
   const ctx=canvas.getContext('2d');
-  // Adapter la résolution au DPI
   const rect=canvas.getBoundingClientRect();
   const dpr=window.devicePixelRatio||1;
   canvas.width=Math.round(rect.width*dpr);
   canvas.height=120*dpr;
   ctx.scale(dpr,dpr);
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.strokeStyle='#1a4d6e'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.lineJoin='round';
-  // Ligne de base
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,rect.width,120);
   ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.5;
   ctx.beginPath(); ctx.moveTo(10,90); ctx.lineTo(rect.width-10,90); ctx.stroke();
-  ctx.strokeStyle='#1a4d6e'; ctx.lineWidth=2.5;
+  ctx.strokeStyle='#1a4d6e'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round';
 
-  function getPos(e){
-    const r2=canvas.getBoundingClientRect();
-    const src=e.touches?e.touches[0]:e;
-    return{x:src.clientX-r2.left, y:src.clientY-r2.top};
+  // ── Pointer Events API — fonctionne souris, stylet, doigt (Windows/iPad/Android)
+  function getPointerPos(e){
+    const r=canvas.getBoundingClientRect();
+    // Pointer Events (standard moderne : stylet Surface, doigt iPad, souris)
+    if(e.pointerId!==undefined) return{x:e.clientX-r.left, y:e.clientY-r.top};
+    // Touch Events (fallback Android/iOS ancien)
+    if(e.touches&&e.touches.length) return{x:e.touches[0].clientX-r.left, y:e.touches[0].clientY-r.top};
+    // Mouse Events (fallback desktop)
+    return{x:e.clientX-r.left, y:e.clientY-r.top};
   }
-  canvas.onmousedown=canvas.ontouchstart=(e)=>{
-    e.preventDefault(); _sigDrawing=true;
-    const p=getPos(e); _sigLastX=p.x; _sigLastY=p.y;
-  };
-  canvas.onmousemove=canvas.ontouchmove=(e)=>{
-    e.preventDefault(); if(!_sigDrawing) return;
+
+  // Nettoyer les anciens listeners éventuels
+  canvas.onpointerdown=canvas.onmousedown=canvas.ontouchstart=null;
+  canvas.onpointermove=canvas.onmousemove=canvas.ontouchmove=null;
+  canvas.onpointerup=canvas.onpointercancel=canvas.onmouseup=canvas.ontouchend=null;
+  canvas.onpointerleave=canvas.onmouseleave=null;
+
+  function onStart(e){
+    e.preventDefault();
+    _sigDrawing=true;
+    // Capture le pointeur sur le canvas (stylet Windows)
+    if(e.pointerId!==undefined) { try{ canvas.setPointerCapture(e.pointerId); }catch(_){} }
+    const p=getPointerPos(e); _sigLastX=p.x; _sigLastY=p.y;
+  }
+  function onMove(e){
+    e.preventDefault();
+    if(!_sigDrawing) return;
+    // Ignorer les mouvements sans pression (stylet hover)
+    if(e.pointerType==='pen'&&e.pressure===0) return;
     const ctx2=canvas.getContext('2d');
-    ctx2.strokeStyle='#1a4d6e'; ctx2.lineWidth=2.5; ctx2.lineCap='round'; ctx2.lineJoin='round';
-    const p=getPos(e);
+    ctx2.strokeStyle='#1a4d6e';
+    // Adapter l'épaisseur selon la pression du stylet (Surface Pen)
+    ctx2.lineWidth = (e.pressure&&e.pressure>0) ? Math.max(1.5, e.pressure*4) : 2.5;
+    ctx2.lineCap='round'; ctx2.lineJoin='round';
+    const p=getPointerPos(e);
     ctx2.beginPath(); ctx2.moveTo(_sigLastX,_sigLastY); ctx2.lineTo(p.x,p.y); ctx2.stroke();
     _sigLastX=p.x; _sigLastY=p.y;
-  };
-  canvas.onmouseup=canvas.ontouchend=()=>{ _sigDrawing=false; };
-  canvas.onmouseleave=()=>{ _sigDrawing=false; };
+  }
+  function onEnd(e){
+    _sigDrawing=false;
+    if(e&&e.pointerId!==undefined){ try{ canvas.releasePointerCapture(e.pointerId); }catch(_){} }
+  }
+
+  // Pointer Events (priorité — couvre souris + stylet + doigt sur Win11/iPad)
+  canvas.addEventListener('pointerdown',   onStart, {passive:false});
+  canvas.addEventListener('pointermove',   onMove,  {passive:false});
+  canvas.addEventListener('pointerup',     onEnd,   {passive:false});
+  canvas.addEventListener('pointercancel', onEnd,   {passive:false});
+  canvas.addEventListener('pointerleave',  onEnd,   {passive:false});
+
+  // Touch Events (fallback Android/iOS sans pointer events)
+  canvas.addEventListener('touchstart', onStart, {passive:false});
+  canvas.addEventListener('touchmove',  onMove,  {passive:false});
+  canvas.addEventListener('touchend',   onEnd,   {passive:false});
 }
 function clearSignature(){
   const canvas=document.getElementById('sigCanvas'); if(!canvas) return;
   const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
   const rect=canvas.getBoundingClientRect();
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,rect.width*2,150);
+  // Effacer en tenant compte du DPI (canvas.width est en pixels physiques)
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.restore();
   ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.5;
   ctx.beginPath(); ctx.moveTo(10,90); ctx.lineTo(rect.width-10,90); ctx.stroke();
 }
@@ -8934,7 +8981,7 @@ function _buildPermisHTML(key, form){
           </div>
           <canvas id="permcs-${safeName}-${f.id}"
             data-permit="${key}" data-field="${f.id}"
-            style="display:block;width:100%;height:90px;background:#fff;cursor:crosshair;touch-action:none"
+            style="display:block;width:100%;height:90px;background:#fff;cursor:crosshair;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;-ms-touch-action:none"
             width="700" height="90"></canvas>
           ${sigExist ? `<div style="padding:6px 12px;background:#f0fdf4;border-top:1px solid #bbf7d0;
             font-size:10px;color:var(--safe);font-weight:600">✓ Signature enregistrée</div>` : ''}
@@ -9003,30 +9050,56 @@ function _initPermisCanvases(){
     const existing = (_permisData[key]||{})[field+'_sig'];
     if(existing){ const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, W/dpr, 90); img.src = existing; }
 
-    function pos(e){ const r = canvas.getBoundingClientRect(); const src = e.touches?e.touches[0]:e; return {x:src.clientX-r.left, y:src.clientY-r.top}; }
-    canvas.onmousedown = canvas.ontouchstart = e => { e.preventDefault(); drawing=true; const p=pos(e); lx=p.x; ly=p.y; };
-    canvas.onmousemove = canvas.ontouchmove = e => {
+    function getPos(e){
+      const r=canvas.getBoundingClientRect();
+      if(e.pointerId!==undefined) return {x:e.clientX-r.left, y:e.clientY-r.top};
+      if(e.touches&&e.touches.length) return {x:e.touches[0].clientX-r.left, y:e.touches[0].clientY-r.top};
+      return {x:e.clientX-r.left, y:e.clientY-r.top};
+    }
+    function onPStart(e){
+      e.preventDefault(); drawing=true;
+      if(e.pointerId!==undefined){ try{ canvas.setPointerCapture(e.pointerId); }catch(_){} }
+      const p=getPos(e); lx=p.x; ly=p.y;
+    }
+    function onPMove(e){
       e.preventDefault(); if(!drawing) return;
-      const c = canvas.getContext('2d');
-      c.strokeStyle='#1a4d6e'; c.lineWidth=2.5; c.lineCap='round'; c.lineJoin='round';
-      const p=pos(e); c.beginPath(); c.moveTo(lx,ly); c.lineTo(p.x,p.y); c.stroke(); lx=p.x; ly=p.y;
-    };
-    canvas.onmouseup = canvas.ontouchend = () => {
-      drawing = false;
+      if(e.pointerType==='pen'&&e.pressure===0) return;
+      const c=canvas.getContext('2d');
+      c.strokeStyle='#1a4d6e';
+      c.lineWidth=(e.pressure&&e.pressure>0)?Math.max(1.5,e.pressure*4):2.5;
+      c.lineCap='round'; c.lineJoin='round';
+      const p=getPos(e); c.beginPath(); c.moveTo(lx,ly); c.lineTo(p.x,p.y); c.stroke(); lx=p.x; ly=p.y;
+    }
+    function onPEnd(e){
+      drawing=false;
+      if(e&&e.pointerId!==undefined){ try{ canvas.releasePointerCapture(e.pointerId); }catch(_){} }
       if(!_permisData[key]) _permisData[key]={};
       _permisData[key][field+'_sig'] = canvas.toDataURL('image/png');
-    };
-    canvas.onmouseleave = () => { drawing=false; };
+    }
+    // Pointer Events (Win11 stylet, doigt, souris)
+    canvas.addEventListener('pointerdown',   onPStart, {passive:false});
+    canvas.addEventListener('pointermove',   onPMove,  {passive:false});
+    canvas.addEventListener('pointerup',     onPEnd,   {passive:false});
+    canvas.addEventListener('pointercancel', onPEnd,   {passive:false});
+    canvas.addEventListener('pointerleave',  e=>{ drawing=false; }, {passive:true});
+    // Touch Events fallback
+    canvas.addEventListener('touchstart', onPStart, {passive:false});
+    canvas.addEventListener('touchmove',  onPMove,  {passive:false});
+    canvas.addEventListener('touchend',   onPEnd,   {passive:false});
   });
 }
 
 function _clearPermisCanvas(key, field){
   const safeName = key.replace(/[^a-z0-9]/gi,'_');
   const canvas = document.getElementById(`permcs-${safeName}-${field}`); if(!canvas) return;
-  const ctx = canvas.getContext('2d'); const dpr = window.devicePixelRatio||1;
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width/dpr, 90);
-  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.6;
+  const ctx = canvas.getContext('2d');
   const rect = canvas.getBoundingClientRect();
+  // Effacer en tenant compte du DPI réel
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.restore();
+  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.6;
   ctx.beginPath(); ctx.moveTo(12,72); ctx.lineTo(rect.width-12,72); ctx.stroke();
   if(_permisData[key]) delete _permisData[key][field+'_sig'];
 }
