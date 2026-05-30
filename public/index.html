@@ -1002,60 +1002,68 @@ textarea{resize:vertical;min-height:80px;}
 
       <!-- ── NOTIFICATIONS EMAIL ── -->
       <div id="admpane-email" class="adm-pane" style="display:none">
-        <div class="adm-section-title">📧 Notifications par email</div>
-        <div style="background:#fffbeb;border:1.5px solid var(--warn);border-radius:6px;padding:14px 18px;margin-bottom:20px;font-size:12.5px;color:#374151">
-          <strong>⚠️ Configuration serveur requise</strong> — Ces paramètres doivent être définis comme <strong>variables d'environnement</strong> sur votre serveur Railway (onglet Variables).
-          Les valeurs saisies ici ne sont <strong>pas enregistrées</strong> dans l'application ; elles sont uniquement à titre de référence.
+        <div class="adm-section-title">📧 Notifications par email — Brevo</div>
+        <div style="background:#e8f4fd;border:1.5px solid var(--accent2);border-radius:6px;padding:14px 18px;margin-bottom:16px;font-size:12.5px;color:#1a2533">
+          <strong>🚀 Pourquoi Brevo et pas Gmail direct ?</strong> Railway bloque les ports SMTP sortants (25, 465, 587).
+          Brevo envoie via son <strong>API HTTPS</strong> — aucun port bloqué, <strong>300 emails/jour gratuits</strong>, configuration en 3 minutes.
         </div>
         <div class="adm-card">
           <div class="adm-sub-title" style="margin-bottom:14px">Variables Railway à configurer</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
-            <div>
-              <label class="field-label">SMTP_HOST</label>
-              <input type="text" id="smtp-host-ref" placeholder="smtp.gmail.com" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb" readonly onfocus="this.removeAttribute('readonly')" value="${process.env.SMTP_HOST||''}"/>
-              <div style="font-size:10px;color:#6b7280;margin-top:3px">Gmail: smtp.gmail.com · Office365: smtp.office365.com · OVH: ssl0.ovh.net</div>
+            <div style="grid-column:span 2">
+              <label class="field-label">BREVO_API_KEY <span style="font-weight:400;font-size:10px;color:var(--accent)">Obligatoire</span></label>
+              <input type="text" placeholder="xkeysib-xxxxxxxxxxxxxxxxxxxxxxxx" style="padding:8px 12px;border:1.5px solid var(--accent2);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb"/>
+              <div style="font-size:10px;color:#6b7280;margin-top:3px">Votre clé API Brevo — brevo.com → Mon compte → SMTP &amp; API → Clés API → Générer une nouvelle clé</div>
             </div>
             <div>
-              <label class="field-label">SMTP_PORT</label>
-              <input type="text" id="smtp-port-ref" placeholder="587" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb" readonly onfocus="this.removeAttribute('readonly')"/>
-              <div style="font-size:10px;color:#6b7280;margin-top:3px">587 (STARTTLS recommandé) ou 465 (SSL)</div>
+              <label class="field-label">BREVO_SENDER <span style="font-weight:400;font-size:10px;color:var(--accent)">Obligatoire</span></label>
+              <input type="text" placeholder="noreply@nordchrome.com" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb"/>
+              <div style="font-size:10px;color:#6b7280;margin-top:3px">Adresse email expéditeur (doit être vérifiée dans Brevo)</div>
             </div>
             <div>
-              <label class="field-label">SMTP_USER</label>
-              <input type="text" id="smtp-user-ref" placeholder="noreply@nordchrome.fr" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb" readonly onfocus="this.removeAttribute('readonly')"/>
-              <div style="font-size:10px;color:#6b7280;margin-top:3px">Adresse email expéditeur</div>
+              <label class="field-label">BREVO_SENDER_NAME</label>
+              <input type="text" placeholder="EvalRisque NORDCHROME" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb"/>
+              <div style="font-size:10px;color:#6b7280;margin-top:3px">Optionnel — nom affiché dans la boîte mail du destinataire</div>
             </div>
-            <div>
-              <label class="field-label">SMTP_PASS</label>
-              <input type="password" id="smtp-pass-ref" placeholder="••••••••" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb" readonly onfocus="this.removeAttribute('readonly')"/>
-              <div style="font-size:10px;color:#6b7280;margin-top:3px">Mot de passe ou App Password (Gmail 2FA)</div>
-            </div>
-            <div>
-              <label class="field-label">SMTP_FROM</label>
-              <input type="text" id="smtp-from-ref" placeholder='"EvalRisque NORDCHROME" &lt;noreply@nordchrome.fr&gt;' style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb" readonly onfocus="this.removeAttribute('readonly')"/>
-              <div style="font-size:10px;color:#6b7280;margin-top:3px">Optionnel — affichage du nom expéditeur</div>
-            </div>
-            <div>
+            <div style="grid-column:span 2">
               <label class="field-label">APP_URL</label>
-              <input type="text" id="smtp-appurl-ref" placeholder="https://evalrisque.up.railway.app" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb" readonly onfocus="this.removeAttribute('readonly')" value="${window.location.origin}"/>
-              <div style="font-size:10px;color:#6b7280;margin-top:3px">URL publique de l'app (dans les emails pour le lien "Accéder")</div>
+              <input type="text" placeholder="https://evalrisque.up.railway.app" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-family:monospace;font-size:12px;background:#f9fafb"/>
+              <div style="font-size:10px;color:#6b7280;margin-top:3px">URL publique de l'app (bouton "Accéder" dans les emails)</div>
             </div>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button onclick="testSmtpConfig()" class="adm-btn-primary" style="background:var(--safe);border-color:var(--safe)">🔌 Tester la connexion SMTP</button>
+            <button onclick="testSmtpConfig()" class="adm-btn-primary" style="background:var(--safe);border-color:var(--safe)">🔌 Tester la connexion Brevo</button>
             <div id="smtp-test-result" style="font-size:12.5px"></div>
           </div>
         </div>
 
         <div class="adm-card" style="margin-top:18px">
-          <div class="adm-sub-title" style="margin-bottom:10px">Comment configurer sur Railway ?</div>
-          <ol style="font-size:12.5px;color:#374151;line-height:1.9;padding-left:18px;margin:0">
-            <li>Dans votre projet Railway, allez dans <strong>Settings → Variables</strong></li>
-            <li>Ajoutez chaque variable ci-dessus avec sa valeur</li>
-            <li>Pour Gmail : activez la <strong>validation en 2 étapes</strong> puis créez un <strong>App Password</strong> (compte Google → Sécurité → Mots de passe des applications)</li>
-            <li>Ajoutez aussi l'adresse email de chaque utilisateur dans <strong>Admin → Utilisateurs → Modifier</strong></li>
-            <li>Redémarrez le service Railway après avoir ajouté les variables</li>
-          </ol>
+          <div class="adm-sub-title" style="margin-bottom:12px">Comment configurer Brevo en 3 minutes ?</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">
+            <div style="background:#f0f4f8;border-radius:6px;padding:12px;text-align:center">
+              <div style="font-size:22px;margin-bottom:6px">1️⃣</div>
+              <div style="font-size:11px;font-weight:700;color:var(--ink);margin-bottom:4px">Créer un compte</div>
+              <div style="font-size:10px;color:#6b7280">brevo.com<br/>S'inscrire gratuit</div>
+            </div>
+            <div style="background:#f0f4f8;border-radius:6px;padding:12px;text-align:center">
+              <div style="font-size:22px;margin-bottom:6px">2️⃣</div>
+              <div style="font-size:11px;font-weight:700;color:var(--ink);margin-bottom:4px">Clé API</div>
+              <div style="font-size:10px;color:#6b7280">Mon compte → SMTP &amp; API → Clés API → Générer</div>
+            </div>
+            <div style="background:#f0f4f8;border-radius:6px;padding:12px;text-align:center">
+              <div style="font-size:22px;margin-bottom:6px">3️⃣</div>
+              <div style="font-size:11px;font-weight:700;color:var(--ink);margin-bottom:4px">Variables Railway</div>
+              <div style="font-size:10px;color:#6b7280">Settings → Variables → coller BREVO_API_KEY et BREVO_SENDER</div>
+            </div>
+            <div style="background:#f0f4f8;border-radius:6px;padding:12px;text-align:center">
+              <div style="font-size:22px;margin-bottom:6px">4️⃣</div>
+              <div style="font-size:11px;font-weight:700;color:var(--ink);margin-bottom:4px">Emails utilisateurs</div>
+              <div style="font-size:10px;color:#6b7280">Admin → Utilisateurs → Modifier → renseigner l'email</div>
+            </div>
+          </div>
+          <div style="background:#fffbeb;border-radius:4px;padding:10px 14px;font-size:11.5px;color:#92400e">
+            ⚠️ L'adresse <strong>BREVO_SENDER</strong> doit être vérifiée dans Brevo : Expéditeurs → Ajouter un expéditeur → cliquer le lien de confirmation reçu par email.
+          </div>
         </div>
 
         <div class="adm-card" style="margin-top:18px">
@@ -5048,7 +5056,7 @@ async function renderMyEvals(){
     const cfg={
       approved:{bg:'#f0fdf4',border:'var(--safe)',icon:'✅',label:'Rapport validé',sublabel:'Votre responsable a signé et approuvé ce rapport.',color:'var(--safe)'},
       rejected:{bg:'#fef2f2',border:'var(--danger)',icon:'❌',label:'Rapport refusé',sublabel:'Votre responsable a refusé ce rapport.',color:'var(--danger)'},
-      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d examen par votre responsable.',color:'var(--warn)'},
+      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d'examen par votre responsable.',color:'var(--warn)'},
     }[s]||{bg:'#f3f4f6',border:'#d1d5db',icon:'💾',label:'Brouillon local',sublabel:'Rapport non encore soumis.',color:'#6b7280'};
     return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 18px;background:${cfg.bg};border-top:1px solid ${cfg.border}">
       <span style="font-size:20px;flex-shrink:0">${cfg.icon}</span>
