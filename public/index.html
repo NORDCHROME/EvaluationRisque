@@ -340,6 +340,9 @@ textarea{resize:vertical;min-height:80px;}
       👤 <span id="headerUserName" style="font-weight:600;color:#fff"></span>
       <span id="headerRole" style="color:#8a9aaa;font-size:10px"></span>
     </span>
+    <button id="btnMyProfile" onclick="openMyProfile()" style="display:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;padding:6px 14px;border-radius:2px;cursor:pointer;border:none;background:rgba(45,122,79,.15);color:#4ade80;border:1px solid rgba(45,122,79,.3)">
+      👤 Mon Profil
+    </button>
     <button id="btnMyEvals" onclick="openMyEvals()" style="display:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;padding:6px 14px;border-radius:2px;cursor:pointer;border:none;background:rgba(91,63,181,.2);color:#b39ddb;border:1px solid rgba(91,63,181,.3);position:relative">
       📋 Mes Évaluations
       <span id="myEvalsBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:800;align-items:center;justify-content:center;line-height:1">0</span>
@@ -660,9 +663,105 @@ textarea{resize:vertical;min-height:80px;}
     <div class="btn-actions" style="margin-top:20px">
       <button class="btn btn-secondary" onclick="goStep(2)">← Modifier</button>
       <div id="signatureZone" style="display:flex;align-items:center;gap:12px;flex:1;justify-content:flex-end"></div>
+      <button class="btn btn-secondary" onclick="showScoringPreview()" style="background:#fff8f0;color:var(--warn);border:1.5px solid var(--warn)" title="Voir le scoring de criticité résiduelle">⚖️ Scoring</button>
       <button class="btn btn-secondary" onclick="generateDraftPDF()" style="background:var(--paper);color:var(--ink);border:1.5px solid var(--border)" title="Télécharger le rapport en brouillon (avant validation)">📄 Brouillon PDF</button>
       <button class="btn btn-pdf" onclick="handleGeneratePDF()">📄 Générer le rapport PDF</button>
     </div>
+  </div>
+</div>
+
+<!-- MON PROFIL MODAL -->
+<div id="myProfileModal" style="display:none;position:fixed;inset:0;background:rgba(10,18,26,.85);z-index:1004;align-items:center;justify-content:center;padding:24px 16px">
+  <div style="background:#fff;border-radius:10px;width:560px;max-width:100%;box-shadow:0 32px 80px rgba(0,0,0,.5);overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 28px;background:var(--ink)">
+      <div style="color:#fff;font-family:'DM Serif Display',serif;font-size:20px">👤 Mon Profil</div>
+      <button onclick="closeMyProfile()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:4px">✕</button>
+    </div>
+    <div style="padding:24px 28px;max-height:82vh;overflow-y:auto">
+
+      <!-- Infos utilisateur -->
+      <div style="background:#f5f8fa;border-radius:6px;padding:14px 18px;margin-bottom:20px;display:flex;gap:14px;align-items:center">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff;flex-shrink:0" id="profile-avatar">?</div>
+        <div>
+          <div id="profile-name" style="font-size:16px;font-weight:700;color:var(--ink)">—</div>
+          <div id="profile-role" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;margin-top:2px">—</div>
+          <div id="profile-site" style="font-size:12px;color:#9ca3af;margin-top:1px">—</div>
+        </div>
+      </div>
+
+      <!-- Préférence auto-signature -->
+      <div style="background:#f9fafb;border:1.5px solid var(--border);border-radius:6px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">Appliquer ma signature automatiquement</div>
+          <div style="font-size:11.5px;color:#6b7280;margin-top:3px">Si activé, votre signature enregistrée sera pré-remplie dans le modal de signature</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0">
+          <input type="checkbox" id="profile-auto-sig" onchange="saveAutoSigPref(this.checked)" style="opacity:0;width:0;height:0;position:absolute"/>
+          <span id="profile-auto-sig-track" onclick="document.getElementById('profile-auto-sig').click()" style="position:absolute;cursor:pointer;inset:0;background:#d1d5db;border-radius:24px;transition:.3s"></span>
+          <span id="profile-auto-sig-thumb" onclick="document.getElementById('profile-auto-sig').click()" style="position:absolute;left:3px;top:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.3)"></span>
+        </label>
+      </div>
+
+      <!-- Signature -->
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">✍️ Ma signature personnelle</div>
+
+      <!-- Aperçu signature sauvegardée -->
+      <div id="saved-sig-preview" style="display:none;border:1.5px solid var(--safe);border-radius:6px;padding:12px 16px;margin-bottom:14px;background:#f0fdf4">
+        <div style="font-size:10px;font-weight:700;color:var(--safe);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">✅ Signature enregistrée</div>
+        <img id="saved-sig-img" src="" style="max-height:70px;max-width:100%;border:1px solid var(--border);border-radius:3px;background:#fff;padding:4px"/>
+        <div style="margin-top:8px;display:flex;gap:8px">
+          <button onclick="useProfileSigInModal()" style="padding:5px 12px;background:var(--safe);color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:700;cursor:pointer">✓ Utiliser maintenant</button>
+          <button onclick="deleteProfileSig()" style="padding:5px 12px;background:none;border:1.5px solid var(--danger);color:var(--danger);border-radius:3px;font-size:11px;font-weight:700;cursor:pointer">✕ Supprimer</button>
+        </div>
+      </div>
+      <div id="no-saved-sig" style="font-size:12px;color:#9ca3af;font-style:italic;margin-bottom:14px">Aucune signature enregistrée — dessinez ou importez une image ci-dessous.</div>
+
+      <!-- Onglets : dessiner / importer -->
+      <div style="display:flex;border-bottom:2px solid var(--border);margin-bottom:16px">
+        <button id="prof-tab-draw" onclick="switchProfileSigTab('draw')" style="padding:8px 18px;border:none;border-bottom:2.5px solid var(--accent);margin-bottom:-2px;font-size:12px;font-weight:700;color:var(--accent);background:none;cursor:pointer">✏️ Dessiner</button>
+        <button id="prof-tab-upload" onclick="switchProfileSigTab('upload')" style="padding:8px 18px;border:none;border-bottom:2.5px solid transparent;margin-bottom:-2px;font-size:12px;font-weight:600;color:#6b7280;background:none;cursor:pointer">📁 Importer image</button>
+      </div>
+
+      <!-- Tab dessiner -->
+      <div id="prof-draw-tab">
+        <canvas id="profileSigCanvas" width="480" height="130"
+          style="border:1.5px solid var(--border);border-radius:6px;background:#fff;cursor:crosshair;touch-action:none;display:block;width:100%;margin-bottom:8px"></canvas>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="clearProfileCanvas()" style="padding:6px 14px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:12px;cursor:pointer;color:#6b7280">🗑 Effacer</button>
+          <button onclick="saveProfileSig('draw')" style="padding:6px 18px;background:var(--ink);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:700;cursor:pointer">💾 Enregistrer cette signature</button>
+        </div>
+      </div>
+
+      <!-- Tab upload -->
+      <div id="prof-upload-tab" style="display:none">
+        <div id="prof-drop-zone" onclick="document.getElementById('prof-file-input').click()"
+          style="border:2px dashed var(--border);border-radius:6px;padding:32px;text-align:center;cursor:pointer;color:#9ca3af;font-size:13px;transition:border-color .2s;margin-bottom:10px"
+          ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+          ondragleave="this.style.borderColor='var(--border)'"
+          ondrop="handleProfileSigDrop(event)">
+          <div style="font-size:28px;margin-bottom:8px">📁</div>
+          Cliquez ou déposez une image PNG/JPG de votre signature
+          <div style="font-size:10px;margin-top:4px;color:#d1d5db">Fond blanc recommandé · Max 2 Mo</div>
+        </div>
+        <input type="file" id="prof-file-input" accept="image/png,image/jpeg,image/gif" style="display:none" onchange="handleProfileSigFile(this.files[0])"/>
+        <div id="prof-upload-preview" style="display:none;margin-bottom:10px;text-align:center">
+          <img id="prof-upload-img" style="max-height:100px;max-width:100%;border:1.5px solid var(--border);border-radius:4px;background:#fff;padding:6px"/>
+        </div>
+        <button id="prof-upload-save" onclick="saveProfileSig('upload')" style="display:none;padding:6px 18px;background:var(--ink);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:700;cursor:pointer">💾 Enregistrer cette signature</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- SCORING PREVIEW MODAL -->
+<div id="scoringModal" style="display:none;position:fixed;inset:0;background:rgba(10,18,26,.85);z-index:1003;align-items:center;justify-content:center;padding:24px 16px">
+  <div style="background:#fff;border-radius:8px;width:700px;max-width:100%;box-shadow:0 32px 80px rgba(0,0,0,.5);max-height:85vh;display:flex;flex-direction:column">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:var(--ink);border-radius:8px 8px 0 0">
+      <span style="color:#fff;font-family:'DM Serif Display',serif;font-size:18px">⚖️ Scoring de criticité résiduelle</span>
+      <button onclick="closeScoringModal()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-size:18px;cursor:pointer;width:32px;height:32px;border-radius:4px">✕</button>
+    </div>
+    <div id="scoringModalBody" style="padding:20px 24px;overflow-y:auto;flex:1"></div>
   </div>
 </div>
 
@@ -794,6 +893,7 @@ textarea{resize:vertical;min-height:80px;}
       <button class="adm-tab" onclick="switchAdminTab('risks')" data-tab="risks">⚠️ Risques</button>
       <button class="adm-tab" onclick="switchAdminTab('keywords')" data-tab="keywords">🔍 Mots-clés IA</button>
       <button class="adm-tab" onclick="switchAdminTab('features')" data-tab="features">🧩 Fonctionnalités</button>
+      <button class="adm-tab" onclick="switchAdminTab('scoring')" data-tab="scoring">⚖️ Scoring</button>
       <button class="adm-tab" onclick="switchAdminTab('email')" data-tab="email">📧 Notifications</button>
       <button class="adm-tab" onclick="switchAdminTab('reports')" data-tab="reports">📊 Rapports</button>
       <button class="adm-tab" onclick="switchAdminTab('carnet')" data-tab="carnet">📒 Carnet</button>
@@ -999,6 +1099,130 @@ textarea{resize:vertical;min-height:80px;}
         </div>
       </div>
 
+
+
+      <!-- ── SCORING & EPI OBLIGATOIRES ── -->
+      <div id="admpane-scoring" class="adm-pane" style="display:none">
+        <div class="adm-section-title">⚖️ Scoring de criticité résiduelle</div>
+
+        <div style="background:#e8f0f5;border:1.5px solid var(--accent2);border-radius:6px;padding:14px 18px;margin-bottom:18px;font-size:12.5px;color:#1a2533">
+          <strong>Comment ça fonctionne :</strong> Score résiduel = Score brut du risque − points EPC − points EPI − (nb préventions × forfait).
+          Si un risque dépasse le seuil → validation manuelle obligatoire. Sinon → auto-validé instantanément.
+        </div>
+
+        <!-- Niveaux de risque -->
+        <div class="adm-card">
+          <div class="adm-sub-title" style="margin-bottom:14px">📊 Score brut par niveau de risque</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="scoring-levels">
+            <div style="border:1.5px solid #fde8e6;border-radius:6px;padding:14px;text-align:center">
+              <div style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:8px">🔴 Critique</div>
+              <input type="number" id="sc-high" min="1" max="500" style="width:80px;padding:8px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-size:18px;font-weight:700;color:var(--danger)"/>
+              <div style="font-size:10px;color:#9ca3af;margin-top:4px">points</div>
+            </div>
+            <div style="border:1.5px solid #fef3e6;border-radius:6px;padding:14px;text-align:center">
+              <div style="font-size:13px;font-weight:700;color:var(--warn);margin-bottom:8px">🟠 Modéré</div>
+              <input type="number" id="sc-medium" min="1" max="500" style="width:80px;padding:8px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-size:18px;font-weight:700;color:var(--warn)"/>
+              <div style="font-size:10px;color:#9ca3af;margin-top:4px">points</div>
+            </div>
+            <div style="border:1.5px solid #e6f4ec;border-radius:6px;padding:14px;text-align:center">
+              <div style="font-size:13px;font-weight:700;color:var(--safe);margin-bottom:8px">🟢 Faible</div>
+              <input type="number" id="sc-low" min="1" max="500" style="width:80px;padding:8px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-size:18px;font-weight:700;color:var(--safe)"/>
+              <div style="font-size:10px;color:#9ca3af;margin-top:4px">points</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seuil + forfait prévention -->
+        <div class="adm-card" style="margin-top:14px">
+          <div class="adm-sub-title" style="margin-bottom:14px">🎯 Seuil & forfaits</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+            <div style="border:2px solid var(--accent);border-radius:6px;padding:14px">
+              <label class="field-label" style="color:var(--accent)">Seuil de déclenchement ⚠️</label>
+              <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+                <input type="range" id="sc-threshold" min="0" max="200" step="5" style="flex:1" oninput="document.getElementById('sc-threshold-val').textContent=this.value"/>
+                <span id="sc-threshold-val" style="font-size:22px;font-weight:700;color:var(--accent);min-width:40px;text-align:center">40</span>
+              </div>
+              <div style="font-size:10px;color:#9ca3af;margin-top:4px">Si score résiduel ≥ cette valeur → validation manuelle obligatoire</div>
+            </div>
+            <div style="border:1.5px solid var(--border);border-radius:6px;padding:14px">
+              <label class="field-label">Forfait par mesure de prévention</label>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+                <input type="number" id="sc-prevention" min="0" max="50" style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:4px;text-align:center;font-size:16px;font-weight:700"/>
+                <span style="font-size:12px;color:#6b7280">points déduits<br/>par mesure renseignée</span>
+              </div>
+            </div>
+          </div>
+          <div style="margin-top:14px;text-align:right">
+            <button onclick="saveScoringConfig()" class="adm-btn-primary">💾 Enregistrer les paramètres</button>
+            <span id="scoring-save-result" style="font-size:12px;margin-left:10px"></span>
+          </div>
+        </div>
+
+        <!-- Scores EPI/EPC -->
+        <div class="adm-card" style="margin-top:14px">
+          <div class="adm-sub-title" style="margin-bottom:4px">🦺 Points déduits par EPI / EPC</div>
+          <div style="font-size:11.5px;color:#6b7280;margin-bottom:14px">Chaque EPI ou EPC sélectionné réduit d'autant le score résiduel du risque.</div>
+          <div id="epi-scores-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <input type="text" id="new-epi-name" placeholder="Nom EPI/EPC personnalisé…" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px"/>
+            <input type="number" id="new-epi-score" placeholder="pts" min="0" max="100" style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px;text-align:center"/>
+            <select id="new-epi-type" style="padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+              <option value="epi">EPI individuel</option>
+              <option value="epc">EPC collectif</option>
+            </select>
+            <button onclick="addCustomEPIScore()" class="adm-btn-primary" style="white-space:nowrap">+ Ajouter</button>
+          </div>
+        </div>
+
+        <!-- EPI obligatoires -->
+        <div class="adm-card" style="margin-top:14px">
+          <div class="adm-sub-title" style="margin-bottom:4px">🔒 EPI obligatoires</div>
+          <div style="font-size:11.5px;color:#6b7280;margin-bottom:14px">Pré-cochés automatiquement. Décochables avec justification obligatoire.</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <!-- Socle global -->
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink);margin-bottom:8px">🌐 Socle entreprise (tous risques)</div>
+              <div id="mandatory-global-list"></div>
+            </div>
+            <!-- Par type -->
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink);margin-bottom:8px">🎯 Par type d'intervention</div>
+              <div id="mandatory-type-list"></div>
+            </div>
+          </div>
+
+          <!-- Formulaire ajout EPI obligatoire -->
+          <div style="background:#f9fafb;border:1.5px solid var(--border);border-radius:6px;padding:12px 14px;margin-top:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--ink);margin-bottom:10px">➕ Ajouter un EPI obligatoire</div>
+            <div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end">
+              <div>
+                <label class="field-label" style="font-size:9px">Nom de l'EPI</label>
+                <input type="text" id="mand-name" placeholder="ex: Casque avec jugulaire EN 397" style="padding:8px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/>
+              </div>
+              <div>
+                <label class="field-label" style="font-size:9px">Points déduits</label>
+                <input type="number" id="mand-score" value="10" min="0" max="100" style="padding:8px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px;text-align:center"/>
+              </div>
+              <div>
+                <label class="field-label" style="font-size:9px">Type</label>
+                <select id="mand-type" onchange="document.getElementById('mand-itype-wrap').style.display=this.value==='type_specific'?'block':'none'" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px">
+                  <option value="global">Tous risques</option>
+                  <option value="type_specific">Type spécifique</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label" style="font-size:9px">&nbsp;</label>
+                <button onclick="addMandatoryEPI()" class="adm-btn-primary" style="padding:9px 16px;font-size:12px;white-space:nowrap">💾 Ajouter</button>
+              </div>
+            </div>
+            <div id="mand-itype-wrap" style="display:none;margin-top:8px">
+              <label class="field-label" style="font-size:9px">Type d'intervention concerné</label>
+              <input type="text" id="mand-itype" placeholder="ex: Travaux en hauteur, Chimique…" style="padding:8px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ── NOTIFICATIONS EMAIL ── -->
       <div id="admpane-email" class="adm-pane" style="display:none">
@@ -1689,6 +1913,8 @@ function initUI(){
   // Bouton "Mes Évaluations" visible pour tous
   const btnMyEvals=document.getElementById('btnMyEvals');
   if(btnMyEvals) btnMyEvals.style.display='inline-flex';
+  const btnMyProfile=document.getElementById('btnMyProfile');
+  if(btnMyProfile) btnMyProfile.style.display='inline-flex';
   refreshMyEvalsBadge();
   // Appliquer les surcharges locales de mots-clés
   _applyKwOverrides();
@@ -1891,8 +2117,21 @@ function showRiskDetail(id){
   document.querySelectorAll('.risk-row').forEach(el=>{ el.classList.remove('active-detail'); if(el.id==='row-'+id) el.classList.add('active-detail'); });
   const es=getEPI(id);
   const sevLabel=r.sev==='high'?'Critique':r.sev==='medium'?'Modéré':'Faible';
-  const colItems=(EPI_COL[r.interventionType]||[]).map(item=>`<div class="epi-checkitem ${es.collectif.has(item)?'checked-c':''}" onclick="toggleEPI('${id}','c',this,'${escAttr(item)}')"><div class="epi-chkbox">${es.collectif.has(item)?'✓':''}</div><span>${item}</span></div>`).join('');
-  const indItems=(EPI_IND[r.interventionType]||[]).map(item=>`<div class="epi-checkitem ${es.individuel.has(item)?'checked-i':''}" onclick="toggleEPI('${id}','i',this,'${escAttr(item)}')"><div class="epi-chkbox">${es.individuel.has(item)?'✓':''}</div><span>${item}</span></div>`).join('');
+  // Apply mandatory EPI automatically
+  applyMandatoryEPI(id, r.interventionType);
+  const isMandatory=(name)=>_mandatoryList.some(m=>{
+    const applies=m.type==='global'||(r.interventionType||'').toLowerCase().includes((m.interventionType||'').toLowerCase());
+    return applies&&name.toLowerCase().includes(m.name.toLowerCase());
+  });
+  const colItems=(EPI_COL[r.interventionType]||[]).map(item=>{
+    const checked=es.collectif.has(item);
+    return `<div class="epi-checkitem ${checked?'checked-c':''}" onclick="toggleEPI('${id}','c',this,'${escAttr(item)}')" style="${isMandatory(item)?'border-left:3px solid var(--safe);':''}"><div class="epi-chkbox">${checked?'✓':''}</div><span>${item}</span>${isMandatory(item)?'<span style="font-size:9px;background:#e6f4ec;color:var(--safe);padding:1px 5px;border-radius:8px;margin-left:auto">🔒</span>':''}</div>`;
+  }).join('');
+  const indItems=(EPI_IND[r.interventionType]||[]).map(item=>{
+    const checked=es.individuel.has(item);
+    const mand=isMandatory(item);
+    return `<div class="epi-checkitem ${checked?'checked-i':''}" onclick="${mand?`promptMandatoryDerogation('${id}','i',this,'${escAttr(item)}')`:`toggleEPI('${id}','i',this,'${escAttr(item)}')`}" style="${mand?'border-left:3px solid var(--safe);':''}"><div class="epi-chkbox">${checked?'✓':''}</div><span>${item}</span>${mand?'<span style="font-size:9px;background:#e6f4ec;color:var(--safe);padding:1px 5px;border-radius:8px;margin-left:auto">🔒 Obligatoire</span>':''}</div>`;
+  }).join('');
   const tagsC=es.customC.map((t,i)=>`<span class="epi-tag tag-c">${t}<span class="tag-del" onclick="removeCustomEPI('${id}','c',${i})">×</span></span>`).join('');
   const tagsI=es.customI.map((t,i)=>`<span class="epi-tag tag-i">${t}<span class="tag-del" onclick="removeCustomEPI('${id}','i',${i})">×</span></span>`).join('');
   document.getElementById('riskPanelRight').innerHTML=`<div class="rpanel-content">
@@ -2970,6 +3209,7 @@ function switchAdminTab(tab){
   if(tab==='keywords') renderAdminKeywords();
   if(tab==='features') renderAdminFeatures();
   if(tab==='reports') renderAdminReports();
+  if(tab==='scoring') loadScoringAdmin();
   if(tab==='carnet') renderAdminCarnet();
 }
 async function saveCompanyInfo(){
@@ -5055,6 +5295,7 @@ async function renderMyEvals(){
   function statusBlock(s,comment){
     const cfg={
       approved:{bg:'#f0fdf4',border:'var(--safe)',icon:'✅',label:'Rapport validé',sublabel:'Votre responsable a signé et approuvé ce rapport.',color:'var(--safe)'},
+      auto_validated:{bg:'#f0fdf4',border:'var(--safe)',icon:'🤖',label:'Validé automatiquement',sublabel:'Tous les risques sont correctement protégés — validation manuelle non requise.',color:'var(--safe)'},
       rejected:{bg:'#fef2f2',border:'var(--danger)',icon:'❌',label:'Rapport refusé',sublabel:'Votre responsable a refusé ce rapport.',color:'var(--danger)'},
       pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d examen par votre responsable.',color:'var(--warn)'},
     }[s]||{bg:'#f3f4f6',border:'#d1d5db',icon:'💾',label:'Brouillon local',sublabel:'Rapport non encore soumis.',color:'#6b7280'};
@@ -5379,6 +5620,526 @@ async function testSmtpConfig(){
     if(result) result.innerHTML=`<span style="color:var(--danger)">❌ Erreur : ${e.message||'Variables SMTP manquantes ou serveur inaccessible'}</span>`;
   }
   btn.disabled=false; btn.textContent='🔌 Tester la connexion SMTP';
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SCORING ADMIN — chargement, affichage, sauvegarde
+// ══════════════════════════════════════════════════════════════════════════
+let _scoringCfg = null;
+let _mandatoryList = [];
+let _epiScores = {};
+
+async function loadScoringAdmin(){
+  try {
+    const r1 = await api('GET','/scoring/config');
+    if(r1){ _scoringCfg=r1.cfg; _epiScores=r1.epiScores||{}; }
+    const r2 = await api('GET','/scoring/mandatory');
+    if(r2) _mandatoryList=r2;
+    renderScoringAdmin();
+  } catch(e){ console.error('loadScoringAdmin',e); }
+}
+
+function renderScoringAdmin(){
+  const cfg = _scoringCfg||{score_high:100,score_medium:50,score_low:20,score_prevention:10,threshold:40};
+  // Level inputs
+  const high=document.getElementById('sc-high'); if(high) high.value=cfg.score_high||100;
+  const med=document.getElementById('sc-medium'); if(med) med.value=cfg.score_medium||50;
+  const low=document.getElementById('sc-low'); if(low) low.value=cfg.score_low||20;
+  const prev=document.getElementById('sc-prevention'); if(prev) prev.value=cfg.score_prevention||10;
+  const thr=document.getElementById('sc-threshold'); if(thr){ thr.value=cfg.threshold||40; document.getElementById('sc-threshold-val').textContent=cfg.threshold||40; }
+
+  // EPI/EPC scores list
+  renderEPIScoresList();
+
+  // Mandatory EPI
+  renderMandatoryLists();
+}
+
+function renderEPIScoresList(){
+  const container=document.getElementById('epi-scores-list');
+  if(!container) return;
+
+  // Collect all known EPI/EPC names from EPI_COL and EPI_IND
+  const allItems={};
+  Object.values(EPI_COL||{}).forEach(arr=>arr.forEach(item=>{ allItems['epc_'+slugifyFE(item)]={name:item,type:'EPC',key:'epc_'+slugifyFE(item)}; }));
+  Object.values(EPI_IND||{}).forEach(arr=>arr.forEach(item=>{ allItems['epi_'+slugifyFE(item)]={name:item,type:'EPI',key:'epi_'+slugifyFE(item)}; }));
+  // Also add custom ones from _epiScores
+  Object.entries(_epiScores).forEach(([k,v])=>{
+    if(!allItems[k]){ const nm=k.replace(/^(epi|epc)_/,'').replace(/-/g,' '); allItems[k]={name:nm,type:k.startsWith('epc_')?'EPC':'EPI',key:k,custom:true}; }
+  });
+
+  const items=Object.values(allItems).sort((a,b)=>a.type.localeCompare(b.type)||a.name.localeCompare(b.name));
+  container.innerHTML=items.map(item=>{
+    const score=_epiScores[item.key]||0;
+    const typeColor=item.type==='EPC'?'#5b3fb5':'#0e7490';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:${item.custom?'#fffbeb':'#f9fafb'};border:1px solid var(--cream);border-radius:4px">
+      <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:${typeColor}20;color:${typeColor};min-width:28px;text-align:center">${item.type}</span>
+      <span style="flex:1;font-size:11.5px;color:#374151">${item.name}</span>
+      <input type="number" value="${score}" min="0" max="100" data-key="${item.key}"
+        onchange="updateEPIScore('${item.key}',+this.value)"
+        style="width:58px;padding:4px 6px;border:1.5px solid var(--border);border-radius:3px;text-align:center;font-size:12px;font-weight:700"/>
+      <span style="font-size:10px;color:#9ca3af">pts</span>
+      ${item.custom?`<button onclick="deleteEPIScore('${item.key}')" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 4px;font-size:12px" title="Supprimer">✕</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function updateEPIScore(key, value){
+  try{
+    await api('PUT','/scoring/config',{key,value});
+    _epiScores[key]=value;
+  }catch(e){ showToast('Erreur sauvegarde EPI score','error'); }
+}
+
+async function deleteEPIScore(key){
+  if(!confirm('Supprimer ce score personnalisé ?')) return;
+  // Set to 0 (cannot delete ScoringConfig docs easily, set value=0)
+  await updateEPIScore(key,0);
+  delete _epiScores[key];
+  renderEPIScoresList();
+}
+
+async function addCustomEPIScore(){
+  const name=document.getElementById('new-epi-name')?.value.trim();
+  const score=parseInt(document.getElementById('new-epi-score')?.value)||0;
+  const type=document.getElementById('new-epi-type')?.value||'epi';
+  if(!name){showToast('Nom requis','error');return;}
+  const key=type+'_'+slugifyFE(name);
+  await api('PUT','/scoring/config',{key,value:score});
+  _epiScores[key]=score;
+  document.getElementById('new-epi-name').value='';
+  document.getElementById('new-epi-score').value='';
+  renderEPIScoresList();
+  showToast('EPI/EPC ajouté','success');
+}
+
+async function saveScoringConfig(){
+  const cfg={
+    score_high:   +document.getElementById('sc-high')?.value||100,
+    score_medium: +document.getElementById('sc-medium')?.value||50,
+    score_low:    +document.getElementById('sc-low')?.value||20,
+    score_prevention: +document.getElementById('sc-prevention')?.value||10,
+    threshold:    +document.getElementById('sc-threshold')?.value||40,
+  };
+  try{
+    await api('PUT','/scoring/config/bulk',{updates:Object.entries(cfg).map(([key,value])=>({key,value}))});
+    _scoringCfg={..._scoringCfg,...cfg};
+    const el=document.getElementById('scoring-save-result');
+    if(el){el.innerHTML='<span style="color:var(--safe)">✅ Sauvegardé</span>';setTimeout(()=>el.innerHTML='',3000);}
+    showToast('Configuration scoring sauvegardée','success');
+  }catch(e){showToast('Erreur sauvegarde','error');}
+}
+
+// ── Mandatory EPI ──────────────────────────────────────────────────────────
+function renderMandatoryLists(){
+  const globalList=document.getElementById('mandatory-global-list');
+  const typeList=document.getElementById('mandatory-type-list');
+  if(!globalList||!typeList) return;
+
+  const globals=_mandatoryList.filter(m=>m.type==='global');
+  const typed=_mandatoryList.filter(m=>m.type==='type_specific');
+
+  const renderItem=(m)=>`<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:#f9fafb;border:1px solid var(--cream);border-radius:4px;margin-bottom:5px">
+    <span style="font-size:9px;font-weight:700;background:#f0fdf4;color:var(--safe);padding:1px 6px;border-radius:10px">🔒 ${m.type==='global'?'TOUS':'TYPE'}</span>
+    <span style="flex:1;font-size:11.5px">${m.name}${m.interventionType?` <span style="color:#9ca3af;font-size:10px">(${m.interventionType})</span>`:''}</span>
+    <span style="font-size:11px;font-weight:700;color:var(--safe)">−${m.scoreDeduction}pts</span>
+    <button onclick="deleteMandatoryEPI('${m._id}')" style="background:none;border:none;color:#d1d5db;cursor:pointer;padding:0 2px;font-size:12px" title="Supprimer">✕</button>
+  </div>`;
+
+  globalList.innerHTML=globals.length?globals.map(renderItem).join(''):'<div style="font-size:11px;color:#9ca3af;font-style:italic;padding:8px">Aucun EPI socle défini</div>';
+  typeList.innerHTML=typed.length?typed.map(renderItem).join(''):'<div style="font-size:11px;color:#9ca3af;font-style:italic;padding:8px">Aucune règle par type définie</div>';
+}
+
+async function addMandatoryEPI(){
+  const name=document.getElementById('mand-name')?.value.trim();
+  const score=parseInt(document.getElementById('mand-score')?.value)||10;
+  const type=document.getElementById('mand-type')?.value||'global';
+  const itype=document.getElementById('mand-itype')?.value.trim()||'';
+  if(!name){showToast('Nom EPI requis','error');return;}
+  if(type==='type_specific'&&!itype){showToast('Type d'intervention requis','error');return;}
+  try{
+    const doc=await api('POST','/scoring/mandatory',{name,scoreDeduction:score,type,interventionType:itype,order:_mandatoryList.length});
+    if(doc&&doc._id){
+      _mandatoryList.push(doc);
+      document.getElementById('mand-name').value='';
+      document.getElementById('mand-score').value='10';
+      document.getElementById('mand-type').value='global';
+      document.getElementById('mand-itype').value='';
+      document.getElementById('mand-itype-wrap').style.display='none';
+      renderMandatoryLists();
+      showToast('EPI obligatoire ajouté','success');
+    }
+  }catch(e){showToast('Erreur ajout EPI obligatoire','error');}
+}
+
+async function deleteMandatoryEPI(id){
+  if(!confirm('Supprimer cet EPI obligatoire ?')) return;
+  try{
+    await api('DELETE','/scoring/mandatory/'+id);
+    _mandatoryList=_mandatoryList.filter(m=>m._id!==id);
+    renderMandatoryLists();
+    showToast('EPI supprimé','success');
+  }catch(e){showToast('Erreur suppression','error');}
+}
+
+// ── Scoring preview (modal récapitulatif) ──────────────────────────────────
+async function showScoringPreview(){
+  document.getElementById('scoringModal').style.display='flex';
+  const body=document.getElementById('scoringModalBody');
+  body.innerHTML='<div style="text-align:center;padding:32px;color:#9ca3af">Calcul en cours…</div>';
+
+  const selected=getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
+  const evalSnapshot={
+    risks: selected.map(r=>{
+      const es=getEPI(r.id);
+      return {id:r.id,name:r.name,sev:r.sev,type:r.interventionType,
+        solutions:r.solutions||[],epc:[...es.collectif,...es.customC],epi:[...es.individuel,...es.customI]};
+    }),
+    derogations: appState.derogations||{},
+  };
+
+  try{
+    const result=await api('POST','/scoring/simulate',{evalSnapshot});
+    if(!result){body.innerHTML='<div style="color:var(--danger)">Erreur de calcul</div>';return;}
+
+    const thr=result.cfg?.threshold||40;
+    const needsValidation=result.requiresValidation;
+
+    let html=`<div style="margin-bottom:16px;padding:12px 16px;border-radius:6px;display:flex;align-items:center;gap:10px;${needsValidation?'background:#fef3e6;border:1.5px solid var(--warn)':'background:#e6f4ec;border:1.5px solid var(--safe)'}">
+      <span style="font-size:22px">${needsValidation?'⚠️':'✅'}</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:${needsValidation?'var(--warn)':'var(--safe)'}">${needsValidation?'Validation manuelle requise':'Validation automatique possible'}</div>
+        <div style="font-size:11.5px;color:#4b5563">Seuil configuré : ${thr} pts — Score max : ${result.maxScore||0} pts</div>
+      </div>
+    </div>`;
+
+    html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink);margin-bottom:10px">Détail par risque</div>';
+
+    (result.scores||[]).forEach(s=>{
+      const over=s.overThreshold;
+      html+=`<div style="border:1.5px solid ${over?'var(--warn)':'var(--border)'};border-radius:6px;margin-bottom:10px;overflow:hidden">
+        <div style="padding:8px 14px;background:${s.sev==='high'?'#fde8e6':s.sev==='medium'?'#fef3e6':'#e6f4ec'};display:flex;align-items:center;gap:8px">
+          <strong style="font-size:12.5px;flex:1">${s.riskName}</strong>
+          <span style="font-size:20px;font-weight:800;color:${over?'var(--danger)':'var(--safe)'}">${s.residuel}pts</span>
+          ${over?'<span style="font-size:10px;font-weight:700;background:var(--warn);color:#fff;padding:2px 8px;border-radius:10px">⚠️ DÉPASSE SEUIL</span>':'<span style="font-size:10px;font-weight:700;background:var(--safe);color:#fff;padding:2px 8px;border-radius:10px">✅ OK</span>'}
+        </div>
+        <div style="padding:10px 14px;background:#fff;font-size:11.5px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <span style="color:#9ca3af">Brut : <strong style="color:var(--ink)">${s.brut}pts</strong></span>
+            <span style="color:#9ca3af">−</span>
+            <span style="color:#9ca3af">Déductions : <strong style="color:var(--safe)">−${s.deductions}pts</strong></span>
+            <span style="color:#9ca3af">=</span>
+            <span style="font-weight:700;color:${over?'var(--danger)':'var(--ink)'}">Résiduel : ${s.residuel}pts</span>
+          </div>
+          ${s.detail.epc.length||s.detail.epi.length||s.detail.solutions.length?`<div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:4px">
+            ${s.detail.epc.map(e=>`<span style="font-size:10px;padding:1px 7px;background:#ede9fe;color:#5b3fb5;border-radius:10px">EPC: ${e}</span>`).join('')}
+            ${s.detail.epi.map(e=>`<span style="font-size:10px;padding:1px 7px;background:#e0f2fe;color:#0e7490;border-radius:10px">EPI: ${e}</span>`).join('')}
+            ${s.detail.solutions.map(s=>`<span style="font-size:10px;padding:1px 7px;background:#f0fdf4;color:var(--safe);border-radius:10px">→ ${s}</span>`).join('')}
+          </div>`:'<div style="margin-top:5px;font-size:11px;color:#9ca3af;font-style:italic">Aucune protection renseignée</div>'}
+        </div>
+      </div>`;
+    });
+
+    if(!result.scores?.length) html+='<div style="text-align:center;color:#9ca3af;font-style:italic;padding:24px">Aucun risque sélectionné</div>';
+    body.innerHTML=html;
+  }catch(e){body.innerHTML=`<div style="color:var(--danger)">Erreur: ${e.message}</div>`;}
+}
+
+function closeScoringModal(){
+  document.getElementById('scoringModal').style.display='none';
+}
+
+// ── Mandatory EPI auto-application in step 3 ──────────────────────────────
+async function applyMandatoryEPI(riskId, interventionType){
+  if(!_mandatoryList.length){
+    try{ const r=await api('GET','/scoring/mandatory'); if(r) _mandatoryList=r; }catch(e){}
+  }
+  const es=getEPI(riskId);
+  _mandatoryList.forEach(mEPI=>{
+    const applies=mEPI.type==='global'||
+      (interventionType||'').toLowerCase().includes((mEPI.interventionType||'').toLowerCase());
+    if(!applies) return;
+    // Add to EPI individuel if not already present
+    const alreadyIn=[...es.individuel,...es.customI].some(e=>e.toLowerCase().includes(mEPI.name.toLowerCase()));
+    if(!alreadyIn){ es.individuel.add(mEPI.name); }
+  });
+}
+
+function slugifyFE(str){
+  return (str||'').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+}
+
+// Hook into switchAdminTab to load scoring data
+const _origSwitchAdminTab=typeof switchAdminTab==='function'?switchAdminTab:null;
+
+// ── EPI obligatoire décoché — demande justification ──────────────────────────
+function promptMandatoryDerogation(riskId, type, el, itemName){
+  const es=getEPI(riskId);
+  const set=type==='c'?es.collectif:es.individuel;
+  if(set.has(itemName)){
+    // Veut décocher — demander justification
+    const justif=prompt(`⚠️ "${itemName}" est un EPI obligatoire.\n\nVeuillez saisir une justification pour le décocher :`);
+    if(!justif||!justif.trim()){
+      showToast('Justification requise pour décocher un EPI obligatoire','error');
+      return;
+    }
+    // Stocker la dérogation
+    if(!appState.derogations) appState.derogations={};
+    const key='mandatory_'+slugifyFE(itemName)+'_'+riskId;
+    appState.derogations[key]={active:true,justification:justif.trim(),epiName:itemName};
+    set.delete(itemName);
+    el.classList.remove('checked-i','checked-c');
+    el.querySelector('.epi-chkbox').textContent='';
+    el.style.opacity='0.5';
+    showToast('EPI décoché avec justification enregistrée','success');
+  } else {
+    // Re-cocher — annuler la dérogation
+    set.add(itemName);
+    const key='mandatory_'+slugifyFE(itemName)+'_'+riskId;
+    if(appState.derogations) delete appState.derogations[key];
+    el.classList.add('checked-i');
+    el.querySelector('.epi-chkbox').textContent='✓';
+    el.style.opacity='1';
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// MON PROFIL — signature personnelle
+// ══════════════════════════════════════════════════════════════════════════
+let _profileSigDrawing=false, _profileSigLastX=0, _profileSigLastY=0;
+let _profileUploadDataURL=null;
+
+function openMyProfile(){
+  document.getElementById('myProfileModal').style.display='flex';
+  renderProfileInfo();
+  initProfileCanvas();
+}
+function closeMyProfile(){
+  document.getElementById('myProfileModal').style.display='none';
+}
+
+function renderProfileInfo(){
+  if(!currentUser) return;
+  const av=document.getElementById('profile-avatar');
+  const nm=document.getElementById('profile-name');
+  const rl=document.getElementById('profile-role');
+  const si=document.getElementById('profile-site');
+  if(av) av.textContent=(currentUser.name||'?')[0].toUpperCase();
+  if(nm) nm.textContent=currentUser.name||'—';
+  if(rl){
+    const labels={'admin':'Administrateur','user':'Intervenant','viewer':'Responsable'};
+    rl.textContent=labels[currentUser.role]||currentUser.role||'—';
+  }
+  if(si) si.textContent=currentUser.site||'Aucun site renseigné';
+
+  // Toggle auto-sig
+  const chk=document.getElementById('profile-auto-sig');
+  const track=document.getElementById('profile-auto-sig-track');
+  const thumb=document.getElementById('profile-auto-sig-thumb');
+  if(chk){
+    chk.checked=!!currentUser.autoUseSignature;
+    updateToggleUI(!!currentUser.autoUseSignature,track,thumb);
+  }
+
+  // Signature enregistrée
+  renderSavedSigPreview();
+}
+
+function updateToggleUI(on, track, thumb){
+  if(!track||!thumb) return;
+  track.style.background=on?'var(--safe)':'#d1d5db';
+  thumb.style.left=on?'23px':'3px';
+}
+
+function renderSavedSigPreview(){
+  const hasSig=!!(currentUser&&currentUser.savedSignature);
+  document.getElementById('saved-sig-preview').style.display=hasSig?'block':'none';
+  document.getElementById('no-saved-sig').style.display=hasSig?'none':'block';
+  if(hasSig){
+    const img=document.getElementById('saved-sig-img');
+    if(img) img.src=currentUser.savedSignature;
+  }
+}
+
+async function saveAutoSigPref(val){
+  const track=document.getElementById('profile-auto-sig-track');
+  const thumb=document.getElementById('profile-auto-sig-thumb');
+  updateToggleUI(val,track,thumb);
+  try{
+    const updated=await api('PUT','/users/me/signature',{autoUseSignature:val});
+    if(updated) currentUser.autoUseSignature=updated.autoUseSignature;
+    showToast(val?'Signature automatique activée':'Signature automatique désactivée','success');
+  }catch(e){showToast('Erreur sauvegarde préférence','error');}
+}
+
+// ── Canvas dessin ─────────────────────────────────────────────────────────────
+function initProfileCanvas(){
+  const canvas=document.getElementById('profileSigCanvas'); if(!canvas) return;
+  clearProfileCanvas();
+  function getPos(e){
+    const r=canvas.getBoundingClientRect(), src=e.touches?e.touches[0]:e;
+    return {x:(src.clientX-r.left)*(canvas.width/r.width), y:(src.clientY-r.top)*(canvas.height/r.height)};
+  }
+  canvas.onmousedown=canvas.ontouchstart=(e)=>{
+    e.preventDefault(); _profileSigDrawing=true;
+    const p=getPos(e); _profileSigLastX=p.x; _profileSigLastY=p.y;
+  };
+  canvas.onmousemove=canvas.ontouchmove=(e)=>{
+    e.preventDefault(); if(!_profileSigDrawing) return;
+    const ctx=canvas.getContext('2d');
+    ctx.strokeStyle='#1a4d6e'; ctx.lineWidth=2.5; ctx.lineCap='round'; ctx.lineJoin='round';
+    const p=getPos(e);
+    ctx.beginPath(); ctx.moveTo(_profileSigLastX,_profileSigLastY); ctx.lineTo(p.x,p.y); ctx.stroke();
+    _profileSigLastX=p.x; _profileSigLastY=p.y;
+  };
+  canvas.onmouseup=canvas.ontouchend=()=>{ _profileSigDrawing=false; };
+  canvas.onmouseleave=()=>{ _profileSigDrawing=false; };
+}
+
+function clearProfileCanvas(){
+  const canvas=document.getElementById('profileSigCanvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.beginPath(); ctx.moveTo(16,95); ctx.lineTo(canvas.width-16,95);
+  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.8; ctx.stroke();
+  ctx.fillStyle='#e5e7eb'; ctx.font='11px sans-serif'; ctx.fillText('Signez ici',canvas.width/2-25,canvas.height-8);
+}
+
+// ── Upload image ──────────────────────────────────────────────────────────────
+function switchProfileSigTab(tab){
+  document.getElementById('prof-draw-tab').style.display=tab==='draw'?'block':'none';
+  document.getElementById('prof-upload-tab').style.display=tab==='upload'?'block':'none';
+  document.getElementById('prof-tab-draw').style.cssText=tab==='draw'
+    ?'padding:8px 18px;border:none;border-bottom:2.5px solid var(--accent);margin-bottom:-2px;font-size:12px;font-weight:700;color:var(--accent);background:none;cursor:pointer'
+    :'padding:8px 18px;border:none;border-bottom:2.5px solid transparent;margin-bottom:-2px;font-size:12px;font-weight:600;color:#6b7280;background:none;cursor:pointer';
+  document.getElementById('prof-tab-upload').style.cssText=tab==='upload'
+    ?'padding:8px 18px;border:none;border-bottom:2.5px solid var(--accent);margin-bottom:-2px;font-size:12px;font-weight:700;color:var(--accent);background:none;cursor:pointer'
+    :'padding:8px 18px;border:none;border-bottom:2.5px solid transparent;margin-bottom:-2px;font-size:12px;font-weight:600;color:#6b7280;background:none;cursor:pointer';
+}
+
+function handleProfileSigFile(file){
+  if(!file) return;
+  if(file.size>2*1024*1024){showToast('Image trop lourde (max 2 Mo)','error');return;}
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    _profileUploadDataURL=e.target.result;
+    const img=document.getElementById('prof-upload-img');
+    const prev=document.getElementById('prof-upload-preview');
+    const btn=document.getElementById('prof-upload-save');
+    if(img) img.src=_profileUploadDataURL;
+    if(prev) prev.style.display='block';
+    if(btn) btn.style.display='inline-block';
+    document.getElementById('prof-drop-zone').style.borderColor='var(--safe)';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleProfileSigDrop(e){
+  e.preventDefault();
+  const file=e.dataTransfer.files[0];
+  if(file&&file.type.startsWith('image/')) handleProfileSigFile(file);
+}
+
+// ── Sauvegarder la signature ──────────────────────────────────────────────────
+async function saveProfileSig(source){
+  let dataURL='';
+  if(source==='draw'){
+    const canvas=document.getElementById('profileSigCanvas'); if(!canvas) return;
+    // Vérifier qu'il y a un dessin
+    const ctx=canvas.getContext('2d');
+    const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+    let hasDrawing=false;
+    for(let i=0;i<data.length;i+=4){ if(data[i]<240&&data[i+1]<240||data[i+2]<240){hasDrawing=true;break;} }
+    if(!hasDrawing){showToast('Tracez votre signature d'abord','error');return;}
+    dataURL=canvas.toDataURL('image/png');
+  } else {
+    if(!_profileUploadDataURL){showToast('Importez une image d'abord','error');return;}
+    dataURL=_profileUploadDataURL;
+  }
+
+  try{
+    const updated=await api('PUT','/users/me/signature',{savedSignature:dataURL});
+    if(updated){
+      currentUser.savedSignature=updated.savedSignature;
+      renderSavedSigPreview();
+      if(source==='draw') clearProfileCanvas();
+      else { _profileUploadDataURL=null; document.getElementById('prof-upload-preview').style.display='none'; document.getElementById('prof-upload-save').style.display='none'; document.getElementById('prof-drop-zone').style.borderColor='var(--border)'; }
+      showToast('Signature enregistrée ✅','success');
+    }
+  }catch(e){showToast('Erreur sauvegarde signature','error');}
+}
+
+async function deleteProfileSig(){
+  if(!confirm('Supprimer votre signature enregistrée ?')) return;
+  try{
+    const updated=await api('DELETE','/users/me/signature');
+    if(updated){
+      currentUser.savedSignature='';
+      currentUser.autoUseSignature=false;
+      renderSavedSigPreview();
+      const chk=document.getElementById('profile-auto-sig');
+      if(chk) chk.checked=false;
+      updateToggleUI(false, document.getElementById('profile-auto-sig-track'), document.getElementById('profile-auto-sig-thumb'));
+      showToast('Signature supprimée','success');
+    }
+  }catch(e){showToast('Erreur suppression','error');}
+}
+
+// ── Utiliser la signature du profil dans un modal ouvert ─────────────────────
+function useProfileSigInModal(){
+  if(!currentUser||!currentUser.savedSignature){showToast('Aucune signature enregistrée','error');return;}
+  // Pré-remplir le canvas du modal de signature rapport si ouvert
+  const canvas=document.getElementById('sigCanvas');
+  if(canvas&&document.getElementById('signatureModal').style.display==='flex'){
+    const img=new Image();
+    img.onload=()=>{
+      const ctx=canvas.getContext('2d');
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+      // Centre l'image dans le canvas
+      const scale=Math.min(canvas.width/img.width, canvas.height/img.height, 1);
+      const x=(canvas.width-img.width*scale)/2, y=(canvas.height-img.height*scale)/2;
+      ctx.drawImage(img,x,y,img.width*scale,img.height*scale);
+    };
+    img.src=currentUser.savedSignature;
+    closeMyProfile();
+    showToast('Signature chargée dans le formulaire','success');
+  } else {
+    closeMyProfile();
+    showToast('Ouvrez d'abord le formulaire de signature du rapport','error');
+  }
+}
+
+// ── Hook openSignatureModal pour pré-remplir si auto activé ─────────────────
+const _origOpenSignatureModal=openSignatureModal;
+function openSignatureModal(opts){
+  _origOpenSignatureModal(opts);
+  // Si auto-signature activée et signature enregistrée → pré-remplir le canvas
+  if(currentUser&&currentUser.autoUseSignature&&currentUser.savedSignature){
+    setTimeout(()=>{
+      const canvas=document.getElementById('sigCanvas');
+      if(!canvas) return;
+      const img=new Image();
+      img.onload=()=>{
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+        const scale=Math.min(canvas.width/img.width, canvas.height/img.height, 1);
+        const x=(canvas.width-img.width*scale)/2, y=(canvas.height-img.height*scale)/2;
+        ctx.drawImage(img,x,y,img.width*scale,img.height*scale);
+      };
+      img.src=currentUser.savedSignature;
+      // Ajouter un badge discret sous le canvas
+      const hint=document.createElement('div');
+      hint.style.cssText='font-size:10px;color:var(--safe);font-weight:700;margin-top:3px';
+      hint.textContent='✅ Signature enregistrée pré-remplie — modifiable si besoin';
+      const existingHint=document.querySelector('#signatureModal .sig-auto-hint');
+      if(!existingHint){
+        hint.className='sig-auto-hint';
+        canvas.parentNode.insertBefore(hint,canvas.nextSibling.nextSibling);
+      }
+    },100);
+  }
 }
 </script>
 </body>
