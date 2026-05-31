@@ -5757,7 +5757,7 @@ async function addMandatoryEPI(){
   const type=document.getElementById('mand-type')?.value||'global';
   const itype=document.getElementById('mand-itype')?.value.trim()||'';
   if(!name){showToast('Nom EPI requis','error');return;}
-  if(type==='type_specific'&&!itype){showToast('Type d'intervention requis','error');return;}
+  if(type==='type_specific'&&!itype){showToast('Type d\'intervention requis','error');return;}
   try{
     const doc=await api('POST','/scoring/mandatory',{name,scoreDeduction:score,type,interventionType:itype,order:_mandatoryList.length});
     if(doc&&doc._id){
