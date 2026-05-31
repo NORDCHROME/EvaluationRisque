@@ -14,6 +14,28 @@ router.get('/me', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// PUT /api/users/me/signature — sauvegarder sa propre signature
+router.put('/me/signature', auth, async (req, res) => {
+  try {
+    const { savedSignature, autoUseSignature } = req.body;
+    const update = {};
+    if (savedSignature !== undefined) update.savedSignature = savedSignature;
+    if (autoUseSignature !== undefined) update.autoUseSignature = autoUseSignature;
+    const user = await User.findByIdAndUpdate(req.user._id, update, { new: true })
+      .select('-password');
+    res.json(user);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// DELETE /api/users/me/signature — supprimer sa signature
+router.delete('/me/signature', auth, async (req, res) => {
+  try {
+    const user = await User.findByIdAndUpdate(req.user._id,
+      { savedSignature: '', autoUseSignature: false }, { new: true }).select('-password');
+    res.json(user);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // GET /api/users/manager-info — responsable de l'utilisateur connecté (tous)
 router.get('/manager-info', auth, async (req, res) => {
   try {

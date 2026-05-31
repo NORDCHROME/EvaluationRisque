@@ -26,6 +26,7 @@ const authLimiter = rateLimit({
 app.use('/api/auth',  authLimiter, require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/data',  require('./routes/data'));
+app.use('/api/scoring', require('./routes/scoring'));
 
 // ── Santé / ping (doit répondre même si MongoDB pas encore connecté) ──
 app.get('/api/health', (req, res) => {

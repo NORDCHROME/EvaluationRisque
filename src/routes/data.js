@@ -1,6 +1,7 @@
 // routes/data.js — Routes pour toutes les données de l'app
 const router = require('express').Router();
-const { sendNewValidationNotification, sendValidationResultNotification, testConnection } = require('../mailer');
+const { sendNewValidationNotification, sendValidationResultNotification, sendAutoValidationNotification, testConnection } = require('../mailer');
+const { evaluateReport } = require('../scoring');
 const mongoose = require('mongoose');
 const { auth, adminOnly } = require('../middleware/auth');
 const {
@@ -288,25 +289,60 @@ router.post('/validations', auth, async (req, res) => {
 
     console.log('[POST /validations] Créé:', v._id);
 
-    // ── Notification email au responsable ───────────────────
+    // ── Scoring & décision auto-validation ──────────────────
     try {
-      const managerFull = await User.findById(managerId).select('email name');
-      if (managerFull?.email) {
-        const ev = cleanSnapshot;
-        await sendNewValidationNotification(managerFull.email, {
-          managerName:       managerFull.name,
-          submitterName:     req.user.name,
-          interventionTitle: ev.interventionTitle || '',
-          location:          ev.location || '',
-          date:              ev.date || new Date().toISOString(),
-          riskCount:         (ev.risks || []).length,
-          validationId:      String(v._id),
-        });
+      const scoring = await evaluateReport(cleanSnapshot);
+      v.scoringDetails = scoring.scores;
+
+      if (scoring.autoValidated) {
+        // ── Auto-validation ──────────────────────────────────
+        v.status       = 'auto_validated';
+        v.autoValidated = true;
+        v.treatedAt    = new Date();
+        v.managerName  = 'Système EvalRisque';
+        await v.save();
+        console.log('[Scoring] ✅ Auto-validé — score max:', scoring.maxScore, '< seuil:', scoring.cfg.threshold);
+
+        // Email intervenant
+        try {
+          const submitterFull = await User.findById(req.user._id).select('email name');
+          if (submitterFull?.email) {
+            await sendAutoValidationNotification(submitterFull.email, {
+              submitterName:     submitterFull.name,
+              interventionTitle: cleanSnapshot.interventionTitle || '',
+              maxScore:          scoring.maxScore,
+              threshold:         scoring.cfg.threshold,
+              scores:            scoring.scores,
+            });
+          }
+        } catch (mailErr) { console.error('[Mailer] Auto-notif:', mailErr.message); }
+
       } else {
-        console.log('[Mailer] Responsable sans email configuré — notification ignorée');
+        // ── Validation manuelle requise ───────────────────────
+        await v.save();
+        console.log('[Scoring] ⚠️ Validation requise — score max:', scoring.maxScore, '>= seuil:', scoring.cfg.threshold);
+
+        try {
+          const managerFull = await User.findById(managerId).select('email name');
+          if (managerFull?.email) {
+            await sendNewValidationNotification(managerFull.email, {
+              managerName:       managerFull.name,
+              submitterName:     req.user.name,
+              interventionTitle: cleanSnapshot.interventionTitle || '',
+              location:          cleanSnapshot.location || '',
+              date:              cleanSnapshot.date || new Date().toISOString(),
+              riskCount:         (cleanSnapshot.risks || []).length,
+              maxScore:          scoring.maxScore,
+              threshold:         scoring.cfg.threshold,
+              scores:            scoring.scores,
+              validationId:      String(v._id),
+            });
+          }
+        } catch (mailErr) { console.error('[Mailer] Erreur non bloquante:', mailErr.message); }
       }
-    } catch (mailErr) {
-      console.error('[Mailer] Erreur non bloquante:', mailErr.message);
+    } catch (scoringErr) {
+      console.error('[Scoring] Erreur non bloquante:', scoringErr.message);
+      await v.save();
     }
 
     res.status(201).json(v);

@@ -131,6 +131,53 @@ function tplValidationResult({ submitterName, interventionTitle, status, comment
   };
 }
 
+// ── Template auto-validation ─────────────────────────────────────────────────
+function tplAutoValidation({ submitterName, interventionTitle, maxScore, threshold, scores }) {
+  const title = interventionTitle || 'Évaluation sans titre';
+  const scoresHtml = (scores || []).map(s => `
+    <tr style="background:${s.overThreshold?'#fde8e6':'#f9fafb'}">
+      <td style="padding:7px 12px;font-size:12px">${s.riskName}</td>
+      <td style="padding:7px 12px;text-align:center;font-size:12px">${s.brut}</td>
+      <td style="padding:7px 12px;text-align:center;font-size:12px;color:var(--safe)">−${s.deductions}</td>
+      <td style="padding:7px 12px;text-align:center;font-weight:700;font-size:12px;color:${s.residuel>=threshold?'#c84b31':'#2d7a4f'}">${s.residuel}</td>
+    </tr>`).join('');
+  return {
+    subject: `✅ Rapport validé automatiquement — ${title}`,
+    html: `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/>
+<style>
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;margin:0;padding:20px}
+  .wrap{max-width:580px;margin:0 auto;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+  .hdr{background:#0a121a;padding:28px 32px}
+  .hdr-title{color:#fff;font-size:22px;font-weight:700;margin:0}
+  .hdr-sub{color:#7ab3d4;font-size:13px;margin-top:4px}
+  .body{padding:28px 32px}
+  .badge{background:#e6f4ec;border:1.5px solid #2d7a4f;border-radius:6px;padding:14px 20px;font-size:16px;font-weight:700;color:#2d7a4f;margin-bottom:20px}
+  table{width:100%;border-collapse:collapse;margin:12px 0}
+  th{background:#0a121a;color:#fff;padding:8px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;text-align:left}
+  .btn{display:inline-block;background:#0a121a;color:#fff!important;text-decoration:none;padding:13px 28px;border-radius:5px;font-weight:700;font-size:14px}
+  .footer{background:#f0f4f8;padding:16px 32px;font-size:11px;color:#9ca3af;text-align:center;border-top:1px solid #e5e7eb}
+</style></head><body>
+<div class="wrap">
+  <div class="hdr">
+    <div class="hdr-title">🛡 EvalRisque — Rapport validé automatiquement</div>
+    <div class="hdr-sub">NORDCHROME — Système de gestion des risques</div>
+  </div>
+  <div class="body">
+    <p style="font-size:13.5px;color:#374151">Bonjour <strong>${submitterName}</strong>,</p>
+    <div class="badge">✅ Rapport validé automatiquement par le système</div>
+    <p style="font-size:13px;color:#4b5563">Votre évaluation <strong>"${title}"</strong> a été analysée par le moteur de scoring EvalRisque. Tous les risques sont correctement protégés — aucune validation manuelle n'est requise.</p>
+    <table>
+      <thead><tr><th>Risque</th><th style="text-align:center">Brut</th><th style="text-align:center">Déductions</th><th style="text-align:center">Score résiduel</th></tr></thead>
+      <tbody>${scoresHtml}</tbody>
+    </table>
+    <p style="font-size:11.5px;color:#6b7280">Score maximum : <strong>${maxScore}</strong> / Seuil de validation : <strong>${threshold}</strong></p>
+    <a href="${APP_URL}" class="btn">📋 Voir mes évaluations</a>
+  </div>
+  <div class="footer">EvalRisque • NORDCHROME • Validé automatiquement le ${new Date().toLocaleDateString('fr-FR')}.</div>
+</div></body></html>`
+  };
+}
+
 // ── Fonctions publiques ───────────────────────────────────────────────────────
 async function sendNewValidationNotification(managerEmail, data) {
   if (!BREVO_API_KEY() || !managerEmail) {
@@ -199,4 +246,22 @@ async function testConnection() {
   });
 }
 
-module.exports = { sendNewValidationNotification, sendValidationResultNotification, testConnection };
+async function sendAutoValidationNotification(submitterEmail, data) {
+  if (!BREVO_API_KEY() || !submitterEmail) return false;
+  try {
+    const tpl = tplAutoValidation(data);
+    await brevoSend({
+      sender:   { name: BREVO_SENDER_NAME(), email: BREVO_SENDER() },
+      to:       [{ email: submitterEmail, name: data.submitterName }],
+      subject:  tpl.subject,
+      htmlContent: tpl.html,
+    });
+    console.log(`[Mailer] ✅ Auto-validation envoyée → ${submitterEmail}`);
+    return true;
+  } catch (e) {
+    console.error(`[Mailer] ❌ Erreur auto-validation:`, e.message);
+    return false;
+  }
+}
+
+module.exports = { sendNewValidationNotification, sendValidationResultNotification, sendAutoValidationNotification, testConnection };

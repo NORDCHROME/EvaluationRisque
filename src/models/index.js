@@ -12,6 +12,8 @@ const UserSchema = new Schema({
   role:       { type: String, enum: ['admin','user','viewer'], default: 'user' },
   site:       { type: String, default: '' },
   email:      { type: String, default: '' },   // pour notifications mail
+  savedSignature:    { type: String, default: '' },   // base64 PNG de la signature sauvegardée
+  autoUseSignature:  { type: Boolean, default: false }, // appliquer auto sur les rapports
   managerId:  { type: Schema.Types.ObjectId, ref: 'User', default: null },
   lastLogin:  { type: Date, default: null },
   createdAt:  { type: Date, default: Date.now }
@@ -70,13 +72,15 @@ const ValidationSchema = new Schema({
   submitterName:  { type: String },
   submitterSite:  { type: String, default: '—' },
   level:          { type: String, enum: ['low','medium','high'] },
-  status:         { type: String, enum: ['pending','approved','rejected'], default: 'pending' },
+  status:         { type: String, enum: ['pending','approved','rejected','auto_validated'], default: 'pending' },
   evalSnapshot:   { type: Schema.Types.Mixed, default: {} },
   sigIntervenant: { type: String, default: null },
   sigManager:     { type: String, default: null },
   managerName:    { type: String, default: '' },
   comment:        { type: String, default: '' },
-  treatedAt:      { type: Date, default: null }
+  treatedAt:      { type: Date, default: null },
+  scoringDetails: { type: Schema.Types.Mixed, default: null },  // détail des scores par risque
+  autoValidated:  { type: Boolean, default: false }
 }, { timestamps: true });
 
 // ── Risques custom ───────────────────────────────────────────
@@ -116,8 +120,24 @@ const SettingsSchema = new Schema({
   value: { type: Schema.Types.Mixed }
 }, { timestamps: true });
 
+// ── Configuration scoring & EPI obligatoires ─────────────────
+const ScoringConfigSchema = new Schema({
+  key:   { type: String, required: true, unique: true },
+  value: { type: Schema.Types.Mixed }
+}, { timestamps: true });
+
+const MandatoryEPISchema = new Schema({
+  name:          { type: String, required: true },
+  type:          { type: String, enum: ['global','type_specific'], default: 'global' },
+  interventionType: { type: String, default: '' },  // si type_specific
+  scoreDeduction:{ type: Number, default: 10 },
+  order:         { type: Number, default: 0 }
+}, { timestamps: true });
+
 module.exports = {
   User:            mongoose.model('User', UserSchema),
+  ScoringConfig:   mongoose.model('ScoringConfig', ScoringConfigSchema),
+  MandatoryEPI:    mongoose.model('MandatoryEPI', MandatoryEPISchema),
   Company:         mongoose.model('Company', CompanySchema),
   ExternalCompany: mongoose.model('ExternalCompany', ExternalCompanySchema),
   Worker:          mongoose.model('Worker', WorkerSchema),
