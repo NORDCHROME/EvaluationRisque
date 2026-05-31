@@ -6052,10 +6052,10 @@ async function saveProfileSig(source){
     const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
     let hasDrawing=false;
     for(let i=0;i<data.length;i+=4){ if(data[i]<240&&data[i+1]<240||data[i+2]<240){hasDrawing=true;break;} }
-    if(!hasDrawing){showToast('Tracez votre signature d'abord','error');return;}
+    if(!hasDrawing){showToast('Tracez votre signature d\'abord','error');return;}
     dataURL=canvas.toDataURL('image/png');
   } else {
-    if(!_profileUploadDataURL){showToast('Importez une image d'abord','error');return;}
+    if(!_profileUploadDataURL){showToast('Importez une image d\'abord','error');return;}
     dataURL=_profileUploadDataURL;
   }
 
@@ -6107,7 +6107,7 @@ function useProfileSigInModal(){
     showToast('Signature chargée dans le formulaire','success');
   } else {
     closeMyProfile();
-    showToast('Ouvrez d'abord le formulaire de signature du rapport','error');
+    showToast('Ouvrez d\'abord le formulaire de signature du rapport','error');
   }
 }
 
