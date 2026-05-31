@@ -5298,7 +5298,7 @@ async function renderMyEvals(){
       approved:{bg:'#f0fdf4',border:'var(--safe)',icon:'✅',label:'Rapport validé',sublabel:'Votre responsable a signé et approuvé ce rapport.',color:'var(--safe)'},
       auto_validated:{bg:'#f0fdf4',border:'var(--safe)',icon:'🤖',label:'Validé automatiquement',sublabel:'Tous les risques sont correctement protégés — validation manuelle non requise.',color:'var(--safe)'},
       rejected:{bg:'#fef2f2',border:'var(--danger)',icon:'❌',label:'Rapport refusé',sublabel:'Votre responsable a refusé ce rapport.',color:'var(--danger)'},
-      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d'examen par votre responsable.',color:'var(--warn)'},
+      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d\'examen par votre responsable.',color:'var(--warn)'},
     }[s]||{bg:'#f3f4f6',border:'#d1d5db',icon:'💾',label:'Brouillon local',sublabel:'Rapport non encore soumis.',color:'#6b7280'};
     return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 18px;background:${cfg.bg};border-top:1px solid ${cfg.border}">
       <span style="font-size:20px;flex-shrink:0">${cfg.icon}</span>
@@ -6053,10 +6053,10 @@ async function saveProfileSig(source){
     const data=ctx.getImageData(0,0,canvas.width,canvas.height).data;
     let hasDrawing=false;
     for(let i=0;i<data.length;i+=4){ if(data[i]<240&&data[i+1]<240||data[i+2]<240){hasDrawing=true;break;} }
-    if(!hasDrawing){showToast('Tracez votre signature d'abord','error');return;}
+    if(!hasDrawing){showToast('Tracez votre signature d\'abord','error');return;}
     dataURL=canvas.toDataURL('image/png');
   } else {
-    if(!_profileUploadDataURL){showToast('Importez une image d'abord','error');return;}
+    if(!_profileUploadDataURL){showToast('Importez une image d\'abord','error');return;}
     dataURL=_profileUploadDataURL;
   }
 
@@ -6108,7 +6108,7 @@ function useProfileSigInModal(){
     showToast('Signature chargée dans le formulaire','success');
   } else {
     closeMyProfile();
-    showToast('Ouvrez d'abord le formulaire de signature du rapport','error');
+    showToast('Ouvrez d\'abord le formulaire de signature du rapport','error');
   }
 }
 
