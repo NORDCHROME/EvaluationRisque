@@ -1163,6 +1163,9 @@ textarea{resize:vertical;min-height:80px;}
           <div class="adm-sub-title" style="margin-bottom:4px">🦺 Points déduits par EPI / EPC</div>
           <div style="font-size:11.5px;color:#6b7280;margin-bottom:14px">Chaque EPI ou EPC sélectionné réduit d'autant le score résiduel du risque.</div>
           <div id="epi-scores-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
+          <div style="margin-top:10px;padding:8px 10px;background:#f0fdf4;border-radius:4px;border:1px solid #bbf7d0;font-size:11.5px;color:#166534;display:flex;align-items:center;gap:6px">
+            💡 <strong>Astuce :</strong> Modifiez la valeur dans le champ puis cliquez ailleurs — la sauvegarde est automatique et confirmée par un ✅.
+          </div>
           <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <input type="text" id="new-epi-name" placeholder="Nom EPI/EPC personnalisé…" style="flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px"/>
             <input type="number" id="new-epi-score" placeholder="pts" min="0" max="100" style="width:70px;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px;text-align:center"/>
@@ -1720,11 +1723,14 @@ async function loadAllDataFromAPI(){
       if(me){
         currentUser = {
           ...currentUser,
-          id:        String(me._id||me.id),
-          name:      me.name,
-          site:      me.site||'',
-          managerId: me.managerId?String(me.managerId._id||me.managerId):'',
-          role:      me.role
+          id:               String(me._id||me.id),
+          name:             me.name,
+          site:             me.site||'',
+          email:            me.email||'',
+          managerId:        me.managerId?String(me.managerId._id||me.managerId):'',
+          role:             me.role,
+          savedSignature:   me.savedSignature||currentUser.savedSignature||'',
+          autoUseSignature: me.autoUseSignature!==undefined?me.autoUseSignature:currentUser.autoUseSignature||false
         };
       }
     }
@@ -1761,9 +1767,15 @@ async function _restoreSession(){
     if(!res.ok){ _authToken=null; localStorage.removeItem('evalrisque_token'); return; }
     const user = await res.json();
     currentUser = {
-      id: user._id, login: user.login, name: user.name,
-      role: user.role, site: user.site,
-      managerId: user.managerId?._id||user.managerId
+      id:               user._id,
+      login:            user.login,
+      name:             user.name,
+      role:             user.role,
+      site:             user.site,
+      email:            user.email || '',
+      managerId:        user.managerId?._id || user.managerId,
+      savedSignature:   user.savedSignature || '',
+      autoUseSignature: user.autoUseSignature || false
     };
     // Nettoyer avant de charger
     Object.keys(_cache).forEach(k=>delete _cache[k]);
@@ -5298,7 +5310,7 @@ async function renderMyEvals(){
       approved:{bg:'#f0fdf4',border:'var(--safe)',icon:'✅',label:'Rapport validé',sublabel:'Votre responsable a signé et approuvé ce rapport.',color:'var(--safe)'},
       auto_validated:{bg:'#f0fdf4',border:'var(--safe)',icon:'🤖',label:'Validé automatiquement',sublabel:'Tous les risques sont correctement protégés — validation manuelle non requise.',color:'var(--safe)'},
       rejected:{bg:'#fef2f2',border:'var(--danger)',icon:'❌',label:'Rapport refusé',sublabel:'Votre responsable a refusé ce rapport.',color:'var(--danger)'},
-      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d\'examen par votre responsable.',color:'var(--warn)'},
+      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d'examen par votre responsable.',color:'var(--warn)'},
     }[s]||{bg:'#f3f4f6',border:'#d1d5db',icon:'💾',label:'Brouillon local',sublabel:'Rapport non encore soumis.',color:'#6b7280'};
     return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 18px;background:${cfg.bg};border-top:1px solid ${cfg.border}">
       <span style="font-size:20px;flex-shrink:0">${cfg.icon}</span>
@@ -5677,19 +5689,29 @@ function renderEPIScoresList(){
       <span style="font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;background:${typeColor}20;color:${typeColor};min-width:28px;text-align:center">${item.type}</span>
       <span style="flex:1;font-size:11.5px;color:#374151">${item.name}</span>
       <input type="number" value="${score}" min="0" max="100" data-key="${item.key}"
-        onchange="updateEPIScore('${item.key}',+this.value)"
-        style="width:58px;padding:4px 6px;border:1.5px solid var(--border);border-radius:3px;text-align:center;font-size:12px;font-weight:700"/>
+        onchange="updateEPIScore('${item.key}',+this.value,this)"
+        style="width:58px;padding:4px 6px;border:1.5px solid var(--border);border-radius:3px;text-align:center;font-size:12px;font-weight:700;transition:border-color .2s"/>
+      <span class="epi-score-ok" style="font-size:13px;opacity:0;transition:opacity .3s">✅</span>
       <span style="font-size:10px;color:#9ca3af">pts</span>
       ${item.custom?`<button onclick="deleteEPIScore('${item.key}')" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0 4px;font-size:12px" title="Supprimer">✕</button>`:''}
     </div>`;
   }).join('');
 }
 
-async function updateEPIScore(key, value){
+async function updateEPIScore(key, value, inputEl){
   try{
     await api('PUT','/scoring/config',{key,value});
     _epiScores[key]=value;
-  }catch(e){ showToast('Erreur sauvegarde EPI score','error'); }
+    // Visual feedback on the field
+    if(inputEl){
+      inputEl.style.borderColor='var(--safe)';
+      const ok=inputEl.nextElementSibling; // the ✅ span
+      if(ok&&ok.classList.contains('epi-score-ok')){
+        ok.style.opacity='1';
+        setTimeout(()=>{ ok.style.opacity='0'; inputEl.style.borderColor='var(--border)'; },1500);
+      }
+    }
+  }catch(e){ showToast('Erreur sauvegarde EPI score','error'); if(inputEl) inputEl.style.borderColor='var(--danger)'; }
 }
 
 async function deleteEPIScore(key){

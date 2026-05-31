@@ -30,12 +30,15 @@ router.post('/login', async (req, res) => {
     res.json({
       token,
       user: {
-        id:        user._id,
-        login:     user.login,
-        name:      user.name,
-        role:      user.role,
-        site:      user.site,
-        managerId: user.managerId
+        id:               user._id,
+        login:            user.login,
+        name:             user.name,
+        role:             user.role,
+        site:             user.site,
+        email:            user.email || '',
+        managerId:        user.managerId,
+        savedSignature:   user.savedSignature || '',
+        autoUseSignature: user.autoUseSignature || false
       }
     });
   } catch (e) {
