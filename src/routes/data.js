@@ -754,18 +754,25 @@ router.get('/uiconfig', auth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // PP CONFIG (configuration du plan de prévention)
 // ─────────────────────────────────────────────────────────────
-router.get('/ppconfig', auth, async (req, res) => {
+router.get('/pp-config', auth, async (req, res) => {
   try {
     const s = await Settings.findOne({ key: 'ppconfig' });
     res.json(s ? s.value : {});
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.put('/ppconfig', auth, adminOnly, async (req, res) => {
+router.put('/pp-config', auth, adminOnly, async (req, res) => {
   try {
     await Settings.findOneAndUpdate(
       { key: 'ppconfig' }, { key: 'ppconfig', value: req.body }, { upsert: true, new: true }
     );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/pp-config', auth, adminOnly, async (req, res) => {
+  try {
+    await Settings.findOneAndDelete({ key: 'ppconfig' });
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
