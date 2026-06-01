@@ -9,7 +9,7 @@ const {
   PPlan, Report, Settings,
   CustomRisk, CustomKeyword, CustomType, HiddenRisk,
   Validation, Evaluation, User,
-  KeywordRule, EPIItem
+  KeywordRule, EPIItem, Risk, InterventionType
 } = require('../models');
 
 // ─────────────────────────────────────────────────────────────
@@ -393,6 +393,164 @@ router.put('/validations/:id', auth, async (req, res) => {
 router.delete('/validations/:id', auth, adminOnly, async (req, res) => {
   try { await Validation.findByIdAndDelete(req.params.id); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────
+// TYPES D'INTERVENTION (DB)
+// ─────────────────────────────────────────────────────────────
+router.get('/intervention-types', auth, async (req, res) => {
+  try {
+    const types = await InterventionType.find({ hidden: false }).sort('order name');
+    res.json(types);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/intervention-types/all', auth, adminOnly, async (req, res) => {
+  try {
+    const types = await InterventionType.find().sort('order name');
+    res.json(types);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/intervention-types', auth, adminOnly, async (req, res) => {
+  try {
+    const { name, icon, order, source } = req.body;
+    if (!name) return res.status(400).json({ error: 'Nom requis' });
+    const existing = await InterventionType.findOne({ name });
+    if (existing) return res.status(409).json({ error: 'Type déjà existant' });
+    const maxOrder = await InterventionType.findOne().sort('-order');
+    const t = await InterventionType.create({
+      name, icon: icon||'🔩',
+      order: order !== undefined ? order : (maxOrder ? maxOrder.order + 1 : 0),
+      source: source||'custom', hidden: false
+    });
+    res.status(201).json(t);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/intervention-types/:id', auth, adminOnly, async (req, res) => {
+  try {
+    const { name, icon, order, hidden } = req.body;
+    const update = {};
+    if (name   !== undefined) update.name   = name;
+    if (icon   !== undefined) update.icon   = icon;
+    if (order  !== undefined) update.order  = order;
+    if (hidden !== undefined) update.hidden = hidden;
+    const t = await InterventionType.findByIdAndUpdate(req.params.id, update, { new: true });
+    if (!t) return res.status(404).json({ error: 'Type introuvable' });
+    res.json(t);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/intervention-types-order', auth, adminOnly, async (req, res) => {
+  try {
+    const { order } = req.body;
+    await Promise.all(order.map(item => InterventionType.findByIdAndUpdate(item.id, { order: item.order })));
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/intervention-types/:id', auth, adminOnly, async (req, res) => {
+  try {
+    const t = await InterventionType.findById(req.params.id);
+    if (!t) return res.status(404).json({ error: 'Type introuvable' });
+    if (t.source === 'builtin') { t.hidden = true; await t.save(); }
+    else { await t.deleteOne(); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────
+// RISQUES (DB)
+// ─────────────────────────────────────────────────────────────
+router.get('/risks', auth, async (req, res) => {
+  try {
+    const filter = { hidden: false };
+    if (req.query.type) filter.interventionType = req.query.type;
+    if (req.query.sev)  filter.sev = req.query.sev;
+    const risks = await Risk.find(filter).sort('interventionType order name');
+    res.json(risks);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/risks/all', auth, adminOnly, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.query.type) filter.interventionType = req.query.type;
+    const risks = await Risk.find(filter).sort('interventionType order name');
+    res.json(risks);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/risks/:riskId', auth, async (req, res) => {
+  try {
+    const r = await Risk.findOne({ riskId: req.params.riskId });
+    if (!r) return res.status(404).json({ error: 'Risque introuvable' });
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/risks', auth, adminOnly, async (req, res) => {
+  try {
+    const { riskId, interventionType, name, sev, causes, consequences, solutions, source, order } = req.body;
+    if (!name || !interventionType) return res.status(400).json({ error: 'Nom et type requis' });
+    const id = riskId || ('cx' + Date.now());
+    const maxOrder = await Risk.findOne({ interventionType }).sort('-order');
+    const r = await Risk.findOneAndUpdate(
+      { riskId: id },
+      { riskId: id, interventionType, name, sev: sev||'medium', causes: causes||[], consequences: consequences||[], solutions: solutions||[], source: source||'custom', order: order !== undefined ? order : (maxOrder ? maxOrder.order + 1 : 0), hidden: false },
+      { upsert: true, new: true }
+    );
+    res.status(201).json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/risks/:riskId', auth, adminOnly, async (req, res) => {
+  try {
+    const { name, sev, causes, consequences, solutions, interventionType, hidden, order } = req.body;
+    const update = {};
+    if (name             !== undefined) update.name             = name;
+    if (sev              !== undefined) update.sev              = sev;
+    if (causes           !== undefined) update.causes           = causes;
+    if (consequences     !== undefined) update.consequences     = consequences;
+    if (solutions        !== undefined) update.solutions        = solutions;
+    if (interventionType !== undefined) update.interventionType = interventionType;
+    if (hidden           !== undefined) update.hidden           = hidden;
+    if (order            !== undefined) update.order            = order;
+    const r = await Risk.findOneAndUpdate({ riskId: req.params.riskId }, update, { new: true });
+    if (!r) return res.status(404).json({ error: 'Risque introuvable' });
+    res.json(r);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/risks/:riskId', auth, adminOnly, async (req, res) => {
+  try {
+    const r = await Risk.findOne({ riskId: req.params.riskId });
+    if (!r) return res.status(404).json({ error: 'Risque introuvable' });
+    if (r.source === 'builtin') { r.hidden = true; await r.save(); }
+    else { await r.deleteOne(); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/risks/bulk-import', auth, adminOnly, async (req, res) => {
+  try {
+    const { risks } = req.body;
+    if (!Array.isArray(risks)) return res.status(400).json({ error: 'risks doit être un tableau' });
+    let created = 0, updated = 0;
+    for (const r of risks) {
+      const exists = await Risk.findOne({ riskId: r.riskId });
+      if (exists) {
+        if (exists.source === 'builtin') { updated++; continue; }
+        await Risk.findOneAndUpdate({ riskId: r.riskId }, r);
+        updated++;
+      } else {
+        await Risk.create({ ...r, source: r.source||'builtin' });
+        created++;
+      }
+    }
+    res.json({ ok: true, created, updated });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─────────────────────────────────────────────────────────────

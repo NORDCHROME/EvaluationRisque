@@ -112,6 +112,29 @@ const EvaluationSchema = new Schema({
   status:            { type: String, enum: ['draft','submitted','approved','rejected'], default: 'draft' },
 }, { timestamps: true });
 
+// ── Risques (DB) ─────────────────────────────────────────────
+const RiskSchema = new Schema({
+  riskId:           { type: String, required: true, unique: true },
+  interventionType: { type: String, required: true },
+  name:             { type: String, required: true },
+  sev:              { type: String, enum: ['high','medium','low'], default: 'medium' },
+  causes:           [String],
+  consequences:     [String],
+  solutions:        [String],
+  source:           { type: String, enum: ['builtin','custom'], default: 'custom' },
+  order:            { type: Number, default: 0 },
+  hidden:           { type: Boolean, default: false },
+}, { timestamps: true });
+
+// ── Types d'intervention (DB) ────────────────────────────────
+const InterventionTypeSchema = new Schema({
+  name:   { type: String, required: true, unique: true },
+  icon:   { type: String, default: '🔩' },
+  order:  { type: Number, default: 0 },
+  source: { type: String, enum: ['builtin','custom'], default: 'custom' },
+  hidden: { type: Boolean, default: false },
+}, { timestamps: true });
+
 // ── Règles mots-clés IA (DB) ─────────────────────────────────
 const KeywordRuleSchema = new Schema({
   kwId:             { type: String, required: true, unique: true },
@@ -185,21 +208,23 @@ const MandatoryEPISchema = new Schema({
 }, { timestamps: true });
 
 module.exports = {
-  User:            mongoose.model('User', UserSchema),
-  ScoringConfig:   mongoose.model('ScoringConfig', ScoringConfigSchema),
-  MandatoryEPI:    mongoose.model('MandatoryEPI', MandatoryEPISchema),
-  Company:         mongoose.model('Company', CompanySchema),
-  ExternalCompany: mongoose.model('ExternalCompany', ExternalCompanySchema),
-  Worker:          mongoose.model('Worker', WorkerSchema),
-  PPlan:           mongoose.model('PPlan', PPlanSchema),
-  Report:          mongoose.model('Report', ReportSchema),
-  Validation:      mongoose.model('Validation', ValidationSchema),
-  Evaluation:      mongoose.model('Evaluation', EvaluationSchema),
-  CustomRisk:      mongoose.model('CustomRisk', CustomRiskSchema),
-  CustomKeyword:   mongoose.model('CustomKeyword', CustomKeywordSchema),
-  CustomType:      mongoose.model('CustomType', CustomTypeSchema),
-  HiddenRisk:      mongoose.model('HiddenRisk', HiddenRiskSchema),
-  Settings:        mongoose.model('Settings', SettingsSchema),
-  KeywordRule:     mongoose.model('KeywordRule', KeywordRuleSchema),
-  EPIItem:         mongoose.model('EPIItem', EPIItemSchema),
+  User:             mongoose.model('User', UserSchema),
+  ScoringConfig:    mongoose.model('ScoringConfig', ScoringConfigSchema),
+  MandatoryEPI:     mongoose.model('MandatoryEPI', MandatoryEPISchema),
+  Company:          mongoose.model('Company', CompanySchema),
+  ExternalCompany:  mongoose.model('ExternalCompany', ExternalCompanySchema),
+  Worker:           mongoose.model('Worker', WorkerSchema),
+  PPlan:            mongoose.model('PPlan', PPlanSchema),
+  Report:           mongoose.model('Report', ReportSchema),
+  Validation:       mongoose.model('Validation', ValidationSchema),
+  Evaluation:       mongoose.model('Evaluation', EvaluationSchema),
+  CustomRisk:       mongoose.model('CustomRisk', CustomRiskSchema),
+  CustomKeyword:    mongoose.model('CustomKeyword', CustomKeywordSchema),
+  CustomType:       mongoose.model('CustomType', CustomTypeSchema),
+  HiddenRisk:       mongoose.model('HiddenRisk', HiddenRiskSchema),
+  Settings:         mongoose.model('Settings', SettingsSchema),
+  KeywordRule:      mongoose.model('KeywordRule', KeywordRuleSchema),
+  EPIItem:          mongoose.model('EPIItem', EPIItemSchema),
+  Risk:             mongoose.model('Risk', RiskSchema),
+  InterventionType: mongoose.model('InterventionType', InterventionTypeSchema),
 };
