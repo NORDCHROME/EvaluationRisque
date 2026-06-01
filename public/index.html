@@ -6245,15 +6245,23 @@ function _autoFillSavedSignature(){
 // ══════════════════════════════════════════════════════
 // FONCTIONNALITÉS SUPPLÉMENTAIRES (Interface, PP Config, RisksDB, Permis)
 // ══════════════════════════════════════════════════════
+// ── Config UI : état interne ─────────────────────────────────────────────
+let _uiConfig = {
+  branding: { companyName: '', colors: {}, logoUrl: '', logoBase64: '' },
+  buttons:  {},
+  labels:   {},
+  features: {}
+};
+let _pendingLogoBase64 = '';
+
 async function loadUIConfig() {
   try {
-    const cfgs = await api('GET', '/data/ui-config');
-    if (cfgs) {
-      ['branding','buttons','labels','features'].forEach(section => {
-        if (cfgs[section]) {
-          _uiConfig[section] = { ...UI_DEFAULTS[section], ...cfgs[section] };
-        }
-      });
+    const cfg = await api('GET', '/data/uiconfig');
+    if (cfg) {
+      _uiConfig.branding.companyName = cfg.companyName || '';
+      _uiConfig.branding.colors      = cfg.colors      || {};
+      _uiConfig.branding.logoUrl     = cfg.logoUrl     || '';
+      _uiConfig.branding.logoBase64  = cfg.logoBase64  || '';
     }
   } catch (e) {
     console.warn('Impossible de charger la config UI:', e);
@@ -6601,7 +6609,7 @@ async function saveUIConfig() {
   // Collecter branding
   const branding = {
     appName:     document.getElementById('ui-appName')?.value || 'EvalRisque',
-    companyName: document.getElementById('ui-companyName')?.value || 'NORDCHROME',
+    companyName: document.getElementById('ui-companyName')?.value || '',
     logoUrl:     document.getElementById('ui-logoUrl')?.value || '',
     logoBase64:  _pendingLogoBase64 || _uiConfig.branding.logoBase64 || '',
     colors: {
@@ -6611,49 +6619,30 @@ async function saveUIConfig() {
     }
   };
 
-  // Collecter boutons
-  const buttons = {};
-  Object.keys(UI_DEFAULTS.buttons).forEach(key => {
-    buttons[key] = {
-      label:   document.getElementById('btn-label-'+key)?.value || UI_DEFAULTS.buttons[key].label,
-      visible: document.getElementById('btn-vis-'+key)?.checked !== false,
-    };
+  // Sauvegarder via Company (stockage centralisé)
+  const saved = await api('PUT', '/data/company', {
+    brandColors: branding.colors,
+    logoData:    branding.logoBase64,
+    logoUrl:     branding.logoUrl,
+    name:        branding.companyName || _cache['company']?.name || '',
   });
 
-  // Collecter labels
-  const labels = {};
-  Object.keys(UI_DEFAULTS.labels).forEach(key => {
-    labels[key] = document.getElementById('lbl-'+key)?.value || UI_DEFAULTS.labels[key];
-  });
+  if (!saved) return;
 
-  // Collecter features
-  const features = {};
-  ['feat_ai','feat_pp','feat_epi','feat_derogation','feat_signature','feat_carnet','feat_pdf','feat_savepp','feat_myevals'].forEach(id => {
-    features[id] = document.getElementById('feat-'+id)?.checked !== false;
-  });
-
-  // Sauvegarder chaque section
-  const saves = await Promise.all([
-    api('PUT', '/data/ui-config/branding', { config: branding }),
-    api('PUT', '/data/ui-config/buttons',  { config: buttons }),
-    api('PUT', '/data/ui-config/labels',   { config: labels }),
-    api('PUT', '/data/ui-config/features', { config: features }),
-    // Aussi sauvegarder les couleurs dans la société
-    api('PUT', '/data/company', { brandColors: branding.colors, logoData: branding.logoBase64, logoUrl: branding.logoUrl, name: branding.companyName }),
-  ]);
-
-  if (saves.some(s => !s)) return;
-
-  _uiConfig = { branding, buttons, labels, features };
+  _uiConfig.branding = branding;
+  _pendingLogoBase64 = '';
   applyUIConfig();
   showToast('Configuration interface enregistrée et appliquée','success');
 }
 
 async function resetUIConfig() {
   if (!confirm('Réinitialiser toute la configuration de l\'interface ?')) return;
-  await Promise.all(['branding','buttons','labels','features'].map(s => api('DELETE', '/data/ui-config/'+s)));
-  _uiConfig = JSON.parse(JSON.stringify(UI_DEFAULTS));
-  applyUIConfig();
+  await api('PUT', '/data/company', { brandColors: {}, logoData: '', logoUrl: '' });
+  _uiConfig = { branding: { companyName: '', colors: {}, logoUrl: '', logoBase64: '' }, buttons: {}, labels: {}, features: {} };
+  // Réinitialiser les CSS vars
+  ['--accent','--accent2','--ink'].forEach(v => document.documentElement.style.removeProperty(v));
+  const logoWrap = document.getElementById('headerLogoWrap');
+  if (logoWrap) logoWrap.style.display = 'none';
   await renderAdminInterface();
   showToast('Configuration réinitialisée','success');
 }
