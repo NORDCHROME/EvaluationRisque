@@ -8,7 +8,8 @@ const {
   Company, ExternalCompany, Worker,
   PPlan, Report, Settings,
   CustomRisk, CustomKeyword, CustomType, HiddenRisk,
-  Validation, Evaluation, User
+  Validation, Evaluation, User,
+  KeywordRule, EPIItem
 } = require('../models');
 
 // ─────────────────────────────────────────────────────────────
@@ -392,6 +393,132 @@ router.put('/validations/:id', auth, async (req, res) => {
 router.delete('/validations/:id', auth, adminOnly, async (req, res) => {
   try { await Validation.findByIdAndDelete(req.params.id); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────
+// KEYWORD RULES (mots-clés IA en DB)
+// ─────────────────────────────────────────────────────────────
+router.get('/keyword-rules', auth, async (req, res) => {
+  try {
+    const filter = { hidden: false };
+    if (req.query.type) filter.interventionType = req.query.type;
+    const rules = await KeywordRule.find(filter).sort('interventionType score');
+    res.json(rules.map(r => ({ id: r.kwId, _mongoId: r._id, type: r.interventionType, w: r.words, r: r.riskIds, s: r.score, source: r.source })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.get('/keyword-rules/all', auth, adminOnly, async (req, res) => {
+  try {
+    const rules = await KeywordRule.find().sort('interventionType score');
+    res.json(rules.map(r => ({ id: r.kwId, _mongoId: r._id, type: r.interventionType, w: r.words, r: r.riskIds, s: r.score, source: r.source, hidden: r.hidden })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/keyword-rules', auth, adminOnly, async (req, res) => {
+  try {
+    const { id, type, w, r, s, source } = req.body;
+    const kwId = id || ('kw' + Date.now());
+    const rule = await KeywordRule.findOneAndUpdate(
+      { kwId },
+      { kwId, interventionType: type, words: w||[], riskIds: r||[], score: s||4, source: source||'custom', hidden: false },
+      { upsert: true, new: true }
+    );
+    res.status(201).json({ id: rule.kwId, type: rule.interventionType, w: rule.words, r: rule.riskIds, s: rule.score });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/keyword-rules/:kwId', auth, adminOnly, async (req, res) => {
+  try {
+    const { type, w, r, s, hidden } = req.body;
+    const update = {};
+    if (type    !== undefined) update.interventionType = type;
+    if (w       !== undefined) update.words   = w;
+    if (r       !== undefined) update.riskIds = r;
+    if (s       !== undefined) update.score   = s;
+    if (hidden  !== undefined) update.hidden  = hidden;
+    const rule = await KeywordRule.findOneAndUpdate({ kwId: req.params.kwId }, update, { new: true });
+    if (!rule) return res.status(404).json({ error: 'Règle introuvable' });
+    res.json({ id: rule.kwId, type: rule.interventionType, w: rule.words, r: rule.riskIds, s: rule.score });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/keyword-rules/:kwId', auth, adminOnly, async (req, res) => {
+  try {
+    const rule = await KeywordRule.findOne({ kwId: req.params.kwId });
+    if (!rule) return res.status(404).json({ error: 'Règle introuvable' });
+    if (rule.source === 'builtin') { rule.hidden = true; await rule.save(); }
+    else { await rule.deleteOne(); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/keyword-rules/bulk-import', auth, adminOnly, async (req, res) => {
+  try {
+    const { rules } = req.body;
+    if (!Array.isArray(rules)) return res.status(400).json({ error: 'rules doit être un tableau' });
+    let created = 0;
+    for (const r of rules) {
+      const exists = await KeywordRule.findOne({ kwId: r.id });
+      if (!exists) {
+        await KeywordRule.create({ kwId: r.id, interventionType: r.type, words: r.w||[], riskIds: r.r||[], score: r.s||4, source: 'builtin' });
+        created++;
+      }
+    }
+    res.json({ ok: true, created });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────
+// EPI/EPC CATALOGUE (en DB)
+// ─────────────────────────────────────────────────────────────
+router.get('/epi-items', auth, async (req, res) => {
+  try {
+    const filter = { hidden: false };
+    if (req.query.type)     filter.interventionType = req.query.type;
+    if (req.query.category) filter.category         = req.query.category;
+    const items = await EPIItem.find(filter).sort('interventionType category order label');
+    res.json(items);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/epi-items', auth, adminOnly, async (req, res) => {
+  try {
+    const { interventionType, category, label, source, order } = req.body;
+    if (!interventionType || !category || !label) return res.status(400).json({ error: 'Type, catégorie et libellé requis' });
+    const item = await EPIItem.create({ interventionType, category, label, source: source||'custom', order: order||0 });
+    res.status(201).json(item);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/epi-items/:id', auth, adminOnly, async (req, res) => {
+  try {
+    const item = await EPIItem.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    if (!item) return res.status(404).json({ error: 'Item introuvable' });
+    res.json(item);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/epi-items/:id', auth, adminOnly, async (req, res) => {
+  try {
+    const item = await EPIItem.findById(req.params.id);
+    if (!item) return res.status(404).json({ error: 'Item introuvable' });
+    if (item.source === 'builtin') { item.hidden = true; await item.save(); }
+    else { await item.deleteOne(); }
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/epi-items/bulk-import', auth, adminOnly, async (req, res) => {
+  try {
+    const { items } = req.body;
+    if (!Array.isArray(items)) return res.status(400).json({ error: 'items doit être un tableau' });
+    let created = 0;
+    for (const it of items) {
+      const exists = await EPIItem.findOne({ interventionType: it.interventionType, category: it.category, label: it.label });
+      if (!exists) { await EPIItem.create({ ...it, source: 'builtin' }); created++; }
+    }
+    res.json({ ok: true, created });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─────────────────────────────────────────────────────────────

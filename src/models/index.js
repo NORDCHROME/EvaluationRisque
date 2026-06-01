@@ -112,6 +112,27 @@ const EvaluationSchema = new Schema({
   status:            { type: String, enum: ['draft','submitted','approved','rejected'], default: 'draft' },
 }, { timestamps: true });
 
+// ── Règles mots-clés IA (DB) ─────────────────────────────────
+const KeywordRuleSchema = new Schema({
+  kwId:             { type: String, required: true, unique: true },
+  interventionType: { type: String, required: true },
+  words:            [String],
+  riskIds:          [String],
+  score:            { type: Number, default: 4 },
+  source:           { type: String, enum: ['builtin','custom'], default: 'custom' },
+  hidden:           { type: Boolean, default: false },
+}, { timestamps: true });
+
+// ── EPI/EPC catalogue (DB) ───────────────────────────────────
+const EPIItemSchema = new Schema({
+  interventionType: { type: String, required: true },
+  category:         { type: String, enum: ['collectif','individuel'], required: true },
+  label:            { type: String, required: true },
+  source:           { type: String, enum: ['builtin','custom'], default: 'custom' },
+  order:            { type: Number, default: 0 },
+  hidden:           { type: Boolean, default: false },
+}, { timestamps: true });
+
 // ── Risques custom ───────────────────────────────────────────
 const CustomRiskSchema = new Schema({
   interventionType: { type: String, required: true },
@@ -179,4 +200,6 @@ module.exports = {
   CustomType:      mongoose.model('CustomType', CustomTypeSchema),
   HiddenRisk:      mongoose.model('HiddenRisk', HiddenRiskSchema),
   Settings:        mongoose.model('Settings', SettingsSchema),
+  KeywordRule:     mongoose.model('KeywordRule', KeywordRuleSchema),
+  EPIItem:         mongoose.model('EPIItem', EPIItemSchema),
 };
