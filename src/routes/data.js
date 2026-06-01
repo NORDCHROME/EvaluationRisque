@@ -754,10 +754,63 @@ router.get('/uiconfig', auth, async (req, res) => {
 // ─────────────────────────────────────────────────────────────
 // PP CONFIG (configuration du plan de prévention)
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
+// PP CONFIG (configuration du plan de prévention)
+// ─────────────────────────────────────────────────────────────
+function getDefaultPPConfig() {
+  return {
+    sections: [
+      { id: 'parties',     label: '🏢 Identification des parties',       enabled: true, order: 1 },
+      { id: 'permits',     label: '📝 Permis et autorisations',           enabled: true, order: 2 },
+      { id: 'analyses',    label: '🔍 Analyses préalables',               enabled: true, order: 3 },
+      { id: 'steps',       label: '🔢 Étapes de l\'intervention',         enabled: true, order: 4 },
+      { id: 'workers',     label: '👷 Intervenants EE',                   enabled: true, order: 5 },
+      { id: 'measures',    label: '⚙️ Mesures de coactivité',             enabled: true, order: 6 },
+      { id: 'instructions',label: '📌 Instructions permanentes',          enabled: true, order: 7 },
+      { id: 'emergency',   label: '🚨 Numéros d\'urgence',                enabled: true, order: 8 },
+      { id: 'signatures',  label: '✍️ Signatures',                        enabled: true, order: 9 },
+    ],
+    customFields: [],
+    permits: [
+      { id: 'feu',      label: 'Permis de feu',           icon: '🔥', enabled: true, order: 1 },
+      { id: 'ec',       label: 'Pénétration EC',          icon: '🕳️', enabled: true, order: 2 },
+      { id: 'elec',     label: 'Consignation électrique', icon: '⚡', enabled: true, order: 3 },
+      { id: 'hauteur',  label: 'Travaux en hauteur',      icon: '🏗️', enabled: true, order: 4 },
+      { id: 'levage',   label: 'Levage exceptionnel',     icon: '🏋️', enabled: true, order: 5 },
+      { id: 'fouilles', label: 'Fouilles / Tranchées',    icon: '⛏️', enabled: true, order: 6 },
+      { id: 'atex',     label: 'Zone ATEX',               icon: '💥', enabled: true, order: 7 },
+      { id: 'amiante',  label: 'Amiante SS4',             icon: '⚠️', enabled: true, order: 8 },
+    ],
+    checklist: [
+      { id: 'visite',     label: 'Visite conjointe EU/EE réalisée',  enabled: true, order: 1 },
+      { id: 'plan',       label: 'Plan de masse communiqué',          enabled: true, order: 2 },
+      { id: 'reseaux',    label: 'Repérage réseaux (DICT)',           enabled: true, order: 3 },
+      { id: 'amiante',    label: 'Repérage amiante (DTA)',            enabled: true, order: 4 },
+      { id: 'ppsps',      label: 'PPSPS / PGCSPS fourni',            enabled: true, order: 5 },
+      { id: 'secours',    label: 'Plan de secours transmis',          enabled: true, order: 6 },
+      { id: 'formation',  label: 'Habilitations vérifiées',           enabled: true, order: 7 },
+      { id: 'sst',        label: 'SST désigné sur chantier',          enabled: true, order: 8 },
+      { id: 'signalement',label: 'Procédure signalement définie',     enabled: true, order: 9 },
+    ],
+    riskLevels: [
+      { value: 'low',    label: '🟢 Faible',   color: '#2d6a4f', order: 1 },
+      { value: 'medium', label: '🟠 Modéré',   color: '#d97706', order: 2 },
+      { value: 'high',   label: '🔴 Critique', color: '#c0392b', order: 3 },
+    ],
+    pdfOptions: {
+      showLogo: true, showSignatures: true, showEmergency: true,
+      footerText: 'EvalRisque', pageFormat: 'a4', watermark: ''
+    },
+    defaultEmergency: { samu: '15', pompiers: '18', police: '17', siteLabel: 'Contact site' }
+  };
+}
+
 router.get('/pp-config', auth, async (req, res) => {
   try {
     const s = await Settings.findOne({ key: 'ppconfig' });
-    res.json(s ? s.value : {});
+    // Si aucune config enregistrée, retourner les défauts
+    const cfg = (s && s.value && Object.keys(s.value).length) ? s.value : getDefaultPPConfig();
+    res.json(cfg);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -773,7 +826,7 @@ router.put('/pp-config', auth, adminOnly, async (req, res) => {
 router.delete('/pp-config', auth, adminOnly, async (req, res) => {
   try {
     await Settings.findOneAndDelete({ key: 'ppconfig' });
-    res.json({ ok: true });
+    res.json(getDefaultPPConfig()); // retourner les défauts après reset
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

@@ -6653,10 +6653,26 @@ function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&
 // ════════════════════════════════════════════════════════════════════════
 let _ppConfig = null;
 
+const _PP_DEFAULTS = {
+  sections:       [],
+  customFields:   [],
+  permits:        [],
+  checklist:      [],
+  riskLevels:     [
+    { value:'low', label:'🟢 Faible', color:'#2d6a4f', order:1 },
+    { value:'medium', label:'🟠 Modéré', color:'#d97706', order:2 },
+    { value:'high', label:'🔴 Critique', color:'#c0392b', order:3 },
+  ],
+  pdfOptions:      { showLogo:true, showSignatures:true, showEmergency:true, footerText:'EvalRisque', pageFormat:'a4', watermark:'' },
+  defaultEmergency:{ samu:'15', pompiers:'18', police:'17', siteLabel:'Contact site' },
+};
 
 async function loadPPConfig() {
   const cfg = await api('GET', '/data/pp-config');
-  if (cfg) _ppConfig = cfg;
+  if (cfg && typeof cfg === 'object') {
+    // Merger avec les défauts pour garantir que toutes les clés existent
+    _ppConfig = { ..._PP_DEFAULTS, ...cfg };
+  }
 }
 
 async function renderAdminPPConfig() {
