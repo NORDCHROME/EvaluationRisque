@@ -754,7 +754,7 @@ textarea{resize:vertical;min-height:80px;}
   </div>
 </div>
 
-<!-- notation MODAL -->
+<!-- SCORING PREVIEW MODAL -->
 <div id="scoringModal" style="display:none;position:fixed;inset:0;background:rgba(10,18,26,.85);z-index:1003;align-items:center;justify-content:center;padding:24px 16px">
   <div style="background:#fff;border-radius:8px;width:700px;max-width:100%;box-shadow:0 32px 80px rgba(0,0,0,.5);max-height:85vh;display:flex;flex-direction:column">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:var(--ink);border-radius:8px 8px 0 0">
@@ -890,8 +890,11 @@ textarea{resize:vertical;min-height:80px;}
     <div style="display:flex;gap:0;border-bottom:2px solid var(--cream);background:var(--paper);padding:0 28px;">
       <button class="adm-tab active" onclick="switchAdminTab('company')" data-tab="company">🏢 Société</button>
       <button class="adm-tab" onclick="switchAdminTab('users')" data-tab="users">👥 Utilisateurs</button>
+      <button class="adm-tab" onclick="switchAdminTab('interface')" data-tab="interface">🎨 Interface</button>
       <button class="adm-tab" onclick="switchAdminTab('risks')" data-tab="risks">⚠️ Risques</button>
+      <button class="adm-tab" onclick="switchAdminTab('risksdb')" data-tab="risksdb">🗄️ Risques DB</button>
       <button class="adm-tab" onclick="switchAdminTab('keywords')" data-tab="keywords">🔍 Mots-clés IA</button>
+      <button class="adm-tab" onclick="switchAdminTab('ppconfig')" data-tab="ppconfig">📋 Config PP</button>
       <button class="adm-tab" onclick="switchAdminTab('features')" data-tab="features">🧩 Fonctionnalités</button>
       <button class="adm-tab" onclick="switchAdminTab('scoring')" data-tab="scoring">⚖️ Notation</button>
       <button class="adm-tab" onclick="switchAdminTab('email')" data-tab="email">📧 Notifications</button>
@@ -921,7 +924,7 @@ textarea{resize:vertical;min-height:80px;}
         <div class="adm-section-title">Gestion des utilisateurs</div>
         <div id="adm-users-table-wrap">
           <table class="adm-table">
-            <thead><tr><th>Identifiant</th><th>Nom complet</th><th>Site</th><th style="color:#a78bfa">✉ Email notifications</th><th>Responsable</th><th>Rôle</th><th>Dernière connexion</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Identifiant</th><th>Nom complet</th><th>Site</th><th style="color:#a78bfa">✉ Email notifications</th><th>Responsable(s)</th><th>Rôle</th><th>Dernière connexion</th><th>Actions</th></tr></thead>
             <tbody id="usersBody"></tbody>
           </table>
         </div>
@@ -941,8 +944,8 @@ textarea{resize:vertical;min-height:80px;}
               </select>
             </div>
             <div class="field-group"><label class="field-label">Site / Atelier</label><input type="text" id="new-user-site" placeholder="ex: Atelier Nord, Site A…"/></div>
-            <div class="field-group"><label class="field-label">Responsable (login)</label>
-              <select id="new-user-manager" style="padding:11px 14px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <div class="field-group"><label class="field-label">Responsable(s) <span style="font-size:10px;color:#6b7280;font-weight:400">(Ctrl+clic pour plusieurs)</span></label>
+              <select id="new-user-manager" multiple style="padding:8px 14px;border:1.5px solid var(--border);border-radius:3px;width:100%;height:85px">
                 <option value="">— Aucun —</option>
               </select>
             </div>
@@ -1101,18 +1104,18 @@ textarea{resize:vertical;min-height:80px;}
 
 
 
-      <!-- ── NOTATION & EPI OBLIGATOIRES ── -->
+      <!-- ── SCORING & EPI OBLIGATOIRES ── -->
       <div id="admpane-scoring" class="adm-pane" style="display:none">
         <div class="adm-section-title">⚖️ Notation de criticité résiduelle</div>
 
         <div style="background:#e8f0f5;border:1.5px solid var(--accent2);border-radius:6px;padding:14px 18px;margin-bottom:18px;font-size:12.5px;color:#1a2533">
-          <strong>Comment ça fonctionne :</strong> Score résiduel = Score brut du risque − points EPC − points EPI − (nb préventions × forfait).
+          <strong>Comment ça fonctionne :</strong> Note résiduelle = Note brute du risque − points EPC − points EPI − (nb préventions × forfait).
           Si un risque dépasse le seuil → validation manuelle obligatoire. Sinon → auto-validé instantanément.
         </div>
 
         <!-- Niveaux de risque -->
         <div class="adm-card">
-          <div class="adm-sub-title" style="margin-bottom:14px">📊 Score brut par niveau de risque</div>
+          <div class="adm-sub-title" style="margin-bottom:14px">📊 Note brute par niveau de risque</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px" id="scoring-levels">
             <div style="border:1.5px solid #fde8e6;border-radius:6px;padding:14px;text-align:center">
               <div style="font-size:13px;font-weight:700;color:var(--danger);margin-bottom:8px">🔴 Critique</div>
@@ -1142,7 +1145,7 @@ textarea{resize:vertical;min-height:80px;}
                 <input type="range" id="sc-threshold" min="0" max="200" step="5" style="flex:1" oninput="document.getElementById('sc-threshold-val').textContent=this.value"/>
                 <span id="sc-threshold-val" style="font-size:22px;font-weight:700;color:var(--accent);min-width:40px;text-align:center">40</span>
               </div>
-              <div style="font-size:10px;color:#9ca3af;margin-top:4px">Si score résiduel ≥ cette valeur → validation manuelle obligatoire</div>
+              <div style="font-size:10px;color:#9ca3af;margin-top:4px">Si note résiduelle ≥ cette valeur → validation manuelle obligatoire</div>
             </div>
             <div style="border:1.5px solid var(--border);border-radius:6px;padding:14px">
               <label class="field-label">Forfait par mesure de prévention</label>
@@ -1161,7 +1164,7 @@ textarea{resize:vertical;min-height:80px;}
         <!-- Scores EPI/EPC -->
         <div class="adm-card" style="margin-top:14px">
           <div class="adm-sub-title" style="margin-bottom:4px">🦺 Points déduits par EPI / EPC</div>
-          <div style="font-size:11.5px;color:#6b7280;margin-bottom:14px">Chaque EPI ou EPC sélectionné réduit d'autant le score résiduel du risque.</div>
+          <div style="font-size:11.5px;color:#6b7280;margin-bottom:14px">Chaque EPI ou EPC sélectionné réduit d'autant le note résiduelle du risque.</div>
           <div id="epi-scores-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px"></div>
           <div style="margin-top:10px;padding:8px 10px;background:#f0fdf4;border-radius:4px;border:1px solid #bbf7d0;font-size:11.5px;color:#166534;display:flex;align-items:center;gap:6px">
             💡 <strong>Astuce :</strong> Modifiez la valeur dans le champ puis cliquez ailleurs — la sauvegarde est automatique et confirmée par un ✅.
@@ -1323,6 +1326,24 @@ textarea{resize:vertical;min-height:80px;}
         </div>
         <div id="adm-stats-bar" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px"></div>
         <div id="adm-reports-list"></div>
+      </div>
+
+      <!-- ── INTERFACE / BRANDING ── -->
+      <div id="admpane-interface" class="adm-pane" style="display:none">
+        <!-- Rendu dynamique par renderAdminInterface() -->
+        <div style="text-align:center;padding:40px;color:#9ca3af"><div style="font-size:32px;margin-bottom:10px">🎨</div>Chargement de la configuration…</div>
+      </div>
+
+      <!-- ── RISQUES DB ── -->
+      <div id="admpane-risksdb" class="adm-pane" style="display:none">
+        <!-- Rendu dynamique par renderAdminRisksDB() -->
+        <div style="text-align:center;padding:40px;color:#9ca3af"><div style="font-size:32px;margin-bottom:10px">⚠️</div>Chargement des risques depuis la base de données…</div>
+      </div>
+
+      <!-- ── PP CONFIG ── -->
+      <div id="admpane-ppconfig" class="adm-pane" style="display:none">
+        <!-- Rendu dynamique par renderAdminPPConfig() -->
+        <div style="text-align:center;padding:40px;color:#9ca3af"><div style="font-size:32px;margin-bottom:10px">📋</div>Chargement de la configuration du Plan de Prévention…</div>
       </div>
 
       <!-- ── CARNET ── -->
@@ -1702,6 +1723,8 @@ async function loadAllDataFromAPI(){
     _cache['hiddenInterventionTypes'] = hiddenTypes || [];
     // Appliquer les flags de fonctionnalités dès le chargement
     setTimeout(()=>{ applyFeatureFlags(); buildInterventionGrid(); }, 0);
+    // Charger et appliquer le branding (logo + couleurs) de façon transparente
+    setTimeout(()=>{ if(typeof loadUIConfig==='function') loadUIConfig().then(()=>{ if(typeof applyUIConfig==='function') applyUIConfig(); }); }, 0);
 
     // Charger la liste des users si admin
     let users = null;
@@ -2400,8 +2423,11 @@ function buildSummary(){
 function updateSignatureZone(selected){
   const zone=document.getElementById('signatureZone'); if(!zone) return;
   const settings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
-  const users=_cache['users']||[];
-  const manager=_cache['managerInfo']?{id:String(_cache['managerInfo']._id||''),name:_cache['managerInfo'].name}:((_cache['users']||[]).find(u=>String(u._id||u.id)===String(currentUser.managerId)));
+  // Construire la liste des managers depuis le cache (multi-managers)
+  const managers=[];
+  if(_cache['managerInfo'] && _cache['managerInfo']._id){
+    managers.push({id:String(_cache['managerInfo']._id), name:_cache['managerInfo'].name});
+  }
   const highCount=(selected||[]).filter(r=>r.sev==='high').length;
   const level=highCount>0?'high':((selected||[]).some(r=>r.sev==='medium')?'medium':'low');
 
@@ -2411,12 +2437,13 @@ function updateSignatureZone(selected){
       <span style="color:var(--safe);font-size:16px">✓</span>
       <span><strong>Risque faible</strong> — signature automatique activée</span>
     </div>`;
-  } else if((level==='medium'||level==='high') && settings.requireManager!==false && manager){
+  } else if((level==='medium'||level==='high') && settings.requireManager!==false && managers.length){
+    const names=managers.map(m=>m.name).join(', ');
     html=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fef3e6;border:1.5px solid var(--warn);border-radius:4px;font-size:12px">
       <span style="font-size:16px">🔔</span>
-      <span><strong>Signature responsable requise</strong> — ${manager.name} sera notifié</span>
+      <span><strong>Signature responsable requise</strong> — ${names} ser${managers.length>1?'ont':'a'} notifié${managers.length>1?'s':''}</span>
     </div>`;
-  } else if((level==='medium'||level==='high') && settings.requireManager!==false && !manager){
+  } else if((level==='medium'||level==='high') && settings.requireManager!==false && !managers.length){
     html=`<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;background:#fef3e6;border:1.5px solid var(--warn);border-radius:4px;font-size:12px">
       <span style="font-size:16px">⚠️</span>
       <span><strong>Risque élevé</strong> — aucun responsable défini pour votre compte</span>
@@ -2928,8 +2955,17 @@ function togglePP(){
   p.classList.toggle('open'); a.textContent=p.classList.contains('open')?'▲':'▼';
 }
 function togglePermit(el,name){
-  if(ppPermits.has(name)){ppPermits.delete(name);el.classList.remove('active');}
-  else{ppPermits.add(name);el.classList.add('active');}
+  if(ppPermits.has(name)){
+    ppPermits.delete(name);
+    el.classList.remove('active');
+  } else {
+    ppPermits.add(name);
+    el.classList.add('active');
+    // Ouvrir automatiquement le formulaire pré-rempli si disponible
+    if(typeof PERMIS_FORMS !== 'undefined' && PERMIS_FORMS[name]){
+      setTimeout(()=>openPermisForm(name), 160);
+    }
+  }
 }
 function ppDelRow(btn){btn.closest('tr').remove();}
 function ppAddWorker(){
@@ -3216,13 +3252,16 @@ function switchAdminTab(tab){
   document.querySelectorAll('.adm-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.tab===tab));
   document.querySelectorAll('.adm-pane').forEach(p=>p.style.display='none');
   const pane=document.getElementById('admpane-'+tab); if(pane) pane.style.display='block';
-  if(tab==='users') renderAdminUsers();
-  if(tab==='risks'){renderAdminRisks();}
-  if(tab==='keywords') renderAdminKeywords();
-  if(tab==='features') renderAdminFeatures();
-  if(tab==='reports') renderAdminReports();
-  if(tab==='scoring') loadScoringAdmin();
-  if(tab==='carnet') renderAdminCarnet();
+  if(tab==='users')     renderAdminUsers();
+  if(tab==='risks')     { renderAdminRisks(); }
+  if(tab==='risksdb')   { _dbRisksLoaded=false; renderAdminRisksDB(); }
+  if(tab==='keywords')  renderAdminKeywords();
+  if(tab==='features')  renderAdminFeatures();
+  if(tab==='reports')   renderAdminReports();
+  if(tab==='scoring')   loadScoringAdmin();
+  if(tab==='carnet')    renderAdminCarnet();
+  if(tab==='interface') renderAdminInterface();
+  if(tab==='ppconfig')  renderAdminPPConfig();
 }
 async function saveCompanyInfo(){
   const co={};
@@ -3247,12 +3286,11 @@ async function renderAdminUsers(){
   // Normaliser : MongoDB retourne _id, on veut id
   const users = (_cache['users']||[]).map(u=>({...u, id: u._id||u.id}));
   const sigSettings=_cache['signatureSettings']||{autoLow:true,requireManager:true};
-  // Remplir le select responsable pour le formulaire
+  // Remplir le select responsable pour le formulaire (multi-select)
   const mgrSel=document.getElementById('new-user-manager');
   if(mgrSel){
-    const prev=mgrSel.value;
     mgrSel.innerHTML='<option value="">— Aucun —</option>'+
-      users.map(u=>`<option value="${u.id}" ${prev===u.id?'selected':''}>${u.name} (${u.login})</option>`).join('');
+      users.map(u=>`<option value="${u.id}">${u.name} (${u.login})</option>`).join('');
   }
   // Charger les paramètres de signature
   const cbLow=document.getElementById('sig-auto-low');
@@ -3260,16 +3298,23 @@ async function renderAdminUsers(){
   if(cbLow) cbLow.checked=sigSettings.autoLow!==false;
   if(cbMgr) cbMgr.checked=sigSettings.requireManager!==false;
   // Rendu tableau
-  document.getElementById('usersBody').innerHTML=users.map(u=>{
+  document.getElementById('usersBody').innerHTML=users.map(u=>{\
     const uid=u._id||u.id;
-    const managerId=u.managerId?._id||u.managerId||'';
-    const managerUser=users.find(x=>(x._id||x.id)===managerId);
-    const managerName=managerUser?managerUser.name:(managerId?managerId:'—');
+    // Construire la liste de tous les managers (principal + additionnels)
+    const allMgrIds = [];
+    const primId = String(u.managerId?._id||u.managerId||'');
+    if(primId) allMgrIds.push(primId);
+    (u.managerIds||[]).forEach(m=>{ const mid=String(m._id||m||''); if(mid&&!allMgrIds.includes(mid)) allMgrIds.push(mid); });
+    const managerNames = allMgrIds.map(mid=>{
+      const mu=users.find(x=>String(x._id||x.id)===mid);
+      return mu?mu.name:mid;
+    }).join(', ') || '—';
     return `<tr>
       <td><strong>${u.login}</strong></td>
       <td>${u.name}</td>
       <td style="color:#6b7280;font-size:12px">${u.site||'—'}</td>
-      <td style="font-size:12px">${managerName}</td>
+      <td style="font-size:12px;color:#6b7280">${u.email||'—'}</td>
+      <td style="font-size:12px">${managerNames}${allMgrIds.length>1?` <span style="font-size:10px;background:#e8f4fd;color:var(--accent2);padding:1px 6px;border-radius:10px">${allMgrIds.length} resp.</span>`:''}</td>
       <td><span class="role-badge role-${u.role}">${u.role}</span></td>
       <td style="color:#6b7280;font-size:11px">${u.lastLogin?new Date(u.lastLogin).toLocaleDateString('fr-FR'):'—'}</td>
       <td><div style="display:flex;gap:5px">
@@ -3278,23 +3323,35 @@ async function renderAdminUsers(){
         ${u.login!=='admin'?`<button class="adm-btn-danger" onclick="deleteUser('${uid}')">✕</button>`:''}
       </div></td>
     </tr>`;
-  }).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;color:#9ca3af;font-style:italic">Aucun utilisateur</td></tr>';
+  }).join('')||'<tr><td colspan="8" style="text-align:center;padding:20px;color:#9ca3af;font-style:italic">Aucun utilisateur</td></tr>';
 }
 function editUser(id){
   const users=(_cache['users']||[]).map(u=>({...u,id:u._id||u.id}));
   const u=users.find(x=>String(x.id)===String(id)||String(x._id)===String(id)); 
   if(!u){showToast('Utilisateur introuvable','error');return;}
   const uid=u._id||u.id;
-  const currentMgrId=u.managerId?._id||u.managerId||'';
+  // Collecter tous les IDs managers actuels de cet utilisateur
+  const currentAllMgrIds = new Set();
+  const primId=String(u.managerId?._id||u.managerId||'');
+  if(primId) currentAllMgrIds.add(primId);
+  (u.managerIds||[]).forEach(m=>{ const mid=String(m._id||m||''); if(mid) currentAllMgrIds.add(mid); });
   const otherUsers=users.filter(x=>String(x.id)!==String(id));
-  const mgrOptions='<option value="">— Aucun —</option>'+otherUsers.map(x=>`<option value="${x._id||x.id}"${String(currentMgrId)===String(x._id||x.id)?' selected':''}>${x.name} (${x.login})</option>`).join('');
+  const mgrOptions=otherUsers.map(x=>{
+    const xid=String(x._id||x.id);
+    return `<option value="${xid}"${currentAllMgrIds.has(xid)?' selected':''}>${x.name} (${x.login})</option>`;
+  }).join('');
   const html=`<div style="background:#fff;border:1.5px solid var(--border);border-radius:6px;padding:20px;margin-top:10px;box-shadow:0 4px 20px rgba(0,0,0,.08)" id="editUserForm-${id}">
     <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2);margin-bottom:12px">Éditer : ${u.name}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
       <div><label class="field-label">Nom complet</label><input type="text" id="eu-name-${id}" value="${u.name}" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/></div>
       <div><label class="field-label">Site / Atelier</label><input type="text" id="eu-site-${id}" value="${u.site||''}" placeholder="ex: Atelier Nord" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/></div>
       <div><label class="field-label">Email <span style="font-weight:400;font-size:9px;color:var(--accent);background:#fff5f3;padding:1px 6px;border-radius:10px">notifications</span></label><input type="email" id="eu-email-${id}" value="${u.email||''}" placeholder="prenom.nom@entreprise.fr" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/></div>
-      <div><label class="field-label">Responsable</label><select id="eu-mgr-${id}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%">${mgrOptions}</select></div>
+      <div><label class="field-label">Responsable(s) <span style="font-size:10px;color:#6b7280;font-weight:400">(Ctrl+clic pour plusieurs)</span></label>
+        <select id="eu-mgrs-${id}" multiple style="padding:8px 12px;border:1.5px solid var(--accent2);border-radius:3px;width:100%;height:90px;background:#f0f7ff">
+          ${mgrOptions}
+        </select>
+        <div style="font-size:10px;color:#6b7280;margin-top:3px">1er sélectionné = responsable principal · Suivants = responsables additionnels</div>
+      </div>
       <div><label class="field-label">Rôle</label>
         <select id="eu-role-${id}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%">
           <option value="user"${u.role==='user'?' selected':''}>Utilisateur</option>
@@ -3308,7 +3365,7 @@ function editUser(id){
       <button onclick="document.getElementById('editUserForm-${id}').remove()" style="padding:8px 16px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:12px;cursor:pointer">Annuler</button>
     </div>
   </div>`;
-  // Insérer après la ligne dans le tableau
+  // Insérer après la liste dans le tableau
   const existing=document.getElementById(`editUserForm-${id}`);
   if(existing){existing.remove();return;}
   document.getElementById('adm-users-table-wrap').insertAdjacentHTML('afterend',html);
@@ -3317,10 +3374,13 @@ async function saveEditUser(id){
   const name=document.getElementById('eu-name-'+id)?.value.trim();
   const site=document.getElementById('eu-site-'+id)?.value.trim()||'';
   const email=document.getElementById('eu-email-'+id)?.value.trim()||'';
-  const managerId=document.getElementById('eu-mgr-'+id)?.value||null;
   const role=document.getElementById('eu-role-'+id)?.value;
   if(!name){showToast('Le nom est requis','error');return;}
-  const result=await api('PUT','/users/'+id,{name,site,email,managerId:managerId||null,role});
+  // Récupérer TOUS les managers sélectionnés (multi-select)
+  const mgrSel=document.getElementById('eu-mgrs-'+id);
+  const allMgrIds=mgrSel?[...mgrSel.selectedOptions].map(o=>o.value).filter(Boolean):[];
+  const managerId=allMgrIds[0]||null;
+  const result=await api('PUT','/users/'+id,{name,site,email,managerId:managerId||null,managerIds:allMgrIds,role});
   if(!result) return;
   document.getElementById('editUserForm-'+id)?.remove();
   await renderAdminUsers();
@@ -3332,9 +3392,12 @@ async function addUser(){
   const pass=document.getElementById('new-user-pass').value;
   const role=document.getElementById('new-user-role').value;
   const site=document.getElementById('new-user-site').value.trim();
-  const managerId=document.getElementById('new-user-manager').value||null;
+  // Multi-managers depuis le select multiple
+  const mgrSel2=document.getElementById('new-user-manager');
+  const allMgrIds2=mgrSel2?[...mgrSel2.selectedOptions].map(o=>o.value).filter(v=>v&&v!==''):[];
+  const managerId=allMgrIds2[0]||null;
   if(!login||!name||!pass){showToast('Remplissez tous les champs obligatoires.','error');return;}
-  const result=await api('POST','/users',{login,name,password:pass,role,site,managerId});
+  const result=await api('POST','/users',{login,name,password:pass,role,site,managerId,managerIds:allMgrIds2});
   if(!result) return;
   ['new-user-login','new-user-name','new-user-pass','new-user-site'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   // Recharger la liste des users dans le cache
@@ -3876,23 +3939,24 @@ async function handleGeneratePDF(){
   const settings=_cache['signatureSettings']||{autoLow:true,requireManager:true};
   const level=getReportRiskLevel();
 
-  // Récupérer le responsable TOUJOURS depuis l'API (jamais depuis le cache)
-  let manager=null;
+  // Récupérer TOUS les responsables depuis l'API (multi-managers)
+  let managers=[];
   try{
-    const mgrRaw=await api('GET','/users/manager-info');
-    console.log('[handleGeneratePDF] manager-info API response:', JSON.stringify(mgrRaw));
-    if(mgrRaw && mgrRaw._id){
-      const mgrId=String(mgrRaw._id);
-      console.log('[handleGeneratePDF] managerId extrait:', mgrId, 'longueur:', mgrId.length);
-      _cache['managerInfo']=mgrRaw;
-      manager={id:mgrId, name:mgrRaw.name||'Responsable'};
+    const allMgrs=await api('GET','/users/all-managers')||[];
+    if(allMgrs.length){
+      managers=allMgrs.map(m=>({id:String(m._id||m.id||''), name:m.name||'Responsable'}));
+      if(allMgrs[0]) _cache['managerInfo']=allMgrs[0];
     } else {
-      console.warn('[handleGeneratePDF] Pas de responsable (manager-info retourne null ou sans _id)');
+      // Fallback responsable unique
+      const mgrRaw=await api('GET','/users/manager-info');
+      if(mgrRaw && mgrRaw._id){
+        _cache['managerInfo']=mgrRaw;
+        managers.push({id:String(mgrRaw._id), name:mgrRaw.name||'Responsable'});
+      }
     }
   }catch(e){
-    console.error('[handleGeneratePDF] Erreur récupération manager:', e);
+    console.error('[handleGeneratePDF] Erreur récupération managers:', e);
   }
-  console.log('[handleGeneratePDF] manager final:', manager, '| currentUser.id:', currentUser.id, '| level:', level);
 
   // Risque faible + signature auto activée → PDF direct
   if(level==='low' && settings.autoLow!==false){
@@ -3903,28 +3967,28 @@ async function handleGeneratePDF(){
     return;
   }
 
-  // Risque modéré/critique + responsable requis + responsable défini
-  if((level==='medium'||level==='high') && settings.requireManager!==false && manager){
-    // Ouvrir modal signature de l'intervenant d'abord
+  // Risque modéré/critique + responsable requis + managers définis
+  if((level==='medium'||level==='high') && settings.requireManager!==false && managers.length){
+    const managerList=managers.map(m=>m.name).join(', ');
     openSignatureModal({
       title:'Signature de l\'intervenant',
       subtitle:'Niveau de risque '+(level==='high'?'🔴 Critique':'🟠 Modéré')+' — votre signature est requise',
       info:`<strong>Intervenant :</strong> ${currentUser.name}<br>
             <strong>Site :</strong> ${currentUser.site||'—'}<br>
-            <strong>Responsable :</strong> ${manager.name}<br>
+            <strong>Responsable(s) :</strong> ${managerList}<br>
             <strong>Risques :</strong> ${appState.selectedRisks.size} identifié(s)<br>
-            <em style="color:var(--warn)">Après votre signature, une notification sera envoyée à votre responsable pour validation.</em>`,
+            <em style="color:var(--warn)">Après votre signature, une notification sera envoyée à ${managers.length>1?'vos responsables':'votre responsable'} pour validation.</em>`,
       onSign:async (sigDataURL)=>{
-        sendToManagerForValidation(sigDataURL, level, manager);
+        sendToManagerForValidation(sigDataURL, level, managers);
       }
     });
     return;
   }
 
-  // Risque modéré/critique mais pas de responsable → ouvrir signature simple
+  // Risque modéré/critique mais pas de responsable → signature simple
   openSignatureModal({
     title:'Signature du rapport',
-    subtitle:'Niveau de risque '+(level==='high'?'🔴 Critique':'level'==='medium'?'🟠 Modéré':'🟢 Faible'),
+    subtitle:'Niveau de risque '+(level==='high'?'🔴 Critique':level==='medium'?'🟠 Modéré':'🟢 Faible'),
     info:`<strong>Intervenant :</strong> ${currentUser.name}<br>
           <strong>Risques :</strong> ${appState.selectedRisks.size} identifié(s)`,
     onSign:async (sigDataURL)=>{
@@ -3951,23 +4015,24 @@ async function buildAutoSignature(){
 }
 
 // ── Envoi au responsable pour validation ─────────────────────────────────
-async function sendToManagerForValidation(sigDataURL, level, manager){
-  // Valider que les IDs sont des ObjectId MongoDB valides (24 hex chars)
-  const isValidId = id => id && String(id).length>=12 && String(id)!=='undefined' && String(id)!=='null';
-  if(!manager || !isValidId(manager.id)){
+async function sendToManagerForValidation(sigDataURL, level, managersInput){
+  // Accepte soit un objet {id,name} soit un tableau [{id,name},...]
+  const managers=Array.isArray(managersInput)?managersInput:(managersInput?[managersInput]:[]);
+  const isValidId=id=>id&&String(id).length>=12&&String(id)!=='undefined'&&String(id)!=='null';
+
+  if(!managers.length||!isValidId(managers[0].id)){
     showToast('Erreur : ID responsable invalide — vérifiez sa configuration','error');
-    console.error('manager.id invalide:', manager);
     return;
   }
   if(!isValidId(currentUser.id)){
     showToast('Erreur : session invalide, reconnectez-vous','error');
     return;
   }
-  const reportId='rep'+Date.now();
   const selected=getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
-  // Construire le payload — NE PAS inclure submittedBy (le backend utilise req.user._id depuis le JWT)
+  // Construire le payload avec support multi-managers
   const payload={
-    managerId:     String(manager.id),
+    managerId:  String(managers[0].id),
+    managerIds: managers.map(m=>String(m.id)),
     level,
     evalSnapshot:{
       interventionTitle: appState.interventionTitle||'',
@@ -3988,16 +4053,12 @@ async function sendToManagerForValidation(sigDataURL, level, manager){
     },
     sigIntervenant: sigDataURL,
   };
-  console.log('[sendToManager] payload envoyé:', JSON.stringify({...payload, sigIntervenant:'[BASE64]'}));
   const saved=await api('POST','/data/validations', payload);
-  console.log('[sendToManager] réponse:', JSON.stringify(saved));
   if(!saved){showToast('Erreur de sauvegarde','error');return;}
 
-  // Rafraîchir le badge (utile si même navigateur)
   refreshValidationBadge();
-
-  // Confirmation détaillée
-  showToast('✅ Rapport envoyé à '+manager.name+' pour validation','success');
+  const names=managers.map(m=>m.name).join(', ');
+  showToast('✅ Rapport envoyé à '+names+' pour validation','success');
 
   // Afficher un bandeau de confirmation dans la page
   const zone=document.getElementById('signatureZone');
@@ -4006,7 +4067,7 @@ async function sendToManagerForValidation(sigDataURL, level, manager){
       <span style="font-size:22px">✅</span>
       <div>
         <div style="font-weight:700;font-size:13px;color:var(--safe)">Rapport soumis pour validation</div>
-        <div style="font-size:12px;color:#374151;margin-top:2px">Envoyé à <strong>${manager.name}</strong> · En attente de signature</div>
+        <div style="font-size:12px;color:#374151;margin-top:2px">Envoyé à <strong>${names}</strong> · En attente de signature${managers.length>1?` <span style="margin-left:8px;font-size:11px;color:#6b7280">(${managers.length} responsables)</span>`:''}</div>
       </div>
     </div>`;
   }
@@ -4915,6 +4976,12 @@ function generatePDF(sigData){
   };
   saveReport('eval',evalToSave);
   _saveLocalEval(evalToSave);
+  // Sauvegarder aussi en DB pour persistance multi-appareils
+  _saveEvalToDB({...evalToSave, risksDetail: getAllRisks().filter(r=>appState.selectedRisks.has(r.id)).map(r=>{
+    const es=getEPI(r.id);
+    return {id:r.id,name:r.name,sev:r.sev,type:r.interventionType,solutions:r.solutions||[],
+      epc:[...es.collectif,...es.customC],epi:[...es.individuel,...es.customI]};
+  })}).then(()=>refreshMyEvalsBadge());
   refreshMyEvalsBadge();
 }
 
@@ -5243,16 +5310,15 @@ async function refreshMyEvalsBadge(){
   const btn=document.getElementById('btnMyEvals');
   const badge=document.getElementById('myEvalsBadge');
   if(!btn||!currentUser) return;
-  const local=_getLocalEvals();
-  let pending=0;
+  let pending=0, dbCount=0;
   try{
-    const vals=await api('GET','/data/validations')||[];
-    const mine=vals.filter(v=>v.submitterName===currentUser.name||String(v.submittedBy)===String(currentUser.id));
-    // Badge = évals en attente uniquement (pour alerter)
-    pending=mine.filter(v=>v.status==='pending').length;
+    const vals=await api('GET','/data/validations/mine')||[];
+    pending=vals.filter(v=>v.status==='pending').length;
+    const evals=await api('GET','/data/evaluations')||[];
+    dbCount=evals.length;
   }catch(e){}
-  const total=local.length; // total local pour info
-  // Badge orange sur les "en attente" uniquement
+  const local=_getLocalEvals();
+  const total=dbCount+local.length;
   if(badge){
     if(pending>0){
       badge.style.display='flex';
@@ -5272,166 +5338,187 @@ function _getLocalEvals(){
 }
 function _saveLocalEval(ev){
   const list=_getLocalEvals();
-  // Éviter doublons par id
   const idx=list.findIndex(e=>e.id===ev.id);
   if(idx>=0) list[idx]=ev; else list.unshift(ev);
-  // Garder les 50 dernières
   if(list.length>50) list.splice(50);
   localStorage.setItem('myEvals_'+currentUser.id, JSON.stringify(list));
+}
+async function _saveEvalToDB(ev){
+  try{
+    const payload={
+      interventionTitle: ev.interventionTitle||'',
+      operator:          ev.operator||currentUser.name,
+      location:          ev.location||'',
+      date:              ev.date||'',
+      mission:           ev.mission||'',
+      missionSteps:      Array.isArray(ev.missionSteps)?ev.missionSteps:[],
+      interventions:     Array.isArray(ev.interventions)?ev.interventions:[],
+      selectedRisks:     Array.isArray(ev.selectedRisks)?ev.selectedRisks:[],
+      derogations:       ev.derogations&&typeof ev.derogations==='object'?ev.derogations:{},
+      epiSnapshot:       ev.epiSnapshot&&typeof ev.epiSnapshot==='object'?ev.epiSnapshot:{},
+      selectedRisksCount:ev.selectedRisksCount||0,
+      risksDetail:       ev.risksDetail||[],
+      status:            'draft',
+    };
+    const saved=await api('POST','/data/evaluations',payload);
+    if(saved) return saved;
+  }catch(e){ console.warn('Erreur sauvegarde eval DB:',e); }
+  return null;
 }
 async function renderMyEvals(){
   const container=document.getElementById('myEvalsList');
   const countEl=document.getElementById('myEvalsCount');
   if(!container) return;
-  container.innerHTML='<div style="text-align:center;padding:24px;color:#9ca3af">Chargement…</div>';
+  container.innerHTML=`<div style="text-align:center;padding:24px;color:#9ca3af;display:flex;align-items:center;justify-content:center;gap:10px"><span class="ai-spinner"></span> Chargement de vos évaluations…</div>`;
 
-  const local=_getLocalEvals();
-  let submitted=[];
+  const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'—';
+
+  // ── Charger depuis DB ──────────────────────────────────────────────────
+  let dbEvals=[];
+  try{ dbEvals=await api('GET','/data/evaluations')||[]; }catch(e){}
+
+  // ── Validations soumises par cet utilisateur ───────────────────────────
+  let myValidations=[];
   try{
-    const vals=await api('GET','/data/validations')||[];
-    submitted=vals.filter(v=>v.submitterName===currentUser.name||String(v.submittedBy)===String(currentUser.id))
-      .map(v=>({...v,id:String(v._id||v.id||'')}));
+    const rawVals=await api('GET','/data/validations/mine')||[];
+    myValidations=rawVals.map(v=>({...v, id:String(v._id||v.id||''), managerName:v.managerName||'', status:v.status||'pending'}));
   }catch(e){}
 
-  const total=local.length+submitted.length;
+  // ── Compléter avec localStorage ──────────────────────────────────────
+  const local=_getLocalEvals();
+  const total=dbEvals.length+local.length;
   if(countEl) countEl.textContent=total;
 
-  if(!total){
-    container.innerHTML='<div style="text-align:center;padding:48px;color:#9ca3af;font-style:italic">Aucune évaluation enregistrée.<br><small>Générez votre premier rapport PDF pour le voir ici.</small></div>';
+  if(!total&&!myValidations.length){
+    container.innerHTML=`<div style="text-align:center;padding:48px;color:#9ca3af">
+      <div style="font-size:40px;margin-bottom:12px">📋</div>
+      <div style="font-weight:600;margin-bottom:6px">Aucune évaluation enregistrée</div>
+      <div style="font-size:13px">Générez un rapport PDF pour le voir ici.</div>
+    </div>`;
     return;
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────
-  const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR'):'—';
-  const levelRgb=s=>s==='high'?['#fde8e6','var(--danger)','🔴']:s==='medium'?['#fef3e6','var(--warn)','🟠']:['#e6f4ec','var(--safe)','🟢'];
+  const sevRgb=s=>s==='high'?['#fde8e6','var(--danger)','🔴']:s==='medium'?['#fef3e6','var(--warn)','🟠']:['#e6f4ec','var(--safe)','🟢'];
 
-  function statusBlock(s,comment){
-    const cfg={
-      approved:{bg:'#f0fdf4',border:'var(--safe)',icon:'✅',label:'Rapport validé',sublabel:'Votre responsable a signé et approuvé ce rapport.',color:'var(--safe)'},
-      auto_validated:{bg:'#f0fdf4',border:'var(--safe)',icon:'🤖',label:'Validé automatiquement',sublabel:'Tous les risques sont correctement protégés — validation manuelle non requise.',color:'var(--safe)'},
-      rejected:{bg:'#fef2f2',border:'var(--danger)',icon:'❌',label:'Rapport refusé',sublabel:'Votre responsable a refusé ce rapport.',color:'var(--danger)'},
-      pending:{bg:'#fffbeb',border:'var(--warn)',icon:'⏳',label:'En attente de validation',sublabel:'Votre rapport est en cours d\'examen par votre responsable.',color:'var(--warn)'},
-    }[s]||{bg:'#f3f4f6',border:'#d1d5db',icon:'💾',label:'Brouillon local',sublabel:'Rapport non encore soumis.',color:'#6b7280'};
-    return `<div style="display:flex;align-items:flex-start;gap:12px;padding:12px 18px;background:${cfg.bg};border-top:1px solid ${cfg.border}">
-      <span style="font-size:20px;flex-shrink:0">${cfg.icon}</span>
-      <div>
-        <div style="font-weight:700;font-size:13px;color:${cfg.color}">${cfg.label}</div>
-        <div style="font-size:11.5px;color:#4b5563;margin-top:2px">${cfg.sublabel}</div>
-        ${comment?`<div style="margin-top:5px;font-size:11.5px;font-style:italic;color:#374151">💬 Commentaire : ${comment}</div>`:''}
+  function statusBadge(s,managerName){
+    const cfgs={
+      approved:  {bg:'#f0fdf4',border:'var(--safe)',   icon:'✅',label:'Validé',       color:'var(--safe)'},
+      rejected:  {bg:'#fef2f2',border:'var(--danger)', icon:'❌',label:'Refusé',        color:'var(--danger)'},
+      pending:   {bg:'#fffbeb',border:'var(--warn)',   icon:'⏳',label:'En attente',    color:'var(--warn)'},
+      draft:     {bg:'#f3f4f6',border:'#d1d5db',      icon:'💾',label:'Brouillon',     color:'#6b7280'},
+      submitted: {bg:'#fffbeb',border:'var(--warn)',   icon:'📤',label:'Soumis',        color:'var(--warn)'},
+    };
+    const cfg=cfgs[s]||cfgs.draft;
+    return `<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;background:${cfg.bg};border:1.5px solid ${cfg.border};border-radius:20px;font-size:11px;font-weight:700;color:${cfg.color}">
+      ${cfg.icon} ${cfg.label}${managerName?' — '+managerName:''}
+    </span>`;
+  }
+
+  function renderValidationProgress(val){
+    if(!val) return '';
+    const allMgrIds=val.managerIds&&val.managerIds.length?val.managerIds:[val.managerId].filter(Boolean);
+    const total=allMgrIds.length||1;
+    if(total<=1) return '';
+    const signed=val.status==='approved'?total:val.status==='pending'?0:0;
+    const pct=Math.round((signed/total)*100);
+    return `<div style="margin-top:8px;padding:8px 12px;background:#f8f9fa;border-radius:6px;border:1px solid #e5e7eb">
+      <div style="font-size:11px;font-weight:700;color:#374151;margin-bottom:5px">📊 Progression des signatures (${signed}/${total} responsables)</div>
+      <div style="background:#e5e7eb;border-radius:4px;height:6px;overflow:hidden">
+        <div style="background:${pct===100?'var(--safe)':'var(--warn)'};width:${pct}%;height:100%;border-radius:4px;transition:width .3s"></div>
       </div>
     </div>`;
   }
 
-  function riskDetailHtml(risks){
-    if(!risks||!risks.length) return '<div style="padding:16px;color:#9ca3af;font-style:italic;text-align:center">Aucun risque renseigné</div>';
-    const sevLbl=s=>s==='high'?'CRITIQUE':s==='medium'?'MODÉRÉ':'FAIBLE';
-    return risks.map(x=>{
-      const [bg,col]=levelRgb(x.sev);
-      const solHtml=(x.solutions||[]).length
-        ?x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:var(--safe)">→</span>${s}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      const epcHtml=(x.epc||[]).length
-        ?x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:#5b3fb5">✓</span>${e}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      const epiHtml=(x.epi||[]).length
-        ?x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;color:#374151;border-bottom:1px solid #f3f4f6"><span style="position:absolute;left:0;font-weight:700;color:#0e7490">✓</span>${e}</div>`).join('')
-        :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
-      return `<div style="border:1px solid #e5e7eb;border-radius:6px;margin-bottom:9px;overflow:hidden">
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:${bg}">
-          <span style="font-size:10px;font-weight:700;padding:2px 8px;background:${col};color:#fff;border-radius:20px">${sevLbl(x.sev)}</span>
-          <strong style="font-size:12.5px;color:var(--ink);flex:1">${x.name}</strong>
-          <span style="font-size:10px;color:#6b7280">${x.type||''}</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff">
-          <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--safe);margin-bottom:6px">🛡 Prévention</div>${solHtml}
-          </div>
-          <div style="padding:9px 11px;border-right:1px solid #f3f4f6">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5b3fb5;margin-bottom:6px">🔵 EPC collectif</div>${epcHtml}
-          </div>
-          <div style="padding:9px 11px">
-            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#0e7490;margin-bottom:6px">🦺 EPI individuel</div>${epiHtml}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
+  function riskRow(x){
+    const solHtml=(x.solutions||[]).length
+      ?x.solutions.map(s=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;border-bottom:1px solid #f3f4f6;color:#374151"><span style="position:absolute;left:0;font-weight:700;color:var(--safe)">→</span>${s}</div>`).join('')
+      :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+    const epcHtml=(x.epc||[]).length
+      ?x.epc.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;border-bottom:1px solid #f3f4f6;color:#374151"><span style="position:absolute;left:0;font-weight:700;color:#5b3fb5">✓</span>${e}</div>`).join('')
+      :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+    const epiHtml=(x.epi||[]).length
+      ?x.epi.map(e=>`<div style="font-size:11px;padding:3px 0 3px 14px;position:relative;border-bottom:1px solid #f3f4f6;color:#374151"><span style="position:absolute;left:0;font-weight:700;color:#0e7490">✓</span>${e}</div>`).join('')
+      :'<div style="font-size:11px;color:#9ca3af;font-style:italic">Non renseigné</div>';
+    const [bg]=sevRgb(x.sev||'low');
+    return `<div style="border:1px solid #e5e7eb;border-radius:6px;margin-bottom:8px;overflow:hidden">
+      <div style="padding:8px 12px;background:${bg};display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;font-weight:700;padding:2px 8px;background:${x.sev==='high'?'var(--danger)':x.sev==='medium'?'var(--warn)':'var(--safe)'};color:#fff;border-radius:20px">${x.sev==='high'?'CRITIQUE':x.sev==='medium'?'MODÉRÉ':'FAIBLE'}</span>
+        <strong style="font-size:12.5px;flex:1">${x.name||''}</strong>
+        <span style="font-size:10px;color:#6b7280">${x.type||''}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;background:#fff">
+        <div style="padding:9px 11px;border-right:1px solid #f3f4f6"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--safe);margin-bottom:6px">🛡 Prévention</div>${solHtml}</div>
+        <div style="padding:9px 11px;border-right:1px solid #f3f4f6"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#5b3fb5;margin-bottom:6px">🔵 EPC collectif</div>${epcHtml}</div>
+        <div style="padding:9px 11px"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#0e7490;margin-bottom:6px">🦺 EPI individuel</div>${epiHtml}</div>
+      </div>
+    </div>`;
   }
 
-  function stepsHtml(steps){
-    if(!steps||!steps.length) return '';
-    return steps.map((s,i)=>`<div style="display:flex;gap:9px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #f3f4f6">
-      <span style="background:var(--accent2);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px">${i+1}</span>
-      <span style="font-size:12.5px;color:#374151;line-height:1.45">${s}</span>
-    </div>`).join('');
+  function evalCard(ev, validInfo){
+    const title=ev.interventionTitle||ev.mission||'Évaluation sans titre';
+    const uid='eval-db-'+String(ev._id||ev.id||Math.random()).replace(/[^a-z0-9]/gi,'');
+    const risks=ev.risksDetail||(ev.evalSnapshot?.risks)||[];
+    const steps=ev.missionSteps||(ev.evalSnapshot?.missionSteps)||[];
+    const interv=ev.interventions||(ev.evalSnapshot?.interventions)||[];
+    const status=validInfo?validInfo.status:(ev.status||'draft');
+    const mgrName=validInfo?validInfo.managerName:'';
+    const borderCol=status==='approved'?'var(--safe)':status==='rejected'?'var(--danger)':status==='pending'?'var(--warn)':'#ddd5fe';
+    return `<div style="border:2px solid ${borderCol};border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)">
+      <div style="padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px">${title}</div>
+          <div style="font-size:12px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap">
+            <span>👤 ${ev.operator||ev.submitterName||currentUser.name}</span>
+            <span>📍 ${ev.location||'—'}</span>
+            <span>📅 ${fmt(ev.createdAt||ev.date)}</span>
+            <span>⚠️ ${risks.length||ev.selectedRisksCount||0} risque(s)</span>
+          </div>
+          ${renderValidationProgress(validInfo)}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
+          ${statusBadge(status,mgrName)}
+          <div style="display:flex;gap:6px">
+            <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
+              style="padding:6px 14px;background:var(--ink);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">👁 Détail</button>
+            ${status==='approved'?`<button onclick="downloadValidatedReport('${String(validInfo?._id||validInfo?.id||'')}' )" style="padding:6px 14px;background:var(--accent2);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">📄 PDF</button>`:''}
+            <button onclick="deleteDBEval('${String(ev._id||ev.id||'')}',this)" style="padding:6px 10px;background:none;border:1.5px solid var(--border);border-radius:4px;font-size:11px;color:#9ca3af;cursor:pointer">✕</button>
+          </div>
+        </div>
+      </div>
+      <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
+        ${steps.length?`<div style="padding:14px 18px;border-bottom:1px solid #f3f4f6"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:10px">📋 Phases</div>${steps.map((s,i)=>`<div style="display:flex;gap:9px;align-items:flex-start;padding:5px 0;border-bottom:1px solid #f3f4f6"><span style="background:var(--accent2);color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${i+1}</span><span style="font-size:12.5px;color:#374151">${s}</span></div>`).join('')}</div>`:''}
+        ${interv.length?`<div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:6px"><span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-right:4px">Types :</span>${interv.map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}</div>`:''}
+        ${risks.length?`<div style="padding:14px 18px"><div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques & protections</div>${risks.map(riskRow).join('')}</div>`:''}
+        ${validInfo?.sigIntervenant?`<div style="padding:10px 18px;border-top:1px solid #f3f4f6"><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature intervenant</div><img src="${validInfo.sigIntervenant}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>`:''}
+      </div>
+    </div>`;
   }
 
   let html='';
 
-  // ── Évaluations soumises ──────────────────────────────────────────────
-  if(submitted.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:14px">📤 Soumises au responsable (${submitted.length})</div>`;
-    submitted.forEach(r=>{
-      const ev=r.evalSnapshot||{};
-      const title=ev.interventionTitle||ev.mission||'Évaluation sans titre';
-      const uid='myev-sub-'+r.id;
-      const borderCol=r.status==='approved'?'var(--safe)':r.status==='rejected'?'var(--danger)':'var(--warn)';
-      html+=`<div style="border:2px solid ${borderCol};border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)">
-        <!-- En-tête -->
-        <div style="padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px;word-break:break-word">${title}</div>
-            <div style="font-size:12px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap">
-              <span>👤 ${r.submitterName||currentUser.name}</span>
-              <span>📍 ${ev.location||'—'}</span>
-              <span>📅 ${fmt(r.createdAt)}</span>
-              <span>⚠️ ${(ev.risks||[]).length} risque(s)</span>
-              <span>📋 ${(ev.interventions||[]).length} intervention(s)</span>
-            </div>
-          </div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0">
-            <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
-              style="padding:6px 14px;background:var(--ink);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap">
-              👁 Voir le détail
-            </button>
-            ${r.status==='approved'?`<button onclick="downloadValidatedReport('${r.id}')" style="padding:6px 14px;background:var(--accent2);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer">📄 Télécharger PDF</button>`:''}
-          </div>
-        </div>
-        <!-- Bandeau statut -->
-        ${statusBlock(r.status,r.comment||'')}
-        <!-- Détail expansible -->
-        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
-          ${ev.missionSteps&&ev.missionSteps.length?`
-          <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:10px">📋 Phases de l'intervention</div>
-            ${stepsHtml(ev.missionSteps)}
-          </div>`:''}
-          ${(ev.interventions||[]).length?`
-          <div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-right:4px">Types :</span>
-            ${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}
-          </div>`:''}
-          <div style="padding:14px 18px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques, prévention & protections</div>
-            ${riskDetailHtml(ev.risks)}
-          </div>
-          ${r.sigIntervenant?`<div style="padding:10px 18px;border-top:1px solid #f3f4f6;display:flex;gap:16px;align-items:center">
-            <div><div style="font-size:10px;color:#9ca3af;margin-bottom:3px">Signature intervenant</div><img src="${r.sigIntervenant}" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff"/></div>
-          </div>`:''}
-        </div>
-      </div>`;
-    });
+  // ── Validations soumises ──────────────────────────────────────────────
+  if(myValidations.length){
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:14px">📤 Soumises au responsable (${myValidations.length})</div>`;
+    myValidations.forEach(r=>{ html+=evalCard(r.evalSnapshot||r, r); });
+  }
+
+  // ── Évaluations DB ────────────────────────────────────────────────────
+  const nonSubmittedDB=dbEvals.filter(e=>e.status==='draft'||!e.status);
+  if(nonSubmittedDB.length){
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c3aed;margin:${myValidations.length?'24px':0} 0 14px">💾 Évaluations sauvegardées DB (${nonSubmittedDB.length})</div>`;
+    nonSubmittedDB.forEach(ev=>{ html+=evalCard(ev,null); });
   }
 
   // ── Évaluations locales ───────────────────────────────────────────────
   if(local.length){
-    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#7c3aed;margin:${submitted.length?'24px':0} 0 14px">💾 Évaluations locales (${local.length})</div>`;
+    html+=`<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#9ca3af;margin:${(myValidations.length||nonSubmittedDB.length)?'24px':0} 0 14px">📱 Brouillons locaux (${local.length})</div>`;
     local.forEach((ev,i)=>{
       const title=ev.interventionTitle||ev.mission||'Évaluation sans titre';
       const uid='myev-loc-'+i;
       html+=`<div style="border:2px solid #ddd5fe;border-radius:10px;margin-bottom:12px;overflow:hidden;background:#fff">
         <div style="padding:14px 18px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between">
           <div style="flex:1;min-width:0">
-            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px;word-break:break-word">${title}</div>
+            <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px">${title}</div>
             <div style="font-size:12px;color:#6b7280;display:flex;gap:12px;flex-wrap:wrap">
               <span>👤 ${ev.operator||currentUser.name}</span>
               <span>📍 ${ev.location||'—'}</span>
@@ -5444,28 +5531,13 @@ async function renderMyEvals(){
             <div style="display:flex;gap:6px">
               <button onclick="document.getElementById('${uid}').style.display=document.getElementById('${uid}').style.display==='none'?'block':'none'"
                 style="padding:5px 10px;background:#e0e7ff;color:#4f46e5;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">👁 Détail</button>
-              <button onclick="loadLocalEval(${i})" style="padding:5px 12px;background:#7c3aed;color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer" title="Charger pour continuer ou créer un nouveau rapport">🔄 Charger</button>
-              <button onclick="deleteLocalEval(${i})" style="padding:5px 8px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:11px;color:#9ca3af;cursor:pointer" title="Supprimer">✕</button>
+              <button onclick="loadLocalEval(${i})" style="padding:5px 12px;background:#7c3aed;color:#fff;border:none;border-radius:3px;font-size:11px;font-weight:600;cursor:pointer">🔄 Charger</button>
+              <button onclick="deleteLocalEval(${i})" style="padding:5px 8px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:11px;color:#9ca3af;cursor:pointer">✕</button>
             </div>
           </div>
         </div>
-        <!-- Détail local expansible -->
-        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb">
-          ${ev.missionSteps&&ev.missionSteps.length?`
-          <div style="padding:14px 18px;border-bottom:1px solid #f3f4f6">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent2);margin-bottom:10px">📋 Phases de l'intervention</div>
-            ${stepsHtml(ev.missionSteps)}
-          </div>`:''}
-          ${(ev.interventions||[]).length?`
-          <div style="padding:10px 18px;border-bottom:1px solid #f3f4f6;display:flex;flex-wrap:wrap;gap:6px;align-items:center">
-            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-right:4px">Types :</span>
-            ${(ev.interventions||[]).map(t=>`<span style="padding:3px 10px;background:var(--ink);color:#fff;border-radius:20px;font-size:11px">${t}</span>`).join('')}
-          </div>`:''}
-          ${ev.epiSnapshot&&Object.keys(ev.epiSnapshot).length?`
-          <div style="padding:14px 18px">
-            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--ink);margin-bottom:10px">⚠️ Risques & protections enregistrés</div>
-            <div style="font-size:12px;color:#6b7280;font-style:italic">Les EPI/EPC sont enregistrés dans ce brouillon. Chargez-le pour voir le détail complet.</div>
-          </div>`:'<div style="padding:14px 18px;color:#9ca3af;font-size:12px;font-style:italic">Aucun détail de risques enregistré dans ce brouillon.</div>'}
+        <div id="${uid}" style="display:none;border-top:1px solid #e5e7eb;padding:14px 18px;color:#6b7280;font-size:12px;font-style:italic">
+          Brouillon local — chargez-le pour voir le détail complet.
         </div>
       </div>`;
     });
@@ -5474,6 +5546,13 @@ async function renderMyEvals(){
   container.innerHTML=html;
 }
 
+async function deleteDBEval(id, btn){
+  if(!id||!confirm('Supprimer cette évaluation ?')) return;
+  if(btn) btn.disabled=true;
+  await api('DELETE','/data/evaluations/'+id);
+  renderMyEvals();
+  refreshMyEvalsBadge();
+}
 function deleteLocalEval(idx){
   if(!confirm('Supprimer cette évaluation locale ?')) return;
   const list=_getLocalEvals();
@@ -5636,7 +5715,7 @@ async function testSmtpConfig(){
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// NOTATION ADMIN — chargement, affichage, sauvegarde
+// SCORING ADMIN — chargement, affichage, sauvegarde
 // ══════════════════════════════════════════════════════════════════════════
 let _scoringCfg = null;
 let _mandatoryList = [];
@@ -5711,7 +5790,7 @@ async function updateEPIScore(key, value, inputEl){
         setTimeout(()=>{ ok.style.opacity='0'; inputEl.style.borderColor='var(--border)'; },1500);
       }
     }
-  }catch(e){ showToast('Erreur sauvegarde EPI score','error'); if(inputEl) inputEl.style.borderColor='var(--danger)'; }
+  }catch(e){ showToast('Erreur sauvegarde notation EPI','error'); if(inputEl) inputEl.style.borderColor='var(--danger)'; }
 }
 
 async function deleteEPIScore(key){
@@ -5749,7 +5828,7 @@ async function saveScoringConfig(){
     _scoringCfg={..._scoringCfg,...cfg};
     const el=document.getElementById('scoring-save-result');
     if(el){el.innerHTML='<span style="color:var(--safe)">✅ Sauvegardé</span>';setTimeout(()=>el.innerHTML='',3000);}
-    showToast('Configuration Notation sauvegardée','success');
+    showToast('Configuration notation sauvegardée','success');
   }catch(e){showToast('Erreur sauvegarde','error');}
 }
 
@@ -5805,7 +5884,7 @@ async function deleteMandatoryEPI(id){
   }catch(e){showToast('Erreur suppression','error');}
 }
 
-// ── Notation (modal récapitulatif) ──────────────────────────────────
+// ── Scoring preview (modal récapitulatif) ──────────────────────────────────
 async function showScoringPreview(){
   document.getElementById('scoringModal').style.display='flex';
   const body=document.getElementById('scoringModalBody');
@@ -5832,7 +5911,7 @@ async function showScoringPreview(){
       <span style="font-size:22px">${needsValidation?'⚠️':'✅'}</span>
       <div>
         <div style="font-weight:700;font-size:13px;color:${needsValidation?'var(--warn)':'var(--safe)'}">${needsValidation?'Validation manuelle requise':'Validation automatique possible'}</div>
-        <div style="font-size:11.5px;color:#4b5563">Seuil configuré : ${thr} pts — Score max : ${result.maxScore||0} pts</div>
+        <div style="font-size:11.5px;color:#4b5563">Seuil configuré : ${thr} pts — Note max : ${result.maxScore||0} pts</div>
       </div>
     </div>`;
 
@@ -5894,7 +5973,7 @@ function slugifyFE(str){
     .replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 }
 
-// Hook into switchAdminTab to load scoring data
+// Hook into switchAdminTab to load notation data
 const _origSwitchAdminTab=typeof switchAdminTab==='function'?switchAdminTab:null;
 
 // ── EPI obligatoire décoché — demande justification ──────────────────────────
@@ -6162,6 +6241,2177 @@ function _autoFillSavedSignature(){
     }
   },120);
 }
+
+// ══════════════════════════════════════════════════════
+// FONCTIONNALITÉS SUPPLÉMENTAIRES (Interface, PP Config, RisksDB, Permis)
+// ══════════════════════════════════════════════════════
+async function loadUIConfig() {
+  try {
+    const cfgs = await api('GET', '/data/ui-config');
+    if (cfgs) {
+      ['branding','buttons','labels','features'].forEach(section => {
+        if (cfgs[section]) {
+          _uiConfig[section] = { ...UI_DEFAULTS[section], ...cfgs[section] };
+        }
+      });
+    }
+  } catch (e) {
+    console.warn('Impossible de charger la config UI:', e);
+  }
+}
+
+// ── Application de la config UI ──────────────────────────────────────────
+function applyUIConfig() {
+  const { branding, buttons, labels, features } = _uiConfig;
+
+  // Branding — couleurs CSS
+  if (branding.colors) {
+    const root = document.documentElement;
+    if (branding.colors.accent)  root.style.setProperty('--accent',  branding.colors.accent);
+    if (branding.colors.accent2) root.style.setProperty('--accent2', branding.colors.accent2);
+    if (branding.colors.ink)     root.style.setProperty('--ink',     branding.colors.ink);
+  }
+
+  // Branding — nom app et société
+  const logoApp = document.querySelector('.logo-app');
+  if (logoApp && branding.appName) {
+    const parts = branding.appName.split(/(?=[A-Z])/);
+    if (parts.length > 1) {
+      const last = parts.pop();
+      logoApp.innerHTML = parts.join('') + `<span style="color:var(--accent)">${last}</span>`;
+    } else {
+      logoApp.textContent = branding.appName;
+    }
+  }
+
+  const logoCompany = document.getElementById('headerCompany');
+  if (logoCompany && branding.companyName) logoCompany.textContent = branding.companyName;
+
+  // Logo image
+  const logoWrap = document.querySelector('.logo-wrap');
+  if (logoWrap && (branding.logoUrl || branding.logoBase64)) {
+    let logoImg = document.getElementById('brandLogoImg');
+    if (!logoImg) {
+      logoImg = document.createElement('img');
+      logoImg.id = 'brandLogoImg';
+      logoImg.style.cssText = 'height:32px;width:auto;object-fit:contain;margin-right:8px;border-radius:3px;';
+      logoWrap.insertBefore(logoImg, logoWrap.firstChild);
+    }
+    logoImg.src = branding.logoBase64 || branding.logoUrl;
+    logoImg.alt = branding.companyName || 'Logo';
+  }
+
+  // Boutons
+  const btnMap = {
+    btnGeneratePDF:   () => document.querySelector('.btn-pdf'),
+    btnDraftPDF:      () => document.querySelector('button[onclick="generateDraftPDF()"]'),
+    btnSuggestAllEPI: () => document.getElementById('btn-suggest-all'),
+    btnDetectAll:     () => document.getElementById('btn-detect-all'),
+    btnMyEvals:       () => document.getElementById('btnMyEvals'),
+    btnAdmin:         () => document.getElementById('btnAdmin'),
+    btnValidation:    () => document.getElementById('btnValidation'),
+    btnPPLibrary:     () => document.querySelector('button[onclick="openPPLibrary()"]'),
+    btnGeneratePP:    () => document.querySelector('.btn-pp-pdf'),
+    btnSavePP:        () => document.querySelector('button[onclick="savePP()"]'),
+    btnAutoFillSteps: () => document.querySelector('button[onclick="ppAutoFillSteps()"]'),
+    btnSuggestEPI:    () => document.querySelector('button[onclick^="suggestEPI"]'),
+  };
+
+  Object.entries(buttons).forEach(([key, cfg]) => {
+    if (btnMap[key]) {
+      const el = btnMap[key]();
+      if (el) {
+        if (cfg.label) {
+          // Préserver les spinners dans les boutons
+          const spinner = el.querySelector('.ai-spinner');
+          if (spinner) {
+            el.childNodes[el.childNodes.length - 1].textContent = ' ' + cfg.label.replace(/^[✨📄📋⚙✅🔧]/,'').trim();
+          } else {
+            el.textContent = cfg.label;
+          }
+        }
+        if (cfg.visible === false) el.style.display = 'none';
+      }
+    }
+  });
+
+  // Labels des étapes
+  if (labels.step0Label) { const el = document.querySelector('#step0 .step-label'); if (el) el.textContent = labels.step0Label; }
+  if (labels.step1Label) { const el = document.querySelector('#step1 .step-label'); if (el) el.textContent = labels.step1Label; }
+  if (labels.step2Label) { const el = document.querySelector('#step2 .step-label'); if (el) el.textContent = labels.step2Label; }
+  if (labels.step3Label) { const el = document.querySelector('#step3 .step-label'); if (el) el.textContent = labels.step3Label; }
+
+  // Features
+  applyFeatureFlagsFromUI(features);
+}
+
+function applyFeatureFlagsFromUI(features) {
+  if (!features) return;
+  const isEnabled = id => features[id] !== false;
+
+  // EPI — masquer toute la section EPI si désactivé
+  if (!isEnabled('feat_epi')) {
+    document.querySelectorAll('.epi-section').forEach(el => el.style.display = 'none');
+  }
+  // Dérogation
+  document.querySelectorAll('.epi-section + div').forEach(el => {
+    if (!isEnabled('feat_derogation')) el.style.display = 'none';
+  });
+  // Signature
+  const sigZone = document.getElementById('signatureZone');
+  if (sigZone && !isEnabled('feat_signature')) sigZone.style.display = 'none';
+  // Mes évals
+  const btnME = document.getElementById('btnMyEvals');
+  if (btnME) btnME.style.display = isEnabled('feat_myevals') ? 'inline-flex' : 'none';
+  // PP
+  const ppPanel = document.getElementById('ppPanel');
+  if (ppPanel) ppPanel.style.display = isEnabled('feat_pp') ? '' : 'none';
+  const ppToggle = document.querySelector('.pp-toggle-bar');
+  if (ppToggle) ppToggle.style.display = isEnabled('feat_pp') ? '' : 'none';
+  // PDF
+  document.querySelectorAll('.btn-pdf,.btn-pp-pdf').forEach(el => {
+    el.style.display = isEnabled('feat_pdf') ? '' : 'none';
+  });
+  // Carnet
+  document.querySelectorAll('.pp-carnet-btn').forEach(el => {
+    el.style.display = isEnabled('feat_carnet') ? '' : 'none';
+  });
+  // Save PP
+  const savePPBtn = document.querySelector('button[onclick="savePP()"]');
+  if (savePPBtn) savePPBtn.closest('div')?.style.setProperty('display', isEnabled('feat_savepp') ? '' : 'none');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ONGLET INTERFACE — rendu admin
+// ════════════════════════════════════════════════════════════════════════
+async function renderAdminInterface() {
+  const pane = document.getElementById('admpane-interface');
+  if (!pane) return;
+
+  const { branding, buttons, labels, features } = _uiConfig;
+
+  pane.innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr;gap:24px">
+
+    <!-- BRANDING -->
+    <div>
+      <div class="adm-section-title">🎨 Identité visuelle & Marque</div>
+      <div class="adm-card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Nom de l'application</label>
+            <input type="text" id="ui-appName" value="${escHtml(branding.appName||'EvalRisque')}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Nom de la société (header)</label>
+            <input type="text" id="ui-companyName" value="${escHtml(branding.companyName||'NORDCHROME')}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+          </div>
+        </div>
+
+        <!-- Logo -->
+        <div class="field-group" style="margin-bottom:16px">
+          <label class="field-label">Logo (URL externe)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="ui-logoUrl" value="${escHtml(branding.logoUrl||'')}" placeholder="https://exemple.com/logo.png" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:3px"/>
+            <button onclick="previewLogo()" style="padding:9px 16px;background:var(--accent2);color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600">Prévisualiser</button>
+          </div>
+        </div>
+        <div class="field-group" style="margin-bottom:16px">
+          <label class="field-label">Logo (upload fichier)</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="file" id="ui-logoFile" accept="image/*" onchange="handleLogoUpload(this)" style="flex:1;padding:7px;border:1.5px solid var(--border);border-radius:3px;font-size:12px;background:var(--paper)"/>
+            ${branding.logoBase64 ? '<img id="logoPreview" src="'+branding.logoBase64+'" style="height:40px;border:1px solid var(--border);border-radius:3px;background:#fff;padding:4px"/>' : '<div id="logoPreview" style="width:60px;height:40px;border:1.5px dashed var(--border);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--border)">🏢</div>'}
+          </div>
+        </div>
+
+        <!-- Couleurs -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:16px">
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Couleur accent (rouge)</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="ui-colorAccent" value="${branding.colors?.accent||'#c84b31'}" style="width:44px;height:36px;border:1.5px solid var(--border);border-radius:3px;padding:2px;cursor:pointer"/>
+              <input type="text" id="ui-colorAccentHex" value="${branding.colors?.accent||'#c84b31'}" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px" oninput="syncColorPicker('Accent')"/>
+            </div>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Couleur accent 2 (bleu)</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="ui-colorAccent2" value="${branding.colors?.accent2||'#1a4d6e'}" style="width:44px;height:36px;border:1.5px solid var(--border);border-radius:3px;padding:2px;cursor:pointer"/>
+              <input type="text" id="ui-colorAccent2Hex" value="${branding.colors?.accent2||'#1a4d6e'}" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px" oninput="syncColorPicker('Accent2')"/>
+            </div>
+          </div>
+          <div class="field-group" style="margin:0">
+            <label class="field-label">Couleur principale (fond header)</label>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input type="color" id="ui-colorInk" value="${branding.colors?.ink||'#0f1923'}" style="width:44px;height:36px;border:1.5px solid var(--border);border-radius:3px;padding:2px;cursor:pointer"/>
+              <input type="text" id="ui-colorInkHex" value="${branding.colors?.ink||'#0f1923'}" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px" oninput="syncColorPicker('Ink')"/>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button onclick="previewColors()" style="padding:8px 16px;background:var(--ink);color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:12px;font-weight:600">👁 Prévisualiser les couleurs</button>
+          <button onclick="resetColors()" style="padding:8px 16px;background:none;border:1.5px solid var(--border);border-radius:3px;cursor:pointer;font-size:12px;color:#6b7280">↺ Réinitialiser</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOUTONS -->
+    <div>
+      <div class="adm-section-title">🔘 Configuration des boutons</div>
+      <div class="adm-card">
+        <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Renommez les boutons et activez/désactivez leur affichage.</div>
+        <div style="display:flex;flex-direction:column;gap:10px" id="ui-buttons-grid">
+          ${Object.entries(buttons).map(([key, cfg]) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--paper);border:1.5px solid var(--border);border-radius:4px">
+            <div style="flex:1">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:4px">${key}</div>
+              <input type="text" id="btn-label-${key}" value="${escHtml(cfg.label||key)}" style="width:100%;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:12.5px"/>
+            </div>
+            <label class="adm-toggle" title="${cfg.visible!==false ? 'Visible' : 'Masqué'}">
+              <input type="checkbox" id="btn-vis-${key}" ${cfg.visible!==false ? 'checked' : ''} onchange="this.closest('.adm-toggle').title=this.checked?'Visible':'Masqué'">
+              <span class="adm-toggle-slider"></span>
+            </label>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- LABELS -->
+    <div>
+      <div class="adm-section-title">🏷️ Noms et libellés</div>
+      <div class="adm-card">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          ${Object.entries(labels).map(([key, val]) => `
+          <div class="field-group" style="margin:0">
+            <label class="field-label" style="font-size:9px">${key}</label>
+            <input type="text" id="lbl-${key}" value="${escHtml(val||key)}" style="padding:7px 10px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <!-- FONCTIONNALITÉS -->
+    <div>
+      <div class="adm-section-title">🧩 Activation des fonctionnalités</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" id="ui-features-grid">
+        ${[
+          { id:'feat_ai',         label:'Détection IA des risques',      desc:'Analyse auto des étapes par mots-clés' },
+          { id:'feat_pp',         label:'Plan de Prévention',            desc:'Section PP dans le récapitulatif' },
+          { id:'feat_epi',        label:'Gestion EPI/EPC',               desc:'Sélection des équipements de protection' },
+          { id:'feat_derogation', label:'Dérogations de risques',        desc:'Accord de dérogation par risque' },
+          { id:'feat_signature',  label:'Signature électronique',        desc:'Canvas de signature et workflow validation' },
+          { id:'feat_carnet',     label:'Carnet d\'adresses',            desc:'Import entreprises et intervenants' },
+          { id:'feat_pdf',        label:'Export PDF',                    desc:'Génération de rapports PDF' },
+          { id:'feat_savepp',     label:'Sauvegarde plans PP',           desc:'Bibliothèque de plans de prévention' },
+          { id:'feat_myevals',    label:'Mes Évaluations',               desc:'Historique des évaluations utilisateur' },
+        ].map(f => {
+          const enabled = features[f.id] !== false;
+          return `<div class="adm-feat-card${enabled ? ' enabled' : ''}" id="feat-card-${f.id}">
+            <div>
+              <div style="font-size:13px;font-weight:600;margin-bottom:3px">${f.label}</div>
+              <div style="font-size:11px;color:#6b7280">${f.desc}</div>
+            </div>
+            <label class="adm-toggle">
+              <input type="checkbox" id="feat-${f.id}" ${enabled ? 'checked' : ''} onchange="document.getElementById('feat-card-${f.id}').classList.toggle('enabled',this.checked)">
+              <span class="adm-toggle-slider"></span>
+            </label>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Bouton sauvegarde -->
+    <div style="padding-top:8px">
+      <button class="adm-btn-primary" onclick="saveUIConfig()" style="font-size:14px;padding:12px 28px">
+        💾 Enregistrer toute la configuration
+      </button>
+      <button onclick="resetUIConfig()" style="margin-left:12px;padding:12px 20px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:13px;cursor:pointer;color:#6b7280">
+        ↺ Réinitialiser les valeurs par défaut
+      </button>
+    </div>
+
+  </div>`;
+
+  // Sync color pickers (color → hex)
+  ['Accent','Accent2','Ink'].forEach(n => {
+    const cp = document.getElementById('ui-color'+n);
+    if (cp) cp.addEventListener('input', () => {
+      const hex = document.getElementById('ui-color'+n+'Hex');
+      if (hex) hex.value = cp.value;
+    });
+  });
+}
+
+function syncColorPicker(name) {
+  const hex = document.getElementById('ui-color'+name+'Hex')?.value;
+  const cp  = document.getElementById('ui-color'+name);
+  if (cp && /^#[0-9a-f]{6}$/i.test(hex)) cp.value = hex;
+}
+
+function previewColors() {
+  const root = document.documentElement;
+  root.style.setProperty('--accent',  document.getElementById('ui-colorAccentHex')?.value || '#c84b31');
+  root.style.setProperty('--accent2', document.getElementById('ui-colorAccent2Hex')?.value || '#1a4d6e');
+  root.style.setProperty('--ink',     document.getElementById('ui-colorInkHex')?.value || '#0f1923');
+  showToast('Couleurs prévisualisées — sauvegardez pour conserver','success');
+}
+
+function resetColors() {
+  ['Accent','Accent2','Ink'].forEach(n => {
+    const defaults = { Accent:'#c84b31', Accent2:'#1a4d6e', Ink:'#0f1923' };
+    const cp  = document.getElementById('ui-color'+n);
+    const hex = document.getElementById('ui-color'+n+'Hex');
+    if (cp) cp.value = defaults[n];
+    if (hex) hex.value = defaults[n];
+  });
+  previewColors();
+}
+
+function previewLogo() {
+  const url = document.getElementById('ui-logoUrl')?.value;
+  if (!url) { showToast('Entrez une URL de logo','error'); return; }
+  const prev = document.getElementById('logoPreview');
+  if (prev) { prev.src = url; prev.style.display = 'block'; }
+  showToast('Logo prévisualisé dans le header','success');
+}
+
+function handleLogoUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 500000) { showToast('Logo trop volumineux (max 500 Ko)','error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    const b64 = e.target.result;
+    let prev = document.getElementById('logoPreview');
+    if (!prev) {
+      prev = document.createElement('img');
+      prev.id = 'logoPreview';
+      prev.style.cssText = 'height:40px;border:1px solid var(--border);border-radius:3px;background:#fff;padding:4px';
+      input.parentElement.appendChild(prev);
+    }
+    prev.src = b64;
+    _pendingLogoBase64 = b64;
+    showToast('Logo chargé — sauvegardez pour appliquer','success');
+  };
+  reader.readAsDataURL(file);
+}
+let _pendingLogoBase64 = '';
+
+async function saveUIConfig() {
+  // Collecter branding
+  const branding = {
+    appName:     document.getElementById('ui-appName')?.value || 'EvalRisque',
+    companyName: document.getElementById('ui-companyName')?.value || 'NORDCHROME',
+    logoUrl:     document.getElementById('ui-logoUrl')?.value || '',
+    logoBase64:  _pendingLogoBase64 || _uiConfig.branding.logoBase64 || '',
+    colors: {
+      accent:  document.getElementById('ui-colorAccentHex')?.value || '#c84b31',
+      accent2: document.getElementById('ui-colorAccent2Hex')?.value || '#1a4d6e',
+      ink:     document.getElementById('ui-colorInkHex')?.value || '#0f1923',
+    }
+  };
+
+  // Collecter boutons
+  const buttons = {};
+  Object.keys(UI_DEFAULTS.buttons).forEach(key => {
+    buttons[key] = {
+      label:   document.getElementById('btn-label-'+key)?.value || UI_DEFAULTS.buttons[key].label,
+      visible: document.getElementById('btn-vis-'+key)?.checked !== false,
+    };
+  });
+
+  // Collecter labels
+  const labels = {};
+  Object.keys(UI_DEFAULTS.labels).forEach(key => {
+    labels[key] = document.getElementById('lbl-'+key)?.value || UI_DEFAULTS.labels[key];
+  });
+
+  // Collecter features
+  const features = {};
+  ['feat_ai','feat_pp','feat_epi','feat_derogation','feat_signature','feat_carnet','feat_pdf','feat_savepp','feat_myevals'].forEach(id => {
+    features[id] = document.getElementById('feat-'+id)?.checked !== false;
+  });
+
+  // Sauvegarder chaque section
+  const saves = await Promise.all([
+    api('PUT', '/data/ui-config/branding', { config: branding }),
+    api('PUT', '/data/ui-config/buttons',  { config: buttons }),
+    api('PUT', '/data/ui-config/labels',   { config: labels }),
+    api('PUT', '/data/ui-config/features', { config: features }),
+    // Aussi sauvegarder les couleurs dans la société
+    api('PUT', '/data/company', { brandColors: branding.colors, logoData: branding.logoBase64, logoUrl: branding.logoUrl, name: branding.companyName }),
+  ]);
+
+  if (saves.some(s => !s)) return;
+
+  _uiConfig = { branding, buttons, labels, features };
+  applyUIConfig();
+  showToast('Configuration interface enregistrée et appliquée','success');
+}
+
+async function resetUIConfig() {
+  if (!confirm('Réinitialiser toute la configuration de l\'interface ?')) return;
+  await Promise.all(['branding','buttons','labels','features'].map(s => api('DELETE', '/data/ui-config/'+s)));
+  _uiConfig = JSON.parse(JSON.stringify(UI_DEFAULTS));
+  applyUIConfig();
+  await renderAdminInterface();
+  showToast('Configuration réinitialisée','success');
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ════════════════════════════════════════════════════════════════════════
+// ONGLET PLAN DE PRÉVENTION — Configuration complète
+// ════════════════════════════════════════════════════════════════════════
+let _ppConfig = null;
+
+
+async function loadPPConfig() {
+  const cfg = await api('GET', '/data/pp-config');
+  if (cfg) _ppConfig = cfg;
+}
+
+async function renderAdminPPConfig() {
+  await loadPPConfig();
+  const pane = document.getElementById('admpane-ppconfig');
+  if (!pane || !_ppConfig) return;
+
+  const cfg = _ppConfig;
+
+  pane.innerHTML = `
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div class="adm-section-title" style="margin:0">📋 Configuration du Plan de Prévention</div>
+    <div style="display:flex;gap:8px">
+      <button class="adm-btn-primary" onclick="savePPConfig()">💾 Enregistrer</button>
+      <button onclick="resetPPConfig()" style="padding:8px 16px;background:none;border:1.5px solid var(--border);border-radius:3px;font-size:12px;cursor:pointer;color:#6b7280">↺ Réinitialiser</button>
+    </div>
+  </div>
+
+  <!-- TABS PP CONFIG -->
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--cream);margin-bottom:20px;overflow-x:auto">
+    ${[
+      { id:'ppconf-sections',   label:'📑 Sections' },
+      { id:'ppconf-permits',    label:'📝 Permis' },
+      { id:'ppconf-checklist',  label:'✅ Checklist' },
+      { id:'ppconf-fields',     label:'➕ Champs perso' },
+      { id:'ppconf-levels',     label:'🎨 Niveaux risque' },
+      { id:'ppconf-pdf',        label:'📄 Options PDF' },
+      { id:'ppconf-emergency',  label:'🚨 Urgences' },
+    ].map((t,i) => `<button class="adm-tab${i===0?' active':''}" onclick="switchPPConfigTab('${t.id}')" data-pptab="${t.id}">${t.label}</button>`).join('')}
+  </div>
+
+  <!-- SECTIONS -->
+  <div id="ppconf-sections" class="pp-config-pane">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Activez/désactivez et renommez les sections du Plan de Prévention. Glissez pour réordonner.</div>
+    <div id="pp-sections-list" style="display:flex;flex-direction:column;gap:8px">
+      ${(cfg.sections||[]).sort((a,b)=>a.order-b.order).map((s,i) => `
+      <div class="pp-config-item" draggable="true" data-section-id="${s.id}" style="display:flex;align-items:center;gap:10px;padding:11px 16px;border:1.5px solid var(--border);border-radius:4px;background:#fff;cursor:grab">
+        <span style="cursor:grab;color:#9ca3af;font-size:16px">⠿</span>
+        <input type="text" value="${escHtml(s.label)}" id="ppsec-label-${s.id}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <label class="adm-toggle">
+          <input type="checkbox" id="ppsec-en-${s.id}" ${s.enabled ? 'checked' : ''}>
+          <span class="adm-toggle-slider"></span>
+        </label>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- PERMIS -->
+  <div id="ppconf-permits" class="pp-config-pane" style="display:none">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Configurez les permis disponibles dans le formulaire PP.</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="pp-permits-list">
+      ${(cfg.permits||[]).sort((a,b)=>a.order-b.order).map(p => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+        <input type="text" value="${escHtml(p.icon||'📋')}" id="pperm-icon-${p.id}" style="width:44px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:18px;text-align:center"/>
+        <input type="text" value="${escHtml(p.label)}" id="pperm-label-${p.id}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <label class="adm-toggle">
+          <input type="checkbox" id="pperm-en-${p.id}" ${p.enabled ? 'checked' : ''}>
+          <span class="adm-toggle-slider"></span>
+        </label>
+        <button onclick="deletePPPermit('${p.id}')" style="padding:4px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <input type="text" id="new-permit-icon" placeholder="🔥" style="width:52px;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:18px;text-align:center"/>
+      <input type="text" id="new-permit-label" placeholder="Nom du permis…" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+      <button onclick="addPPPermit()" class="adm-btn-primary">+ Ajouter</button>
+    </div>
+  </div>
+
+  <!-- CHECKLIST -->
+  <div id="ppconf-checklist" class="pp-config-pane" style="display:none">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Configurez les items de la checklist d'analyses préalables.</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="pp-checklist-list">
+      ${(cfg.checklist||[]).sort((a,b)=>a.order-b.order).map(c => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+        <input type="text" value="${escHtml(c.label)}" id="ppchk-label-${c.id}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <label class="adm-toggle">
+          <input type="checkbox" id="ppchk-en-${c.id}" ${c.enabled ? 'checked' : ''}>
+          <span class="adm-toggle-slider"></span>
+        </label>
+        <button onclick="deletePPChecklist('${c.id}')" style="padding:4px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px">
+      <input type="text" id="new-chk-label" placeholder="Nouvelle vérification…" style="flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+      <button onclick="addPPChecklist()" class="adm-btn-primary">+ Ajouter</button>
+    </div>
+  </div>
+
+  <!-- CHAMPS PERSONNALISÉS -->
+  <div id="ppconf-fields" class="pp-config-pane" style="display:none">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Ajoutez des champs personnalisés dans le formulaire PP (texte libre, date, sélection…).</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="pp-custom-fields-list">
+      ${(cfg.customFields||[]).map((f,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--accent2);border-radius:4px;background:#f0f7ff">
+        <div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px">Label</div>
+            <input type="text" value="${escHtml(f.label)}" id="ppcf-label-${i}" style="width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px"/></div>
+          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px">Type</div>
+            <select id="ppcf-type-${i}" style="width:100%;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+              <option value="text" ${f.type==='text'?'selected':''}>Texte</option>
+              <option value="textarea" ${f.type==='textarea'?'selected':''}>Texte long</option>
+              <option value="date" ${f.type==='date'?'selected':''}>Date</option>
+              <option value="select" ${f.type==='select'?'selected':''}>Liste déroulante</option>
+              <option value="checkbox" ${f.type==='checkbox'?'selected':''}>Case à cocher</option>
+            </select></div>
+          <div><div style="font-size:9px;color:#9ca3af;text-transform:uppercase;margin-bottom:3px">Section</div>
+            <select id="ppcf-section-${i}" style="width:100%;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+              ${(cfg.sections||[]).map(s => `<option value="${s.id}" ${f.section===s.id?'selected':''}>${s.label}</option>`).join('')}
+            </select></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap">
+          <input type="checkbox" id="ppcf-req-${i}" ${f.required?'checked':''}> Requis
+        </label>
+        <button onclick="deletePPCustomField(${i})" style="padding:4px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">✕</button>
+      </div>`).join('')}
+    </div>
+    <div style="margin-top:14px;padding:14px;background:var(--paper);border:1.5px dashed var(--border);border-radius:4px">
+      <div style="font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px">+ Nouveau champ</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px">
+        <div class="field-group" style="margin:0"><label class="field-label">Label</label><input type="text" id="new-cf-label" placeholder="Ex: N° chantier" style="padding:8px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Type</label>
+          <select id="new-cf-type" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <option value="text">Texte</option><option value="textarea">Texte long</option>
+            <option value="date">Date</option><option value="select">Liste déroulante</option><option value="checkbox">Case à cocher</option>
+          </select></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Section</label>
+          <select id="new-cf-section" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            ${(cfg.sections||[]).map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+          </select></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <input type="text" id="new-cf-options" placeholder="Options (virgule séparés, si liste déroulante)" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:3px;font-size:12px"/>
+        <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap"><input type="checkbox" id="new-cf-req"/> Requis</label>
+        <button onclick="addPPCustomField()" class="adm-btn-primary">+ Ajouter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NIVEAUX DE RISQUE -->
+  <div id="ppconf-levels" class="pp-config-pane" style="display:none">
+    <div style="font-size:12px;color:#6b7280;margin-bottom:14px">Personnalisez les niveaux de risque utilisés dans les étapes du PP.</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${(cfg.riskLevels||[]).map((l,i) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:4px;background:#fff">
+        <input type="color" id="pplvl-color-${i}" value="${l.color||'#666'}" style="width:36px;height:34px;border:none;cursor:pointer;border-radius:3px"/>
+        <input type="text" value="${escHtml(l.label)}" id="pplvl-label-${i}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <span style="font-size:11px;color:#9ca3af;padding:2px 8px;background:var(--cream);border-radius:10px">${l.value}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- OPTIONS PDF -->
+  <div id="ppconf-pdf" class="pp-config-pane" style="display:none">
+    <div class="adm-card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="adm-sub-title">Contenu PDF</div>
+          ${[
+            { id:'pdf-showLogo',       label:'Afficher le logo de la société',  checked: cfg.pdfOptions?.showLogo !== false },
+            { id:'pdf-showSignatures', label:'Afficher la zone de signatures',  checked: cfg.pdfOptions?.showSignatures !== false },
+            { id:'pdf-showEmergency',  label:'Afficher les numéros d\'urgence', checked: cfg.pdfOptions?.showEmergency !== false },
+          ].map(opt => `
+          <label style="display:flex;align-items:center;gap:9px;padding:10px;border:1.5px solid var(--border);border-radius:4px;cursor:pointer;margin-bottom:8px">
+            <input type="checkbox" id="${opt.id}" ${opt.checked ? 'checked' : ''} style="accent-color:var(--accent2)"/>
+            <span style="font-size:13px">${opt.label}</span>
+          </label>`).join('')}
+        </div>
+        <div>
+          <div class="adm-sub-title">Textes PDF</div>
+          <div class="field-group">
+            <label class="field-label">Texte pied de page</label>
+            <input type="text" id="pdf-footerText" value="${escHtml(cfg.pdfOptions?.footerText||'EvalRisque — NORDCHROME')}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Filigrane (watermark)</label>
+            <input type="text" id="pdf-watermark" value="${escHtml(cfg.pdfOptions?.watermark||'')}" placeholder="Ex: CONFIDENTIEL" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Format de page</label>
+            <select id="pdf-pageFormat" style="padding:10px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+              <option value="a4" ${cfg.pdfOptions?.pageFormat==='a4'?'selected':''}>A4</option>
+              <option value="letter" ${cfg.pdfOptions?.pageFormat==='letter'?'selected':''}>Letter</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- URGENCES PAR DÉFAUT -->
+  <div id="ppconf-emergency" class="pp-config-pane" style="display:none">
+    <div class="adm-card">
+      <div class="adm-sub-title">Numéros d'urgence par défaut (pré-remplissage du formulaire PP)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        ${[
+          { id:'urg-samu',     label:'SAMU',           val: cfg.defaultEmergency?.samu     || '15' },
+          { id:'urg-pompiers', label:'Pompiers',        val: cfg.defaultEmergency?.pompiers || '18' },
+          { id:'urg-police',   label:'Police',          val: cfg.defaultEmergency?.police   || '17' },
+          { id:'urg-sitelbl',  label:'Label contact site', val: cfg.defaultEmergency?.siteLabel || 'Contact site' },
+        ].map(u => `
+        <div class="field-group" style="margin:0">
+          <label class="field-label">${u.label}</label>
+          <input type="text" id="${u.id}" value="${escHtml(u.val)}" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;width:100%"/>
+        </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  // CSS pour les panes
+  const style = document.createElement('style');
+  style.textContent = `.pp-config-pane{}.pp-config-item:active{cursor:grabbing;}`;
+  pane.appendChild(style);
+}
+
+function switchPPConfigTab(tabId) {
+  document.querySelectorAll('.pp-config-pane').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('[data-pptab]').forEach(b => b.classList.remove('active'));
+  const pane = document.getElementById(tabId);
+  const btn  = document.querySelector(`[data-pptab="${tabId}"]`);
+  if (pane) pane.style.display = 'block';
+  if (btn)  btn.classList.add('active');
+}
+
+// ── CRUD permis PP ───────────────────────────────────────────
+function addPPPermit() {
+  const icon  = document.getElementById('new-permit-icon')?.value.trim() || '📋';
+  const label = document.getElementById('new-permit-label')?.value.trim();
+  if (!label) { showToast('Entrez un libellé','error'); return; }
+  if (!_ppConfig.permits) _ppConfig.permits = [];
+  _ppConfig.permits.push({ id: 'permit_'+Date.now(), label, icon, enabled: true, order: _ppConfig.permits.length+1 });
+  renderAdminPPConfig();
+  showToast('Permis ajouté','success');
+}
+function deletePPPermit(id) {
+  _ppConfig.permits = (_ppConfig.permits||[]).filter(p => p.id !== id);
+  renderAdminPPConfig();
+}
+
+// ── CRUD checklist PP ────────────────────────────────────────
+function addPPChecklist() {
+  const label = document.getElementById('new-chk-label')?.value.trim();
+  if (!label) { showToast('Entrez un libellé','error'); return; }
+  if (!_ppConfig.checklist) _ppConfig.checklist = [];
+  _ppConfig.checklist.push({ id: 'chk_'+Date.now(), label, enabled: true, order: _ppConfig.checklist.length+1 });
+  renderAdminPPConfig();
+  showToast('Item ajouté','success');
+}
+function deletePPChecklist(id) {
+  _ppConfig.checklist = (_ppConfig.checklist||[]).filter(c => c.id !== id);
+  renderAdminPPConfig();
+}
+
+// ── CRUD champs custom PP ────────────────────────────────────
+function addPPCustomField() {
+  const label   = document.getElementById('new-cf-label')?.value.trim();
+  const type    = document.getElementById('new-cf-type')?.value;
+  const section = document.getElementById('new-cf-section')?.value;
+  const options = (document.getElementById('new-cf-options')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const required = document.getElementById('new-cf-req')?.checked;
+  if (!label) { showToast('Entrez un libellé','error'); return; }
+  if (!_ppConfig.customFields) _ppConfig.customFields = [];
+  _ppConfig.customFields.push({ id: 'cf_'+Date.now(), label, type, section, options, required, order: _ppConfig.customFields.length+1 });
+  renderAdminPPConfig();
+  showToast('Champ ajouté','success');
+}
+function deletePPCustomField(idx) {
+  _ppConfig.customFields.splice(idx, 1);
+  renderAdminPPConfig();
+}
+
+// ── Sauvegarder config PP ────────────────────────────────────
+async function savePPConfig() {
+  const cfg = _ppConfig;
+
+  // Collecter sections
+  (cfg.sections||[]).forEach(s => {
+    const lbl = document.getElementById('ppsec-label-'+s.id);
+    const en  = document.getElementById('ppsec-en-'+s.id);
+    if (lbl) s.label   = lbl.value;
+    if (en)  s.enabled = en.checked;
+  });
+
+  // Collecter permis
+  (cfg.permits||[]).forEach(p => {
+    const icon = document.getElementById('pperm-icon-'+p.id);
+    const lbl  = document.getElementById('pperm-label-'+p.id);
+    const en   = document.getElementById('pperm-en-'+p.id);
+    if (icon) p.icon    = icon.value;
+    if (lbl)  p.label   = lbl.value;
+    if (en)   p.enabled = en.checked;
+  });
+
+  // Collecter checklist
+  (cfg.checklist||[]).forEach(c => {
+    const lbl = document.getElementById('ppchk-label-'+c.id);
+    const en  = document.getElementById('ppchk-en-'+c.id);
+    if (lbl) c.label   = lbl.value;
+    if (en)  c.enabled = en.checked;
+  });
+
+  // Collecter champs custom
+  (cfg.customFields||[]).forEach((f,i) => {
+    const lbl = document.getElementById('ppcf-label-'+i);
+    const type = document.getElementById('ppcf-type-'+i);
+    const sec  = document.getElementById('ppcf-section-'+i);
+    const req  = document.getElementById('ppcf-req-'+i);
+    if (lbl)  f.label    = lbl.value;
+    if (type) f.type     = type.value;
+    if (sec)  f.section  = sec.value;
+    if (req)  f.required = req.checked;
+  });
+
+  // Niveaux de risque
+  (cfg.riskLevels||[]).forEach((l,i) => {
+    const col = document.getElementById('pplvl-color-'+i);
+    const lbl = document.getElementById('pplvl-label-'+i);
+    if (col) l.color = col.value;
+    if (lbl) l.label = lbl.value;
+  });
+
+  // Options PDF
+  if (!cfg.pdfOptions) cfg.pdfOptions = {};
+  cfg.pdfOptions.showLogo       = document.getElementById('pdf-showLogo')?.checked !== false;
+  cfg.pdfOptions.showSignatures = document.getElementById('pdf-showSignatures')?.checked !== false;
+  cfg.pdfOptions.showEmergency  = document.getElementById('pdf-showEmergency')?.checked !== false;
+  cfg.pdfOptions.footerText     = document.getElementById('pdf-footerText')?.value || '';
+  cfg.pdfOptions.watermark      = document.getElementById('pdf-watermark')?.value || '';
+  cfg.pdfOptions.pageFormat     = document.getElementById('pdf-pageFormat')?.value || 'a4';
+
+  // Urgences
+  if (!cfg.defaultEmergency) cfg.defaultEmergency = {};
+  cfg.defaultEmergency.samu      = document.getElementById('urg-samu')?.value || '15';
+  cfg.defaultEmergency.pompiers  = document.getElementById('urg-pompiers')?.value || '18';
+  cfg.defaultEmergency.police    = document.getElementById('urg-police')?.value || '17';
+  cfg.defaultEmergency.siteLabel = document.getElementById('urg-sitelbl')?.value || 'Contact site';
+
+  const result = await api('PUT', '/data/pp-config', cfg);
+  if (!result) return;
+  _ppConfig = cfg;
+
+  // Appliquer les permis dans le formulaire PP
+  applyPPConfigToForm();
+  showToast('Configuration PP enregistrée','success');
+}
+
+async function resetPPConfig() {
+  if (!confirm('Réinitialiser la configuration du Plan de Prévention ?')) return;
+  const result = await api('DELETE', '/data/pp-config');
+  if (!result) return;
+  _ppConfig = result;
+  renderAdminPPConfig();
+  applyPPConfigToForm();
+  showToast('Configuration PP réinitialisée','success');
+}
+
+// ── Appliquer la config PP au formulaire PP ──────────────────
+function applyPPConfigToForm() {
+  if (!_ppConfig) return;
+
+  // Numéros urgence
+  const de = _ppConfig.defaultEmergency || {};
+  ['samu','pompiers'].forEach(id => {
+    const el = document.getElementById('pp-'+id);
+    if (el && de[id]) el.value = de[id];
+  });
+
+  // Permis — reconstruire la grille
+  const permitGrid = document.querySelector('.pp-permit-grid');
+  if (permitGrid && _ppConfig.permits) {
+    const enabled = _ppConfig.permits.filter(p => p.enabled);
+    permitGrid.innerHTML = enabled.map(p => `
+    <div class="pp-permit-card" onclick="togglePermit(this,'${escHtml(p.label)}')">
+      <div class="pp-permit-icon">${p.icon||'📋'}</div>
+      <div class="pp-permit-label">${escHtml(p.label)}</div>
+    </div>`).join('');
+  }
+
+  // Checklist
+  const chkMatrix = document.querySelector('.pp-risk-matrix');
+  if (chkMatrix && _ppConfig.checklist) {
+    const enabled = _ppConfig.checklist.filter(c => c.enabled);
+    chkMatrix.innerHTML = enabled.map(c => `
+    <div class="pp-matrix-cell">
+      <label><input type="checkbox" id="chk-${c.id}"/> ${escHtml(c.label)}</label>
+    </div>`).join('');
+  }
+
+  // Sections — masquer/afficher
+  if (_ppConfig.sections) {
+    const sectionMap = {
+      parties:      () => document.querySelector('.pp-section-title:first-of-type'),
+      emergency:    () => document.getElementById('pp-samu')?.closest('.pp-field-grid-3')?.previousElementSibling,
+    };
+    // Simple masquage par section
+    const ppPanel = document.getElementById('ppPanel');
+    if (ppPanel) {
+      _ppConfig.sections.forEach(s => {
+        const sectionEls = ppPanel.querySelectorAll(`[data-pp-section="${s.id}"]`);
+        sectionEls.forEach(el => { el.style.display = s.enabled ? '' : 'none'; });
+      });
+    }
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ONGLET RISQUES DB — Gestion complète depuis la DB
+// ════════════════════════════════════════════════════════════════════════
+let _dbRisks        = [];
+let _dbTypes        = [];
+let _dbKeywords     = [];
+let _dbEPIItems     = [];
+let _dbRisksLoaded  = false;
+
+async function loadRisksFromDB() {
+  if (_dbRisksLoaded) return;
+  const [types, risks, keywords, epiItems] = await Promise.all([
+    api('GET', '/data/intervention-types/all'),
+    api('GET', '/data/risks/all'),
+    api('GET', '/data/keyword-rules/all'),
+    api('GET', '/data/epi-items?category=collectif'),
+  ]);
+  _dbTypes    = types    || [];
+  _dbRisks    = risks    || [];
+  _dbKeywords = keywords || [];
+  _dbEPIItems = epiItems || [];
+  _dbRisksLoaded = true;
+}
+
+
+async function renderAdminRisksDB() {
+  await loadRisksFromDB();
+  const pane = document.getElementById('admpane-risksdb');
+  if (!pane) return;
+
+  // Tabs internes
+  pane.innerHTML = `
+  <div style="display:flex;gap:0;border-bottom:2px solid var(--cream);margin-bottom:18px;overflow-x:auto">
+    ${[
+      { id:'rdb-types',    label:'🗂️ Types d\'intervention' },
+      { id:'rdb-risks',    label:'⚠️ Risques' },
+      { id:'rdb-keywords', label:'🔍 Mots-clés IA' },
+      { id:'rdb-epi',      label:'🦺 EPI/EPC catalogue' },
+    ].map((t,i) => `<button class="adm-tab${i===0?' active':''}" onclick="switchRDBTab('${t.id}')" data-rdbtab="${t.id}">${t.label}</button>`).join('')}
+  </div>
+
+  <!-- TYPES -->
+  <div id="rdb-types">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="font-size:12px;color:#6b7280">Gérez les types d'intervention stockés en base de données.</div>
+      <button onclick="syncTypesToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser depuis le code</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+      ${_dbTypes.map(t => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid ${t.hidden?'#e5e7eb':'var(--border)'};border-radius:4px;background:${t.hidden?'#f9fafb':'#fff'};opacity:${t.hidden?'.55':'1'}">
+        <input type="text" value="${escHtml(t.icon||'🔩')}" id="dbt-icon-${t._id}" style="width:44px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:18px;text-align:center"/>
+        <input type="text" value="${escHtml(t.name)}" id="dbt-name-${t._id}" style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;${t.source==='builtin'?'background:#e8f4fd;color:var(--accent2)':'background:#fde8e6;color:var(--accent)'}">${t.source}</span>
+        <span style="font-size:11px;color:#6b7280">Ordre: <input type="number" value="${t.order||0}" id="dbt-order-${t._id}" style="width:50px;padding:4px;border:1.5px solid var(--border);border-radius:3px;font-size:11px"/></span>
+        <button onclick="saveDBType('${t._id}')" class="adm-btn-edit">💾</button>
+        <button onclick="toggleDBTypeHidden('${t._id}',${!t.hidden})" style="padding:4px 10px;background:${t.hidden?'#e6f4ec':'#fef3e6'};color:${t.hidden?'var(--safe)':'var(--warn)'};border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">${t.hidden?'✓ Réactiver':'○ Masquer'}</button>
+        ${t.source==='custom'?`<button onclick="deleteDBType('${t._id}')" style="padding:4px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:11px;cursor:pointer;font-weight:600">✕</button>`:''}
+      </div>`).join('')}
+    </div>
+    <!-- Ajouter type -->
+    <div class="adm-card" style="border-color:var(--epi-c)">
+      <div class="adm-sub-title" style="color:var(--epi-c)">+ Nouveau type d'intervention</div>
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <input type="text" id="new-dbt-icon" placeholder="🔩" style="width:52px;padding:9px;border:1.5px solid var(--border);border-radius:3px;font-size:18px;text-align:center"/>
+        <input type="text" id="new-dbt-name" placeholder="Nom du type d'intervention…" style="flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:13px"/>
+        <button onclick="addDBType()" class="adm-btn-primary">+ Créer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- RISQUES -->
+  <div id="rdb-risks" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px">
+      <div style="display:flex;gap:8px">
+        <select id="rdb-filter-type" onchange="renderRisksDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+          <option value="">Tous les types</option>
+          ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+        </select>
+        <select id="rdb-filter-sev" onchange="renderRisksDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+          <option value="">Toutes sévérités</option>
+          <option value="high">🔴 Critique</option>
+          <option value="medium">🟠 Modéré</option>
+          <option value="low">🟢 Faible</option>
+        </select>
+      </div>
+      <button onclick="syncRisksToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser depuis le code</button>
+    </div>
+    <div id="rdb-risks-list" style="max-height:500px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    <!-- Ajouter risque -->
+    <div class="adm-card" style="margin-top:16px">
+      <div class="adm-sub-title">+ Ajouter un risque</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px">
+        <div class="field-group" style="margin:0"><label class="field-label">Type</label>
+          <select id="new-dbr-type" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+          </select></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Nom du risque</label>
+          <input type="text" id="new-dbr-name" placeholder="Ex: Blessure par outil…" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+        <div class="field-group" style="margin:0"><label class="field-label">Sévérité</label>
+          <select id="new-dbr-sev" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <option value="high">🔴 Critique</option><option value="medium" selected>🟠 Modéré</option><option value="low">🟢 Faible</option>
+          </select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><label class="field-label" style="font-size:9px">Causes (une par ligne)</label>
+          <textarea id="new-dbr-causes" style="width:100%;min-height:60px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:11px;resize:vertical" placeholder="Cause 1&#10;Cause 2"></textarea></div>
+        <div><label class="field-label" style="font-size:9px">Conséquences</label>
+          <textarea id="new-dbr-conseq" style="width:100%;min-height:60px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:11px;resize:vertical" placeholder="Conséquence 1&#10;…"></textarea></div>
+        <div><label class="field-label" style="font-size:9px">Mesures de prévention</label>
+          <textarea id="new-dbr-prev" style="width:100%;min-height:60px;padding:6px;border:1.5px solid var(--border);border-radius:3px;font-size:11px;resize:vertical" placeholder="Mesure 1&#10;…"></textarea></div>
+      </div>
+      <button onclick="addDBRisk()" class="adm-btn-primary">+ Ajouter ce risque</button>
+    </div>
+  </div>
+
+  <!-- MOTS-CLÉS -->
+  <div id="rdb-keywords" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;flex-wrap:wrap">
+      <select id="rdb-filter-kw-type" onchange="renderKeywordsDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+        <option value="">Tous les types</option>
+        ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+      </select>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="exportKeywordsXLS()" style="padding:7px 14px;background:var(--safe);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">📥 Exporter XLS</button>
+        <label style="padding:7px 14px;background:#e8f4fd;color:var(--accent2);border:1.5px solid var(--accent2);border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px">
+          📤 Importer XLS
+          <input type="file" accept=".xlsx,.xls,.csv" onchange="importKeywordsXLS(this)" style="display:none"/>
+        </label>
+        <button onclick="syncKeywordsToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser</button>
+      </div>
+    </div>
+    <div id="rdb-kw-list" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:6px"></div>
+    <!-- Ajouter règle -->
+    <div class="adm-card" style="margin-top:14px">
+      <div class="adm-sub-title">+ Ajouter une règle de détection</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:10px;align-items:end">
+        <div><label class="field-label" style="font-size:9px">Type</label>
+          <select id="new-dbkw-type" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+          </select></div>
+        <div><label class="field-label" style="font-size:9px">Mots-clés (virgule séparés)</label>
+          <input type="text" id="new-dbkw-words" placeholder="soudage, soudure…" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+        <div><label class="field-label" style="font-size:9px">IDs risques (virgule séparés)</label>
+          <input type="text" id="new-dbkw-risks" placeholder="s1, s2, s3…" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+        <div><label class="field-label" style="font-size:9px">Score</label>
+          <select id="new-dbkw-score" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <option value="5">5 — Très fort</option><option value="4" selected>4 — Fort</option><option value="3">3 — Moyen</option><option value="2">2 — Faible</option>
+          </select></div>
+      </div>
+      <button onclick="addDBKeyword()" class="adm-btn-primary" style="margin-top:10px">+ Ajouter</button>
+    </div>
+  </div>
+
+  <!-- EPI/EPC -->
+  <div id="rdb-epi" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <select id="rdb-filter-epi-type" onchange="renderEPIDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+        <option value="">Tous les types</option>
+        ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+      </select>
+      <select id="rdb-filter-epi-cat" onchange="renderEPIDBList()" style="padding:7px 12px;border:1.5px solid var(--border);border-radius:3px;font-size:12px">
+        <option value="">EPC + EPI</option>
+        <option value="collectif">EPC — Collectif</option>
+        <option value="individuel">EPI — Individuel</option>
+      </select>
+      <button onclick="syncEPIToDB()" style="padding:7px 14px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer">🔄 Synchroniser</button>
+    </div>
+    <div id="rdb-epi-list" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>
+    <!-- Ajouter EPI -->
+    <div class="adm-card" style="margin-top:14px">
+      <div class="adm-sub-title">+ Ajouter un équipement EPI/EPC</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;align-items:end">
+        <div><label class="field-label" style="font-size:9px">Type d'intervention</label>
+          <select id="new-epi-type" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            ${_dbTypes.filter(t=>!t.hidden).map(t=>`<option value="${escHtml(t.name)}">${escHtml(t.name)}</option>`).join('')}
+          </select></div>
+        <div><label class="field-label" style="font-size:9px">Catégorie</label>
+          <select id="new-epi-cat" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%">
+            <option value="collectif">EPC — Collectif</option>
+            <option value="individuel">EPI — Individuel</option>
+          </select></div>
+        <div><label class="field-label" style="font-size:9px">Libellé</label>
+          <input type="text" id="new-epi-label" placeholder="Ex: Garde-corps NF EN 13374…" style="padding:9px;border:1.5px solid var(--border);border-radius:3px;width:100%;font-size:12px"/></div>
+      </div>
+      <button onclick="addDBEPI()" class="adm-btn-primary" style="margin-top:10px">+ Ajouter</button>
+    </div>
+  </div>`;
+
+  renderRisksDBList();
+}
+
+function switchRDBTab(tabId) {
+  document.querySelectorAll('[data-rdbtab]').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector(`[data-rdbtab="${tabId}"]`);
+  if (btn) btn.classList.add('active');
+  ['rdb-types','rdb-risks','rdb-keywords','rdb-epi'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = id === tabId ? 'block' : 'none';
+  });
+  if (tabId === 'rdb-risks')    renderRisksDBList();
+  if (tabId === 'rdb-keywords') renderKeywordsDBList();
+  if (tabId === 'rdb-epi')      renderEPIDBList();
+}
+
+// ── CRUD types DB ────────────────────────────────────────────
+async function addDBType() {
+  const name = document.getElementById('new-dbt-name')?.value.trim();
+  const icon = document.getElementById('new-dbt-icon')?.value.trim() || '🔩';
+  if (!name) { showToast('Entrez un nom','error'); return; }
+  const result = await api('POST', '/data/intervention-types', { name, icon });
+  if (!result) return;
+  _dbTypes.push(result); _dbRisksLoaded = false;
+  renderAdminRisksDB(); showToast('Type créé','success');
+}
+async function saveDBType(id) {
+  const name = document.getElementById('dbt-name-'+id)?.value.trim();
+  const icon = document.getElementById('dbt-icon-'+id)?.value.trim();
+  const order = parseInt(document.getElementById('dbt-order-'+id)?.value)||0;
+  const result = await api('PUT', '/data/intervention-types/'+id, { name, icon, order });
+  if (!result) return;
+  const idx = _dbTypes.findIndex(t => t._id === id);
+  if (idx >= 0) _dbTypes[idx] = result;
+  // Mettre à jour le cache global et reconstruire la grille d'étape 2
+  const freshTypes = await api('GET', '/data/intervention-types');
+  if(freshTypes){
+    _cache['dbInterventionTypes'] = freshTypes;
+    buildInterventionGrid(); // Rebuild étape 2 avec le nouveau nom
+  }
+  showToast('Type mis à jour — la grille d\'étape 2 a été rafraîchie','success');
+}
+async function toggleDBTypeHidden(id, hidden) {
+  await api('PUT', '/data/intervention-types/'+id, { hidden });
+  const t = _dbTypes.find(t => t._id === id);
+  if (t) t.hidden = hidden;
+  _dbRisksLoaded = false; renderAdminRisksDB(); showToast(hidden ? 'Type masqué' : 'Type réactivé','success');
+}
+async function deleteDBType(id) {
+  if (!confirm('Supprimer ce type ?')) return;
+  await api('DELETE', '/data/intervention-types/'+id);
+  _dbTypes = _dbTypes.filter(t => t._id !== id);
+  _dbRisksLoaded = false; renderAdminRisksDB(); showToast('Type supprimé','success');
+}
+async function syncTypesToDB() {
+  const btn = event?.target;
+  if(btn){ btn.textContent='⏳ Import…'; btn.disabled=true; }
+
+  // Importer tous les types natifs depuis RISKS
+  const nativeTypes = Object.keys(RISKS);
+  const ICONS = {
+    'Travaux en hauteur':'🏗️','Travaux électriques':'⚡','Manutention & levage':'🏋️',
+    'Travaux en espace confiné':'🕳️','Produits chimiques & dangereux':'🧪',
+    'Soudage & découpe thermique':'🔥','Travaux sur voirie & route':'🚧',
+    'Maintenance industrielle':'🔧','Travaux de démolition':'🪨',
+    'Travaux de toiture & étanchéité':'🏠','Terrassement & fouilles':'⛏️',
+    'Peinture & traitement de surface':'🖌️','Outils numériques & IA':'🤖',
+  };
+  let created = 0;
+  for(let i=0; i<nativeTypes.length; i++){
+    const name = nativeTypes[i];
+    const existing = _dbTypes.find(t=>t.name===name);
+    if(!existing){
+      const r = await api('POST','/data/intervention-types',{name, icon:ICONS[name]||'🔩', order:i, source:'builtin'});
+      if(r){ _dbTypes.push(r); created++; }
+    }
+  }
+  if(created) showToast(created+' types importés','success');
+
+  // Recharger l'affichage
+  _dbRisksLoaded = false;
+  await renderAdminRisksDB();
+  if(btn){ btn.textContent='🔄 Synchroniser depuis le code'; btn.disabled=false; }
+  if(!created) showToast('Tous les types sont déjà en DB','success');
+}
+
+// ── CRUD risques DB ──────────────────────────────────────────
+function renderRisksDBList() {
+  const container = document.getElementById('rdb-risks-list'); if (!container) return;
+  const filterType = document.getElementById('rdb-filter-type')?.value || '';
+  const filterSev  = document.getElementById('rdb-filter-sev')?.value || '';
+  let risks = _dbRisks;
+  if (filterType) risks = risks.filter(r => r.interventionType === filterType);
+  if (filterSev)  risks = risks.filter(r => r.sev === filterSev);
+
+  const sevColors = { high:['#fde8e6','var(--danger)'], medium:['#fef3e6','var(--warn)'], low:['#e6f4ec','var(--safe)'] };
+  const sevLabel  = { high:'Critique', medium:'Modéré', low:'Faible' };
+
+  container.innerHTML = risks.map(r => {
+    const [bg,col] = sevColors[r.sev] || ['#f3f4f6','#6b7280'];
+    return `<div style="border:1.5px solid var(--border);border-radius:4px;overflow:hidden;background:${r.hidden?'#f9fafb':'#fff'};opacity:${r.hidden?'.55':'1'}">
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:${bg}">
+        <span style="font-size:9px;font-weight:700;padding:2px 8px;background:${col};color:#fff;border-radius:20px">${sevLabel[r.sev]||r.sev}</span>
+        <strong style="font-size:12.5px;flex:1">${escHtml(r.name)}</strong>
+        <span style="font-size:10px;color:#6b7280">${escHtml(r.interventionType)}</span>
+        <span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;${r.source==='builtin'?'background:#e8f4fd;color:var(--accent2)':'background:#fde8e6;color:var(--accent)'}">${r.source}</span>
+        <button onclick="editDBRisk('${r.riskId}')" class="adm-btn-edit" style="padding:3px 10px">✎</button>
+        <button onclick="toggleDBRiskHidden('${r.riskId}',${!r.hidden})" style="padding:3px 10px;background:${r.hidden?'#e6f4ec':'#fef3e6'};color:${r.hidden?'var(--safe)':'var(--warn)'};border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">${r.hidden?'✓ Réactiver':'○ Masquer'}</button>
+        ${r.source==='custom'?`<button onclick="deleteDBRisk('${r.riskId}')" style="padding:3px 10px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">✕</button>`:''}
+      </div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:24px;color:#9ca3af;font-style:italic">Aucun risque</div>';
+}
+
+async function addDBRisk() {
+  const type = document.getElementById('new-dbr-type')?.value;
+  const name = document.getElementById('new-dbr-name')?.value.trim();
+  const sev  = document.getElementById('new-dbr-sev')?.value;
+  const causes      = (document.getElementById('new-dbr-causes')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const consequences = (document.getElementById('new-dbr-conseq')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  const solutions   = (document.getElementById('new-dbr-prev')?.value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+  if (!name || !type) { showToast('Renseignez le nom et le type','error'); return; }
+  const result = await api('POST', '/data/risks', { interventionType: type, name, sev, causes, consequences, solutions });
+  if (!result) return;
+  _dbRisks.push(result);
+  ['new-dbr-name','new-dbr-causes','new-dbr-conseq','new-dbr-prev'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  renderRisksDBList();
+  // Recharger les risques dans le moteur IA
+  await reloadRisksIntoEngine();
+  showToast(`Risque "${name}" ajouté`,'success');
+}
+
+async function toggleDBRiskHidden(riskId, hidden) {
+  await api('PUT', '/data/risks/'+riskId, { hidden });
+  const r = _dbRisks.find(x => x.riskId === riskId);
+  if (r) r.hidden = hidden;
+  renderRisksDBList();
+  await reloadRisksIntoEngine();
+  showToast(hidden ? 'Risque masqué' : 'Risque réactivé','success');
+}
+
+async function deleteDBRisk(riskId) {
+  if (!confirm('Supprimer ce risque ?')) return;
+  await api('DELETE', '/data/risks/'+riskId);
+  _dbRisks = _dbRisks.filter(r => r.riskId !== riskId);
+  renderRisksDBList();
+  await reloadRisksIntoEngine();
+  showToast('Risque supprimé','success');
+}
+
+function editDBRisk(riskId) {
+  const r = _dbRisks.find(x => x.riskId === riskId);
+  if (!r) return;
+  document.getElementById('new-dbr-type').value = r.interventionType;
+  document.getElementById('new-dbr-name').value = r.name;
+  document.getElementById('new-dbr-sev').value  = r.sev;
+  document.getElementById('new-dbr-causes').value = (r.causes||[]).join('\n');
+  document.getElementById('new-dbr-conseq').value = (r.consequences||[]).join('\n');
+  document.getElementById('new-dbr-prev').value   = (r.solutions||[]).join('\n');
+  showToast('Risque chargé dans le formulaire — modifiez et ajoutez','success');
+}
+
+async function syncRisksToDB() {
+  const btn = event?.target || document.getElementById('btn-sync-risks');
+  if(btn){ btn.textContent = '⏳ Import en cours…'; btn.disabled = true; }
+
+  // Construire la liste des risques natifs depuis l'objet RISKS en mémoire
+  const risksToSync = [];
+  let order = 0;
+  Object.entries(RISKS).forEach(([type, list]) => {
+    (list||[]).forEach(r => {
+      risksToSync.push({
+        riskId:           r.id,
+        interventionType: type,
+        name:             r.name,
+        sev:              r.sev,
+        causes:           r.causes||[],
+        consequences:     r.consequences||[],
+        solutions:        r.solutions||[],
+        source:           'builtin',
+        order:            order++,
+      });
+    });
+  });
+
+  const result = await api('POST', '/data/risks/bulk-import', { risks: risksToSync });
+  if(!result){ if(btn){ btn.textContent='🔄 Synchroniser depuis le code'; btn.disabled=false; } return; }
+
+  showToast(`✅ ${result.created} créés, ${result.updated} déjà présents`,'success');
+
+  // Recharger la liste DB
+  _dbRisksLoaded = false;
+  const fresh = await api('GET', '/data/risks/all');
+  if(fresh) _dbRisks = fresh;
+  renderRisksDBList();
+  await reloadRisksIntoEngine();
+
+  if(btn){ btn.textContent='🔄 Synchroniser depuis le code'; btn.disabled=false; }
+}
+
+// ── CRUD mots-clés DB ────────────────────────────────────────
+function renderKeywordsDBList() {
+  const container = document.getElementById('rdb-kw-list'); if (!container) return;
+  const filterType = document.getElementById('rdb-filter-kw-type')?.value || '';
+  let kws = filterType ? _dbKeywords.filter(k => k.type === filterType) : _dbKeywords;
+  const sevCol = s => s>=4?'var(--danger)':s>=3?'var(--warn)':'var(--safe)';
+  const sevBg  = s => s>=4?'#fde8e6':s>=3?'#fef3e6':'#e6f4ec';
+  container.innerHTML = kws.map(k => `
+  <div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid ${k.hidden?'#e5e7eb':'var(--border)'};border-radius:4px;background:${k.hidden?'#f9fafb':'#fff'};opacity:${k.hidden?'.55':'1'}">
+    <span style="font-size:11px;font-weight:700;padding:2px 8px;background:${sevBg(k.s)};color:${sevCol(k.s)};border-radius:3px;flex-shrink:0">${k.s}</span>
+    <span style="font-size:10px;color:#6b7280;flex-shrink:0;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(k.type)}</span>
+    <div style="flex:1;display:flex;flex-wrap:wrap;gap:3px">${(k.w||[]).map(w=>`<span style="padding:1px 7px;background:var(--ink);color:#fff;border-radius:10px;font-size:10px">${escHtml(w)}</span>`).join('')}</div>
+    <div style="color:#9ca3af;font-size:10px">→ ${(k.r||[]).join(', ')||'—'}</div>
+    <span style="font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;${k.source==='builtin'?'background:#e8f4fd;color:var(--accent2)':'background:#fde8e6;color:var(--accent)'}">${k.source}</span>
+    <button onclick="toggleDBKWHidden('${k.id}',${!k.hidden})" style="padding:3px 9px;background:${k.hidden?'#e6f4ec':'#fef3e6'};color:${k.hidden?'var(--safe)':'var(--warn)'};border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">${k.hidden?'✓':'○'}</button>
+    ${k.source==='custom'?`<button onclick="deleteDBKeyword('${k.id}')" style="padding:3px 9px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">✕</button>`:''}
+  </div>`).join('') || '<div style="text-align:center;padding:20px;color:#9ca3af;font-style:italic">Aucune règle</div>';
+}
+
+async function addDBKeyword() {
+  const type  = document.getElementById('new-dbkw-type')?.value;
+  const words = (document.getElementById('new-dbkw-words')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const risks = (document.getElementById('new-dbkw-risks')?.value||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const score = parseInt(document.getElementById('new-dbkw-score')?.value)||4;
+  if (!words.length) { showToast('Entrez au moins un mot-clé','error'); return; }
+  const result = await api('POST', '/data/keyword-rules', { type, w: words, r: risks, s: score });
+  if (!result) return;
+  _dbKeywords.push({ ...result, type, source:'custom', hidden:false });
+  document.getElementById('new-dbkw-words').value = '';
+  document.getElementById('new-dbkw-risks').value = '';
+  renderKeywordsDBList();
+  await reloadKeywordsIntoEngine();
+  showToast('Règle ajoutée — active immédiatement','success');
+}
+
+async function toggleDBKWHidden(id, hidden) {
+  await api('PUT', '/data/keyword-rules/'+id, { hidden });
+  const k = _dbKeywords.find(x => x.id === id);
+  if (k) k.hidden = hidden;
+  renderKeywordsDBList();
+  await reloadKeywordsIntoEngine();
+}
+
+async function deleteDBKeyword(id) {
+  if (!confirm('Supprimer cette règle ?')) return;
+  await api('DELETE', '/data/keyword-rules/'+id);
+  _dbKeywords = _dbKeywords.filter(k => k.id !== id);
+  renderKeywordsDBList();
+  await reloadKeywordsIntoEngine();
+  showToast('Règle supprimée','success');
+}
+
+async function syncKeywordsToDB() {
+  const btn = event?.target;
+  if(btn){ btn.textContent='⏳ Import…'; btn.disabled=true; }
+
+  // Construire la liste des règles depuis AI_KW en mémoire
+  const rulesToSync = [];
+  let idx = 0;
+  Object.entries(AI_KW).forEach(([type, rules]) => {
+    (rules||[]).forEach(rule => {
+      if(rule._customId || rule._dbId) return; // déjà en DB
+      const kwId = 'kw_builtin_' + type.replace(/[^a-z0-9]/gi,'_') + '_' + idx++;
+      rulesToSync.push({ id: kwId, type, w: rule.w||[], r: rule.r||[], s: rule.s||3 });
+    });
+  });
+
+  const result = await api('POST', '/data/keyword-rules/bulk-import', { rules: rulesToSync });
+  if(result) showToast('✅ '+result.created+' règles importées','success');
+
+  const fresh = await api('GET', '/data/keyword-rules/all');
+  if(fresh) _dbKeywords = fresh;
+  renderKeywordsDBList();
+  await reloadKeywordsIntoEngine();
+  if(btn){ btn.textContent='🔄 Synchroniser'; btn.disabled=false; }
+}
+
+// ── CRUD EPI DB ──────────────────────────────────────────────
+function renderEPIDBList() {
+  const container = document.getElementById('rdb-epi-list'); if (!container) return;
+  const filterType = document.getElementById('rdb-filter-epi-type')?.value || '';
+  const filterCat  = document.getElementById('rdb-filter-epi-cat')?.value || '';
+  let items = _dbEPIItems;
+  if (filterType) items = items.filter(i => i.interventionType === filterType);
+  if (filterCat)  items = items.filter(i => i.category === filterCat);
+  const catColors = { collectif:['#ede9ff','var(--epi-c)'], individuel:['#e0f7ff','var(--epi-i)'] };
+  container.innerHTML = items.map(it => {
+    const [bg,col] = catColors[it.category] || ['#f3f4f6','#6b7280'];
+    return `<div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border:1.5px solid var(--border);border-radius:4px;background:${it.hidden?'#f9fafb':'#fff'};opacity:${it.hidden?'.55':'1'}">
+      <span style="font-size:9px;padding:2px 8px;background:${bg};color:${col};border-radius:20px;font-weight:700;white-space:nowrap">${it.category==='collectif'?'EPC':'EPI'}</span>
+      <span style="flex:1;font-size:12.5px">${escHtml(it.label)}</span>
+      <span style="font-size:10px;color:#6b7280;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(it.interventionType)}</span>
+      <span style="font-size:9px;padding:1px 6px;border-radius:10px;font-weight:700;${it.source==='builtin'?'background:#e8f4fd;color:var(--accent2)':'background:#fde8e6;color:var(--accent)'}">${it.source}</span>
+      <button onclick="toggleDBEPIHidden('${it._id}',${!it.hidden})" style="padding:3px 9px;background:${it.hidden?'#e6f4ec':'#fef3e6'};color:${it.hidden?'var(--safe)':'var(--warn)'};border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">${it.hidden?'✓':'○'}</button>
+      ${it.source==='custom'?`<button onclick="deleteDBEPI('${it._id}')" style="padding:3px 9px;background:#fde8e6;color:var(--danger);border:none;border-radius:3px;font-size:10px;cursor:pointer;font-weight:600">✕</button>`:''}
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:20px;color:#9ca3af;font-style:italic">Aucun item</div>';
+}
+
+async function addDBEPI() {
+  const type  = document.getElementById('new-epi-type')?.value;
+  const cat   = document.getElementById('new-epi-cat')?.value;
+  const label = document.getElementById('new-epi-label')?.value.trim();
+  if (!label) { showToast('Entrez un libellé','error'); return; }
+  const result = await api('POST', '/data/epi-items', { interventionType: type, category: cat, label });
+  if (!result) return;
+  _dbEPIItems.push(result);
+  document.getElementById('new-epi-label').value = '';
+  renderEPIDBList();
+  showToast('EPI/EPC ajouté','success');
+}
+
+async function toggleDBEPIHidden(id, hidden) {
+  await api('PUT', '/data/epi-items/'+id, { hidden });
+  const it = _dbEPIItems.find(x => x._id === id);
+  if (it) it.hidden = hidden;
+  renderEPIDBList();
+}
+
+async function deleteDBEPI(id) {
+  if (!confirm('Supprimer cet item ?')) return;
+  await api('DELETE', '/data/epi-items/'+id);
+  _dbEPIItems = _dbEPIItems.filter(x => x._id !== id);
+  renderEPIDBList();
+  showToast('Item supprimé','success');
+}
+
+async function syncEPIToDB() {
+  const btn = event?.target;
+  if(btn){ btn.textContent='⏳ Import…'; btn.disabled=true; }
+
+  // Construire la liste EPI/EPC depuis EPI_COL et EPI_IND en mémoire
+  const itemsToSync = [];
+  let order = 0;
+  if(typeof EPI_COL !== 'undefined'){
+    Object.entries(EPI_COL).forEach(([type, list]) => {
+      (list||[]).forEach(label => {
+        itemsToSync.push({ interventionType:type, category:'collectif', label, source:'builtin', order:order++ });
+      });
+    });
+  }
+  if(typeof EPI_IND !== 'undefined'){
+    Object.entries(EPI_IND).forEach(([type, list]) => {
+      (list||[]).forEach(label => {
+        itemsToSync.push({ interventionType:type, category:'individuel', label, source:'builtin', order:order++ });
+      });
+    });
+  }
+
+  const result = await api('POST', '/data/epi-items/bulk-import', { items: itemsToSync });
+  if(result) showToast('✅ '+result.created+' items EPI/EPC importés','success');
+
+  const fresh = await api('GET', '/data/epi-items');
+  if(fresh) _dbEPIItems = fresh;
+  renderEPIDBList();
+  if(btn){ btn.textContent='🔄 Synchroniser'; btn.disabled=false; }
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// MOTEUR IA — Rechargement des règles depuis la DB
+// ════════════════════════════════════════════════════════════════════════
+async function reloadRisksIntoEngine() {
+  try {
+    const risks = await api('GET', '/data/risks');
+    if (!risks || !risks.length) return;
+
+    const processedTypes = new Set();
+    risks.forEach(r => {
+      const type = r.interventionType;
+      if (!RISKS[type]) RISKS[type] = [];
+
+      // 1er passage sur ce type : vider les anciens enregistrements DB pour éviter doublons
+      if (!processedTypes.has(type)) {
+        processedTypes.add(type);
+        RISKS[type] = RISKS[type].filter(x => x._fromDB !== true);
+      }
+      if (r.hidden) return; // Ne pas injecter les risques masqués
+
+      const rObj = {
+        id:           r.riskId,
+        name:         r.name,
+        sev:          r.sev,
+        causes:       r.causes||[],
+        consequences: r.consequences||[],
+        solutions:    r.solutions||[],
+        _fromDB:      true,
+      };
+      const idx = RISKS[type].findIndex(x => x.id === r.riskId);
+      if (idx >= 0) RISKS[type][idx] = rObj;
+      else          RISKS[type].push(rObj);
+    });
+
+    console.log('[reloadRisksIntoEngine] '+risks.length+' risques chargés depuis DB');
+    if(typeof buildInterventionGrid === 'function') buildInterventionGrid();
+  } catch (e) { console.warn('Impossible de recharger les risques:', e); }
+}
+
+async function reloadEPIFromDB() {
+  try {
+    const items = await api('GET', '/data/epi-items');
+    if (!items || !items.length) return;
+    // Reconstruire EPI_COL et EPI_IND depuis la DB
+    items.forEach(it => {
+      if (it.category === 'collectif') {
+        if (!EPI_COL[it.interventionType]) EPI_COL[it.interventionType] = [];
+        if (!EPI_COL[it.interventionType].includes(it.label)) EPI_COL[it.interventionType].push(it.label);
+      } else {
+        if (!EPI_IND[it.interventionType]) EPI_IND[it.interventionType] = [];
+        if (!EPI_IND[it.interventionType].includes(it.label)) EPI_IND[it.interventionType].push(it.label);
+      }
+    });
+    console.log('[reloadEPIFromDB] '+items.length+' items EPI/EPC chargés depuis DB');
+  } catch (e) { console.warn('Impossible de recharger EPI/EPC:', e); }
+}
+
+async function reloadKeywordsIntoEngine() {
+  try {
+    // IMPORTANT : Ne PAS vider AI_KW - seulement AJOUTER les règles DB par-dessus les règles natives
+    // Les règles natives (définies dans le code) restent toujours actives
+    const rules = await api('GET', '/data/keyword-rules');
+    if (!rules || !rules.length) return;
+
+    rules.forEach(rule => {
+      if (rule.hidden) return; // Ignorer les règles masquées
+      if (!AI_KW[rule.type]) AI_KW[rule.type] = [];
+
+      // Vérifier si cette règle DB existe déjà (par _dbId)
+      const existingIdx = AI_KW[rule.type].findIndex(r => r._dbId === rule.id);
+      const rObj = { s: rule.s, w: Array.isArray(rule.w)?rule.w:[], r: Array.isArray(rule.r)?rule.r:[], _dbId: rule.id };
+
+      if (existingIdx >= 0) {
+        AI_KW[rule.type][existingIdx] = rObj; // Mettre à jour
+      } else {
+        // Vérifier que cette règle n'est pas déjà présente comme règle native (même mots)
+        const alreadyNative = AI_KW[rule.type].some(r =>
+          !r._dbId && !r._customId && r.w && r.w.length &&
+          r.w.every(w => rule.w.includes(w)) && rule.w.every(w => r.w.includes(w))
+        );
+        if (!alreadyNative) AI_KW[rule.type].push(rObj);
+      }
+    });
+    console.log('[reloadKeywordsIntoEngine] '+rules.length+' règles DB chargées (mots-clés natifs conservés)');
+  } catch (e) { console.warn('Impossible de recharger les mots-clés:', e); }
+}
+
+
+// ════════════════════════════════════════════════════════════════════════
+// HOOK — Charger depuis la DB au démarrage
+// ════════════════════════════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════════
+// EXPORT / IMPORT MOTS-CLÉS IA  (format XLS via SheetJS CDN)
+// ════════════════════════════════════════════════════════════════════════
+
+function _loadSheetJS(cb){
+  if(window.XLSX){ cb(); return; }
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=cb; s.onerror=()=>showToast('Impossible de charger SheetJS','error');
+  document.head.appendChild(s);
+}
+
+async function exportKeywordsXLS(){
+  _loadSheetJS(async ()=>{
+    // Récupérer toutes les règles (DB + natives)
+    const dbRules = await api('GET','/data/keyword-rules/all') || [];
+
+    // Construire les lignes de données
+    const rows = [];
+
+    // 1. Règles DB
+    dbRules.forEach(r=>{
+      rows.push({
+        Source:           r.source||'custom',
+        Type_Intervention: r.type||'',
+        Mots_cles:        (r.w||[]).join(' | '),
+        IDs_Risques:      (r.r||[]).join(' | '),
+        Score:            r.s||4,
+        Masque:           r.hidden?'OUI':'NON',
+        ID_Regle:         r.id||''
+      });
+    });
+
+    // 2. Règles natives (non encore en DB)
+    Object.entries(AI_KW).forEach(([type, rules])=>{
+      rules.forEach(rule=>{
+        if(rule._dbId || rule._customId) return; // déjà en DB
+        rows.push({
+          Source:           'builtin_memory',
+          Type_Intervention: type,
+          Mots_cles:        (rule.w||[]).join(' | '),
+          IDs_Risques:      (rule.r||[]).join(' | '),
+          Score:            rule.s||3,
+          Masque:           'NON',
+          ID_Regle:         ''
+        });
+      });
+    });
+
+    if(!rows.length){ showToast('Aucune règle à exporter','error'); return; }
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Largeurs colonnes
+    ws['!cols'] = [
+      {wch:14},{wch:30},{wch:60},{wch:20},{wch:8},{wch:8},{wch:28}
+    ];
+
+    // Onglet d'aide
+    const helpRows = [
+      {Colonne:'Source',          Description:'builtin=natif | custom=créé admin | builtin_memory=natif non encore en DB'},
+      {Colonne:'Type_Intervention',Description:'Nom exact du type (ex: Maintenance industrielle)'},
+      {Colonne:'Mots_cles',       Description:'Mots séparés par " | " (ex: soudure | soudage | soudeur)'},
+      {Colonne:'IDs_Risques',     Description:'IDs risques séparés par " | " (ex: s1 | s2 | s3)'},
+      {Colonne:'Score',           Description:'5=Très fort | 4=Fort | 3=Moyen | 2=Faible'},
+      {Colonne:'Masque',          Description:'OUI=masqué (inactif) | NON=actif'},
+      {Colonne:'ID_Regle',        Description:'Laisser vide pour créer | remplir pour modifier'},
+    ];
+    const wsHelp = XLSX.utils.json_to_sheet(helpRows);
+    wsHelp['!cols'] = [{wch:22},{wch:70}];
+
+    XLSX.utils.book_append_sheet(wb, ws,     'Mots-clés IA');
+    XLSX.utils.book_append_sheet(wb, wsHelp, 'Guide');
+    XLSX.writeFile(wb, 'mots_cles_IA_evalrisque.xlsx');
+    showToast(`${rows.length} règles exportées en XLS`,'success');
+  });
+}
+
+async function importKeywordsXLS(input){
+  const file = input.files[0];
+  if(!file){ return; }
+  input.value = '';
+
+  _loadSheetJS(async ()=>{
+    const reader = new FileReader();
+    reader.onload = async e => {
+      try{
+        const wb   = XLSX.read(e.target.result, {type:'binary'});
+        const wsName = wb.SheetNames.find(n=>n.toLowerCase().includes('mot')) || wb.SheetNames[0];
+        const ws   = wb.Sheets[wsName];
+        const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+
+        if(!rows.length){ showToast('Fichier vide ou format incorrect','error'); return; }
+
+        let created=0, updated=0, skipped=0;
+
+        for(const row of rows){
+          const type  = String(row['Type_Intervention']||'').trim();
+          const words = String(row['Mots_cles']||'').split('|').map(w=>w.trim()).filter(Boolean);
+          const risks = String(row['IDs_Risques']||'').split('|').map(r=>r.trim()).filter(Boolean);
+          const score = parseInt(row['Score'])||4;
+          const masked= String(row['Masque']||'').toUpperCase()==='OUI';
+          const existingId = String(row['ID_Regle']||'').trim();
+
+          if(!type||!words.length){ skipped++; continue; }
+
+          if(existingId){
+            // Mettre à jour règle existante
+            const r = await api('PUT','/data/keyword-rules/'+existingId,{type,w:words,r:risks,s:score,hidden:masked});
+            if(r) updated++; else skipped++;
+          } else {
+            // Créer nouvelle règle
+            const r = await api('POST','/data/keyword-rules',{type,w:words,r:risks,s:score});
+            if(r){
+              // Injecter en mémoire
+              if(!AI_KW[type]) AI_KW[type]=[];
+              AI_KW[type].push({s:score,w:words,r:risks,_dbId:r.id});
+              created++;
+            } else skipped++;
+          }
+        }
+
+        // Recharger la liste
+        const fresh = await api('GET','/data/keyword-rules/all');
+        if(fresh) _dbKeywords = fresh;
+        renderKeywordsDBList();
+        showToast(`Import XLS : ${created} créées, ${updated} mises à jour, ${skipped} ignorées`,'success');
+      }catch(err){
+        console.error('[importKeywordsXLS]',err);
+        showToast('Erreur lors de l\'import : '+err.message,'error');
+      }
+    };
+    reader.readAsBinaryString(file);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// HANDLEGENERATE PDF — utiliser /all-managers pour multi-responsables
+// ════════════════════════════════════════════════════════════════════════
+// (override de la version existante - sera définie APRÈS donc prend le dessus)
+
+// ════════════════════════════════════════════════════════════════════════
+// 200 NOUVEAUX MOTS-CLÉS IA — extension de AI_KW
+// Injectés après le chargement initial pour ne pas écraser les natifs
+// ════════════════════════════════════════════════════════════════════════
+function injectExtra200Keywords(){
+  const extra = {
+    'Maintenance industrielle': [
+      // Opérations terrain très précises
+      {s:5,w:['remplacement roulement','changement roulement','depose roulement'],r:['mi6','mi7','mi8']},
+      {s:5,w:['changement joint','remplacement joint','joint torique'],r:['mi2','mi6']},
+      {s:5,w:['remplacement courroie','tension courroie','alignement courroie'],r:['mi1','mi3']},
+      {s:5,w:['remplacement filtre','changement filtre huile','changement filtre air'],r:['mi2','ch4']},
+      {s:5,w:['purge circuit','purge hydraulique','purge pneumatique'],r:['mi2','mi1']},
+      {s:5,w:['vidange huile','vidange carter','huile moteur'],r:['ch4','mi3']},
+      {s:5,w:['graissage','graisseur','lubrification roulement','nipple graissage'],r:['mi3','ch4']},
+      {s:5,w:['reglage jeu','reglage alignement','reglage serrage'],r:['mi1','mi3']},
+      {s:5,w:['test etancheite','controle etancheite','fuite detectee'],r:['mi2','ch4']},
+      {s:4,w:['nettoyage filtre','nettoyage echangeur','nettoyage radiateur'],r:['mi2','ch1']},
+      {s:4,w:['verification debit','controle pression hydraulique','pression basse'],r:['mi2','mi3']},
+      {s:4,w:['bruit anormal','bruit roulement','bruit engrenage','grincement'],r:['mi1','mi3']},
+      {s:4,w:['vibration excessive','balourd','desalignement arbre'],r:['mi1','mi3']},
+      {s:4,w:['surchauffe moteur','temperature moteur','thermistance'],r:['mi2','mi4','e3']},
+      {s:4,w:['court circuit moteur','isolation moteur','resistance isolement'],r:['e1','e3','mi4']},
+      {s:5,w:['blocage mecanique','coincement','piece bloquee'],r:['mi1','mi6']},
+      {s:5,w:['arrachement','cisaillement','rupture boulon'],r:['mi6','mi7']},
+      {s:4,w:['capteur defaillant','sonde defaillante','encoder defectueux'],r:['mi1','ia3']},
+      {s:4,w:['variateur frequence','onduleur','demarrage progressif'],r:['e1','mi1']},
+      {s:4,w:['serrage couple','cle dynamometrique','couple serrage'],r:['mi6','mi1']},
+    ],
+    'Travaux électriques': [
+      {s:5,w:['intervention basse tension','bt','230v','400v'],r:['e1','e3']},
+      {s:5,w:['changement fusible','remplacement disjoncteur','calibrage protection'],r:['e1','e3']},
+      {s:5,w:['tirage cable','pose cable','raccordement cable'],r:['e1','e4']},
+      {s:5,w:['raccordement armoire','cablage armoire','modification tableau'],r:['e1','e2']},
+      {s:5,w:['mise en service electrique','test electrique','essai moteur'],r:['e1','e2']},
+      {s:4,w:['mesure resistance','megohmmetre','test isolement cable'],r:['e1','e3']},
+      {s:4,w:['thermographie armoire','point chaud electrique','connexion desserree'],r:['e2','e3']},
+      {s:5,w:['travaux voisinage','distance voisinage','ligne proche'],r:['e1','h5']},
+      {s:4,w:['eclairage chantier','projecteur temporaire','tableau chantier'],r:['e1','e3']},
+      {s:4,w:['groupe electrogene','generateur portatif','alimentation secours'],r:['e1','e3']},
+      {s:5,w:['intervention poste ht','cellule ht','disjoncteur ht'],r:['e1','e2','e4']},
+      {s:4,w:['protection differentielle','disjoncteur differentiel','fuite terre'],r:['e1','e3']},
+    ],
+    'Travaux en hauteur': [
+      {s:5,w:['travail sur pylone','antenne radio','mat telecommunications'],r:['h1','h5']},
+      {s:5,w:['travail sur eolienne','nacelle eolienne','pale eolienne'],r:['h1','h4']},
+      {s:5,w:['travail sur silo','haut silo','sommet reservoir'],r:['h1','h2','ec1']},
+      {s:5,w:['inspection visuelle facade','visite toiture','controle bardage'],r:['h1','h2']},
+      {s:5,w:['nettoyage facade','nettoyage vitrage hauteur'],r:['h1','h4']},
+      {s:4,w:['travaux sous pont','dessous passerelle','inspection structure'],r:['h1','h2']},
+      {s:4,w:['ligne vie permanente','systeme antichute collectif'],r:['h1','h3']},
+      {s:5,w:['travaux toiture fibrociment','desamiantage toiture','amiante toiture'],r:['h1','d2']},
+      {s:4,w:['plateforme suspendue','nacelle suspendue','echafaudage volant'],r:['h1','h3']},
+      {s:4,w:['acces difficile hauteur','zone non accessible','structure complexe'],r:['h1','h3']},
+    ],
+    'Travaux en espace confiné': [
+      {s:5,w:['descente dans fosse','intervention fosse','travail fosse septic'],r:['ec1','ec2','ec4']},
+      {s:5,w:['intervention regard','nettoyage regard','curage regard'],r:['ec1','ec2']},
+      {s:5,w:['travaux canalisation','inspection canalisation','camera canalisation'],r:['ec1','ec2','ec4']},
+      {s:5,w:['intervention transformateur','huile transformateur','cuve transformateur'],r:['ec1','ec2','ch4']},
+      {s:5,w:['intervention bac stockage','nettoyage cuve','inspection interne cuve'],r:['ec1','ec2','ec3']},
+      {s:4,w:['mesure oxygene','analyseur gaz','detecteur co'],r:['ec1','ec2']},
+      {s:4,w:['plan sauvetage','exercice sauvetage','secours espace confine'],r:['ec4']},
+      {s:4,w:['autorisation penetration','permis espace confine','permis confinement'],r:['ec1','ec4']},
+    ],
+    'Produits chimiques & dangereux': [
+      {s:5,w:['acide chlorhydrique','acide sulfurique','acide nitrique'],r:['ch1','ch2']},
+      {s:5,w:['soude caustique','potasse','base forte'],r:['ch1','ch2']},
+      {s:5,w:['chromage','nickelage','galvanisation','electrolyse'],r:['ch1','ch2','ch3']},
+      {s:5,w:['traitement surface','decapage chimique','passivation'],r:['ch1','ch2']},
+      {s:5,w:['produit cancero','substance cmr','produit reprotoxique'],r:['ch1']},
+      {s:5,w:['vapeur solvant','evaporation solvant','concentration solvant'],r:['ch1','ch3']},
+      {s:4,w:['transvasement produit','vidange bac','remplissage cuve chimique'],r:['ch2','ch4']},
+      {s:4,w:['neutralisation chimique','traitement effluent','ph neutre'],r:['ch4']},
+      {s:4,w:['reagent laboratoire','produit analyse','produit essai'],r:['ch1','ch2']},
+      {s:5,w:['bichromate','chrome hexavalent','chrome vi'],r:['ch1','ch2']},
+      {s:4,w:['bain chimique','bain electrolytique','anode cathode'],r:['ch1','ch2','ch3']},
+      {s:4,w:['rinçage piece','bain de rinçage','eau de rinçage'],r:['ch2','ch4']},
+    ],
+    'Soudage & découpe thermique': [
+      {s:5,w:['soudage inox','soudage inox tig','fumee chrome inox'],r:['s1','s4']},
+      {s:5,w:['soudage acier galvanise','zinc','fumee zinc'],r:['s4']},
+      {s:5,w:['soudage aluminium','soudage alu','oxyde aluminium'],r:['s1','s4']},
+      {s:5,w:['soudage tuyauterie','soudage tube','raccordement soudure'],r:['s1','s3']},
+      {s:5,w:['soudage charpente','soudage structure','soudage assemblage'],r:['s1','s2','s3']},
+      {s:4,w:['prechauffage piece','post chauffage','traitement thermique'],r:['s1','s3']},
+      {s:4,w:['controle non destructif soudure','radiographie soudure','ultrasons soudure'],r:['s1']},
+      {s:5,w:['meulage soudure','reprise soudure','finition soudure'],r:['s2','s3']},
+      {s:4,w:['ressuage soudure','magnetoscopie','controle soudure'],r:['s1']},
+      {s:5,w:['soudage position difficile','soudage vertical','soudage horizontal'],r:['s1','h1']},
+    ],
+    'Travaux sur voirie & route': [
+      {s:5,w:['intervention autoroute','travaux autoroute','voie rapide'],r:['r1']},
+      {s:5,w:['night shift voirie','travaux nuit route','intervention nocturne route'],r:['r1','r2']},
+      {s:4,w:['balisage routier','panneau deviation','cones signalisation'],r:['r1']},
+      {s:4,w:['fermeture bretelle','fermeture voie','alternat circulation'],r:['r1']},
+      {s:4,w:['fraisage enrobe','pose enrobe','reprise enrobe'],r:['r1','d4']},
+      {s:5,w:['pose canalisation voirie','tranchee route','intervention sous chaussee'],r:['r2','r3','tf1']},
+      {s:4,w:['radar chantier','signalisation lumineuse','feux tricolores'],r:['r1']},
+    ],
+    'Terrassement & fouilles': [
+      {s:5,w:['fouille profonde','excavation profonde','tranchee profonde'],r:['tf1','tf2']},
+      {s:5,w:['pose canalisations','pose tuyaux enterres','collecteur'],r:['tf1','tf3']},
+      {s:5,w:['travaux fondations','semelle beton','pieux fondation'],r:['tf1','tf2']},
+      {s:4,w:['talus instable','remblai instable','glissement terrain'],r:['tf1']},
+      {s:4,w:['drainage terrain','pompage fouille','exhaure'],r:['tf4']},
+      {s:5,w:['detection reseaux','reperage reseaux souterrains','grille reseaux'],r:['tf3']},
+      {s:4,w:['compactage sol','plaque vibrante','cylindre compacteur'],r:['tf1','tf2']},
+    ],
+    'Peinture & traitement de surface': [
+      {s:5,w:['primaire antirouille','couche primaire','couche de fond'],r:['p1','p2']},
+      {s:5,w:['laque bicomposant','vernis bicomposant','durcisseur'],r:['p1']},
+      {s:5,w:['sablage metal','grenaillage pieces','decapage sablage'],r:['p1','p2','d4']},
+      {s:4,w:['cabine peinture','cabine de peinture','cabine spray'],r:['p1','p2']},
+      {s:5,w:['peinture anticorrosion','protection anticorrosion','revetement anticorrosion'],r:['p1','p2']},
+      {s:4,w:['application pistolet','pistolet hvlp','pistolet airless'],r:['p1','p2']},
+      {s:4,w:['sechage four','passage four','polymerisation four'],r:['p1','p2']},
+      {s:5,w:['decapage thermique','chalumeau decapage','bruleur decapage'],r:['p1','s3']},
+    ],
+    'Outils numériques & IA': [
+      {s:5,w:['jumeau numerique','simulation digitale','modelisation 3d'],r:['ia1','ia4']},
+      {s:5,w:['maintenance predictive','analyse vibration ia','surveillance ia capteur'],r:['ia1','ia3']},
+      {s:5,w:['robot inspection','drone inspection','drone industriel'],r:['ia6','ia1']},
+      {s:5,w:['systeme vision','vision artificielle','camera intelligente'],r:['ia6','ia3']},
+      {s:4,w:['api externe','service cloud industriel','micro service'],r:['ia2','ia5']},
+      {s:4,w:['formation algorithme','biais algorithme','erreur prediction'],r:['ia1','ia4']},
+      {s:5,w:['cybersecurite ot','pentest industriel','audit securite si'],r:['ia2']},
+      {s:4,w:['donnees capteur temps reel','streaming iot','edge computing maintenance'],r:['ia3']},
+      {s:5,w:['automate programmable','plc siemens','plc schneider','automate s7'],r:['ia2','ia6']},
+      {s:4,w:['ihm superviseur','supervision scada','wincc','wonderware'],r:['ia1','ia2']},
+      {s:4,w:['certificat ssl','authentification token','jwt securite'],r:['ia2','ia5']},
+      {s:5,w:['robot mobile amr','agv entrepot','chariot autonome'],r:['ia6','m3']},
+    ],
+    'Travaux de démolition': [
+      {s:5,w:['demolition partielle','demolition interieure','cloison porteur'],r:['d1','d3']},
+      {s:5,w:['demolition industrielle','deconstruction site industriel'],r:['d1','d2','d4']},
+      {s:4,w:['evacuation gravats','tri dechets demolition','benne demolition'],r:['d3','d4']},
+      {s:5,w:['reperage amiante avant demolition','diagnostic amiante','dta demolition'],r:['d2']},
+      {s:4,w:['gants manutention demolition','equipement protection demolition'],r:['d1','d3']},
+    ],
+    'Travaux de toiture & étanchéité': [
+      {s:5,w:['etancheite terrasse','membrane terrasse','bac acier couverture'],r:['t1','t2','t3']},
+      {s:5,w:['zinguerie','gouttiere','descente pluviale','cheneaux'],r:['t1','t4']},
+      {s:5,w:['couverture tuile','remplacement tuile','faitage'],r:['t1','t4']},
+      {s:5,w:['isolation toiture','soufflage laine','isolation combles'],r:['t1','t2']},
+      {s:4,w:['pénétration toiture','traversee toiture','lanterneau'],r:['t1','t2']},
+    ],
+  };
+
+  Object.entries(extra).forEach(([type, rules])=>{
+    if(!AI_KW[type]) AI_KW[type]=[];
+    rules.forEach(rule=>{
+      // Éviter les doublons exacts
+      const dup = AI_KW[type].some(r=>
+        r.w && rule.w && r.w.length===rule.w.length &&
+        r.w.every((w,i)=>w===rule.w[i])
+      );
+      if(!dup) AI_KW[type].push({s:rule.s, w:rule.w, r:rule.r, _extra:true});
+    });
+  });
+
+  // Compter
+  let total=0;
+  Object.values(AI_KW).forEach(arr=>{ total+=arr.filter(r=>r._extra).length; });
+  console.log('[injectExtra200Keywords] '+total+' règles supplémentaires injectées');
+}
+
+
+async function initDBRisksAndUI() {
+  // Injecter les 200 mots-clés supplémentaires en premier (synchrone)
+  injectExtra200Keywords();
+
+  await Promise.all([
+    loadUIConfig(),
+    loadPPConfig(),
+    reloadRisksIntoEngine(),
+    reloadKeywordsIntoEngine(),
+    reloadEPIFromDB(),
+    loadSignatureRules(),
+  ]);
+  applyUIConfig();
+  applyPPConfigToForm();
+  console.log('[initDBRisksAndUI] Tout chargé depuis la DB');
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// SYSTÈME DE PERMIS — Formulaires pré-remplis automatiquement
+// ══════════════════════════════════════════════════════════════════════════
+
+const _permisData = {}; // { [permitName]: { fieldId: value, fieldId_sig: dataURL } }
+
+// ── Correspondance entre noms de permis PP et clés PERMIS_FORMS ──────────
+
+function openPermisForm(permitName){
+  const key = PERMIS_NAME_MAP[permitName] || permitName;
+  const form = PERMIS_FORMS[key];
+  if(!form){ showToast('Formulaire non disponible pour : '+permitName,'error'); return; }
+
+  // Init données avec auto-remplissage si premier ouverture
+  if(!_permisData[key]){
+    _permisData[key] = {};
+    form.sections.forEach(s => s.fields.forEach(f => {
+      if(f.autoFill) try { _permisData[key][f.id] = f.autoFill(); } catch(e){}
+    }));
+  }
+
+  // Header
+  document.getElementById('permisModalTitle').textContent = form.icon + ' ' + permitName;
+  document.getElementById('permisModalHeader').style.borderBottomColor = form.color;
+
+  // Description
+  const banner = document.getElementById('permisPreFillBanner');
+  if(banner) banner.innerHTML = `<span style="font-size:16px">✨</span>
+    <span>Formulaire <strong>${permitName}</strong> — ${form.description} — Pré-rempli avec les données de l'évaluation. Complétez et signez.</span>`;
+
+  document.getElementById('permisModalBody').innerHTML = _buildPermisHTML(key, form);
+  document.getElementById('permisModal').style.display = 'flex';
+  document.getElementById('permisModal').dataset.currentPermit = key;
+
+  // Initialiser les canvas de signature après rendu
+  setTimeout(_initPermisCanvases, 100);
+}
+
+function closePermisModal(){
+  const key = document.getElementById('permisModal').dataset.currentPermit;
+  if(key) _savePermisFormData(key);
+  document.getElementById('permisModal').style.display = 'none';
+}
+
+// ── Construction HTML du formulaire ──────────────────────────────────────
+function _buildPermisHTML(key, form){
+  const data = _permisData[key] || {};
+  const safeName = key.replace(/[^a-z0-9]/gi,'_');
+  let html = '';
+
+  form.sections.forEach(sec => {
+    html += `<div style="margin-bottom:20px">
+      <div style="background:${form.color};color:#fff;padding:8px 14px;border-radius:4px 4px 0 0;
+        font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em">${sec.title}</div>
+      <div style="border:1.5px solid ${form.color}44;border-top:none;border-radius:0 0 6px 6px;
+        padding:14px 16px;background:#fff;display:flex;flex-direction:column;gap:12px">`;
+
+    sec.fields.forEach(f => {
+      const val = data[f.id] !== undefined ? data[f.id] : '';
+      const fid = `permf-${safeName}-${f.id}`;
+
+      html += `<div>
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;
+          letter-spacing:.12em;color:${form.color};margin-bottom:6px">${f.label}</label>`;
+
+      if(f.type === 'text' || f.type === 'date' || f.type === 'time' || f.type === 'datetime-local'){
+        html += `<input type="${f.type}" id="${fid}"
+          value="${_escV(val)}"
+          onchange="_updatePermis('${key}','${f.id}',this.value)"
+          style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:4px;
+            font-size:13px;font-family:'DM Sans',sans-serif;color:#0f1923;background:#fafafa"/>`;
+      }
+      else if(f.type === 'textarea'){
+        html += `<textarea id="${fid}"
+          onchange="_updatePermis('${key}','${f.id}',this.value)"
+          style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:4px;
+            font-size:13px;font-family:'DM Sans',sans-serif;color:#0f1923;background:#fafafa;
+            min-height:64px;resize:vertical">${_escV(val)}</textarea>`;
+      }
+      else if(f.type === 'select'){
+        html += `<select id="${fid}" onchange="_updatePermis('${key}','${f.id}',this.value)"
+          style="width:100%;padding:9px 12px;border:1.5px solid #d1d5db;border-radius:4px;
+            font-size:13px;font-family:'DM Sans',sans-serif;background:#fafafa">`;
+        (f.options||[]).forEach(opt => {
+          html += `<option value="${_escV(opt)}" ${val===opt?'selected':''}>${opt}</option>`;
+        });
+        html += `</select>`;
+      }
+      else if(f.type === 'checkboxes'){
+        const checked = Array.isArray(val) ? val : (val ? String(val).split('||') : []);
+        html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">`;
+        (f.options||[]).forEach(opt => {
+          const isChk = checked.includes(opt);
+          html += `<label style="display:flex;align-items:flex-start;gap:8px;padding:8px 10px;
+            border:1.5px solid ${isChk ? form.color : '#e5e7eb'};border-radius:4px;cursor:pointer;
+            font-size:12px;line-height:1.4;background:${isChk ? form.color+'0f' : '#fafafa'};
+            transition:all .15s" data-permit-chk="${key}" data-field="${f.id}" data-color="${form.color}">
+            <input type="checkbox" value="${_escV(opt)}" ${isChk?'checked':''}
+              onchange="_togglePermisChk('${key}','${f.id}',this.value,this.checked,'${form.color}',this.closest('label'))"
+              style="accent-color:${form.color};flex-shrink:0;margin-top:2px"/>
+            <span>${opt}</span>
+          </label>`;
+        });
+        html += `</div>`;
+      }
+      else if(f.type === 'signature'){
+        const sigExist = data[f.id+'_sig'] || '';
+        html += `<div style="border:1.5px solid #e5e7eb;border-radius:4px;overflow:hidden">
+          <div style="display:flex;align-items:center;justify-content:space-between;
+            padding:6px 12px;background:#f9fafb;border-bottom:1px solid #e5e7eb">
+            <span style="font-size:11px;color:#6b7280">Tracez votre signature</span>
+            <button onclick="_clearPermisCanvas('${key}','${f.id}')"
+              style="padding:3px 10px;background:none;border:1.5px solid #e5e7eb;border-radius:3px;
+                font-size:10px;cursor:pointer;color:#9ca3af">🗑 Effacer</button>
+          </div>
+          <canvas id="permcs-${safeName}-${f.id}"
+            data-permit="${key}" data-field="${f.id}"
+            style="display:block;width:100%;height:90px;background:#fff;cursor:crosshair;touch-action:none;user-select:none;-webkit-user-select:none;overscroll-behavior:none;-ms-touch-action:none"
+            width="700" height="90"></canvas>
+          ${sigExist ? `<div style="padding:6px 12px;background:#f0fdf4;border-top:1px solid #bbf7d0;
+            font-size:10px;color:var(--safe);font-weight:600">✓ Signature enregistrée</div>` : ''}
+        </div>`;
+      }
+
+      html += `</div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  return html;
+}
+
+function _escV(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function _updatePermis(key, fieldId, value){
+  if(!_permisData[key]) _permisData[key]={};
+  _permisData[key][fieldId] = value;
+}
+
+function _togglePermisChk(key, fieldId, value, checked, color, labelEl){
+  if(!_permisData[key]) _permisData[key]={};
+  let arr = _permisData[key][fieldId];
+  if(!Array.isArray(arr)) arr = arr ? String(arr).split('||') : [];
+  if(checked){ if(!arr.includes(value)) arr.push(value); }
+  else { arr = arr.filter(v=>v!==value); }
+  _permisData[key][fieldId] = arr;
+  if(labelEl){
+    labelEl.style.borderColor = checked ? color : '#e5e7eb';
+    labelEl.style.background  = checked ? color+'0f' : '#fafafa';
+  }
+}
+
+function _savePermisFormData(key){
+  const form = PERMIS_FORMS[key]; if(!form) return;
+  const safeName = key.replace(/[^a-z0-9]/gi,'_');
+  form.sections.forEach(s => s.fields.forEach(f => {
+    if(f.type === 'signature') return;
+    const el = document.getElementById(`permf-${safeName}-${f.id}`);
+    if(el) _updatePermis(key, f.id, el.value);
+  }));
+}
+
+// ── Init canvas signatures permis ─────────────────────────────────────────
+function _initPermisCanvases(){
+  document.querySelectorAll('canvas[data-permit][data-field]').forEach(canvas => {
+    if(canvas._permisInited) return;
+    canvas._permisInited = true;
+    const key = canvas.dataset.permit;
+    const field = canvas.dataset.field;
+    let drawing = false, lx = 0, ly = 0;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const W = Math.round(rect.width * dpr || 700);
+    const H = 90 * dpr;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W/dpr, 90);
+    ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.6;
+    ctx.beginPath(); ctx.moveTo(12, 72); ctx.lineTo(W/dpr - 12, 72); ctx.stroke();
+    ctx.strokeStyle = '#1a4d6e'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    // Recharger signature existante
+    const existing = (_permisData[key]||{})[field+'_sig'];
+    if(existing){ const img = new Image(); img.onload = () => ctx.drawImage(img, 0, 0, W/dpr, 90); img.src = existing; }
+
+    function getPos(e){
+      const r=canvas.getBoundingClientRect();
+      if(e.pointerId!==undefined) return {x:e.clientX-r.left, y:e.clientY-r.top};
+      if(e.touches&&e.touches.length) return {x:e.touches[0].clientX-r.left, y:e.touches[0].clientY-r.top};
+      return {x:e.clientX-r.left, y:e.clientY-r.top};
+    }
+    function onPStart(e){
+      e.preventDefault(); drawing=true;
+      if(e.pointerId!==undefined){ try{ canvas.setPointerCapture(e.pointerId); }catch(_){} }
+      const p=getPos(e); lx=p.x; ly=p.y;
+    }
+    function onPMove(e){
+      e.preventDefault(); if(!drawing) return;
+      if(e.pointerType==='pen'&&e.pressure===0) return;
+      const c=canvas.getContext('2d');
+      c.strokeStyle='#1a4d6e';
+      c.lineWidth=(e.pressure&&e.pressure>0)?Math.max(1.5,e.pressure*4):2.5;
+      c.lineCap='round'; c.lineJoin='round';
+      const p=getPos(e); c.beginPath(); c.moveTo(lx,ly); c.lineTo(p.x,p.y); c.stroke(); lx=p.x; ly=p.y;
+    }
+    function onPEnd(e){
+      drawing=false;
+      if(e&&e.pointerId!==undefined){ try{ canvas.releasePointerCapture(e.pointerId); }catch(_){} }
+      if(!_permisData[key]) _permisData[key]={};
+      _permisData[key][field+'_sig'] = canvas.toDataURL('image/png');
+    }
+    // Pointer Events (Win11 stylet, doigt, souris)
+    canvas.addEventListener('pointerdown',   onPStart, {passive:false});
+    canvas.addEventListener('pointermove',   onPMove,  {passive:false});
+    canvas.addEventListener('pointerup',     onPEnd,   {passive:false});
+    canvas.addEventListener('pointercancel', onPEnd,   {passive:false});
+    canvas.addEventListener('pointerleave',  e=>{ drawing=false; }, {passive:true});
+    // Touch Events fallback
+    canvas.addEventListener('touchstart', onPStart, {passive:false});
+    canvas.addEventListener('touchmove',  onPMove,  {passive:false});
+    canvas.addEventListener('touchend',   onPEnd,   {passive:false});
+  });
+}
+
+function _clearPermisCanvas(key, field){
+  const safeName = key.replace(/[^a-z0-9]/gi,'_');
+  const canvas = document.getElementById(`permcs-${safeName}-${field}`); if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const rect = canvas.getBoundingClientRect();
+  // Effacer en tenant compte du DPI réel
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.restore();
+  ctx.strokeStyle='#e5e7eb'; ctx.lineWidth=0.6;
+  ctx.beginPath(); ctx.moveTo(12,72); ctx.lineTo(rect.width-12,72); ctx.stroke();
+  if(_permisData[key]) delete _permisData[key][field+'_sig'];
+}
+
+// ── Générer le PDF du permis ──────────────────────────────────────────────
+function generatePermisPDF(){
+  const key = document.getElementById('permisModal').dataset.currentPermit;
+  if(!key) return;
+  _savePermisFormData(key);
+  const form = PERMIS_FORMS[key]; if(!form) return;
+  const data = _permisData[key]||{};
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'p',unit:'mm',format:'a4'});
+  const W=210, H=297, mg=14, IW=W-2*mg;
+  let y=0;
+  const LH=4.6;
+  const hexRgb = h => [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)];
+  const [cr,cg,cb] = hexRgb(form.color||'#1a4d6e');
+
+  function footer(){
+    const pn = doc.internal.getCurrentPageInfo().pageNumber;
+    doc.setFillColor(15,25,35); doc.rect(0,H-11,W,11,'F');
+    doc.setTextColor(160,170,180); doc.setFontSize(7); doc.setFont('helvetica','normal');
+    doc.text(form.icon+' '+key+' — NORDCHROME',mg,H-4);
+    doc.text('Page '+pn,W-mg,H-4,{align:'right'});
+    doc.setTextColor(cr,cg,cb);
+    doc.text('EvalRisque',W/2,H-4,{align:'center'});
+  }
+  function checkY(n){ if(y+n>H-14){ doc.addPage(); footer(); y=20; } }
+
+  // Couverture
+  doc.setFillColor(15,25,35); doc.rect(0,0,W,32,'F');
+  doc.setFillColor(cr,cg,cb); doc.rect(0,29,W,3,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+  doc.text('NORDCHROME — PLAN DE PRÉVENTION',W/2,9,{align:'center'});
+  doc.setFontSize(15); doc.setFont('helvetica','bold');
+  doc.text(key.toUpperCase(),W/2,18,{align:'center'});
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(cr,cg,cb);
+  doc.text(form.description,W/2,25,{align:'center'});
+  doc.setTextColor(130,140,150);
+  doc.text('Généré le '+new Date().toLocaleDateString('fr-FR',{day:'2-digit',month:'long',year:'numeric'}),W/2,31,{align:'center'});
+  y=40;
+
+  form.sections.forEach(sec => {
+    checkY(13);
+    doc.setFillColor(cr,cg,cb); doc.rect(mg,y,IW,8,'F');
+    doc.setFillColor(Math.round(cr*.65),Math.round(cg*.65),Math.round(cb*.65)); doc.rect(mg,y,3,8,'F');
+    doc.setTextColor(255,255,255); doc.setFontSize(7); doc.setFont('helvetica','bold');
+    doc.text(sec.title,mg+6,y+5.5); y+=11;
+
+    sec.fields.forEach(f => {
+      const val = data[f.id];
+
+      if(f.type==='signature'){
+        const sig = data[f.id+'_sig'];
+        checkY(24);
+        doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(80,80,80);
+        doc.text(f.label.toUpperCase(),mg,y); y+=5;
+        doc.setFillColor(252,252,252); doc.rect(mg,y,IW,17,'F');
+        doc.setDrawColor(cr,cg,cb); doc.rect(mg,y,IW,17,'S');
+        if(sig){ try{ doc.addImage(sig,'PNG',mg+2,y+1,IW-4,15); }catch(e){} }
+        else {
+          doc.setFontSize(8); doc.setTextColor(190,190,190);
+          doc.text('Signature : ___________________________  Date : _______________',mg+6,y+10);
+        }
+        y+=20; return;
+      }
+
+      doc.setFontSize(6.5); doc.setFont('helvetica','bold'); doc.setTextColor(cr,cg,cb);
+      doc.text(f.label.toUpperCase(),mg,y); y+=5;
+
+      if(f.type==='checkboxes'){
+        const chk = Array.isArray(val) ? val : (val ? String(val).split('||') : []);
+        const cols=2; const colW=(IW-3)/cols; let col=0;
+        (f.options||[]).forEach((opt,i) => {
+          if(col===0 && i>0) y+=7;
+          checkY(8);
+          const ok = chk.includes(opt);
+          const bx=mg+col*(colW+3);
+          doc.setFillColor(ok?cr:255, ok?cg:255, ok?cb:255);
+          doc.roundedRect(bx,y-1,4,4,0.5,0.5,'F');
+          doc.setDrawColor(ok?cr:170, ok?cg:170, ok?cb:170);
+          doc.roundedRect(bx,y-1,4,4,0.5,0.5,'S');
+          if(ok){ doc.setTextColor(255,255,255); doc.setFontSize(5); doc.setFont('helvetica','bold'); doc.text('✓',bx+0.8,y+2.5); }
+          doc.setFontSize(6.5); doc.setFont('helvetica','normal'); doc.setTextColor(30,40,50);
+          const ls=doc.splitTextToSize(opt,colW-7);
+          doc.text(ls,bx+6,y+2.5);
+          col=(col+1)%cols;
+          if(col===0) y+=7;
+        });
+        if(col!==0) y+=7;
+      } else {
+        const display = val ? String(Array.isArray(val)?val.join(', '):val) : '—';
+        const ls = doc.splitTextToSize(display, IW-6);
+        const bh = Math.max(ls.length*LH+4,8);
+        checkY(bh+2);
+        doc.setFillColor(252,252,250); doc.rect(mg,y-1,IW,bh,'F');
+        doc.setDrawColor(220,215,205); doc.rect(mg,y-1,IW,bh,'S');
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(30,40,50);
+        doc.text(ls,mg+3,y+3); y+=bh+3;
+      }
+    });
+    y+=5;
+  });
+
+  footer();
+  const fname = key.replace(/[^a-z0-9àâéèêîïôùûç\s]/gi,'_').replace(/\s+/g,'_');
+  doc.save(`Permis_${fname}_${new Date().toLocaleDateString('fr-FR').replace(/\//g,'-')}.pdf`);
+  showToast('PDF "'+key+'" généré avec succès','success');
+}
+
+// Fermer modale permis au clic fond
+document.addEventListener('DOMContentLoaded',()=>{
+  const pm = document.getElementById('permisModal');
+  if(pm) pm.addEventListener('click', e=>{ if(e.target===pm) closePermisModal(); });
+});
 </script>
+<!-- ═══ PERMIS MODAL ══════════════════════════════════════════════════════ -->
+<div id="permisModal" style="display:none;position:fixed;inset:0;background:rgba(10,18,26,.82);z-index:1010;align-items:flex-start;justify-content:center;padding:20px 14px;overflow-y:auto;">
+  <div style="background:#fff;border-radius:8px;width:800px;max-width:100%;box-shadow:0 24px 80px rgba(0,0,0,.5);margin:auto;">
+    <div id="permisModalHeader" style="display:flex;align-items:center;justify-content:space-between;padding:18px 26px;background:var(--ink);border-radius:8px 8px 0 0;border-bottom:3px solid var(--accent);">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span id="permisModalTitle" style="color:#fff;font-family:'DM Serif Display',serif;font-size:18px">Formulaire de permis</span>
+        <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);border:1px solid var(--accent);padding:3px 10px;border-radius:2px">Auto-rempli</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button onclick="generatePermisPDF()" style="padding:7px 16px;background:var(--accent2);color:#fff;border:none;border-radius:3px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px">📄 PDF du permis</button>
+        <button onclick="closePermisModal()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:4px;display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
+    </div>
+    <div id="permisPreFillBanner" style="display:flex;align-items:center;gap:10px;padding:10px 26px;background:#f0f7ff;border-bottom:1px solid #bfdbfe;font-size:12px;color:var(--accent2)">
+      <span style="font-size:16px">✨</span>
+      <span>Ce formulaire a été <strong>pré-rempli automatiquement</strong> avec les données de votre évaluation. Complétez et corrigez les champs si nécessaire, puis signez.</span>
+    </div>
+    <div id="permisModalBody" style="padding:22px 28px 28px;max-height:78vh;overflow-y:auto;"></div>
+  </div>
+</div>
+
 </body>
 </html>

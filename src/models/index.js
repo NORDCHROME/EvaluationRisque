@@ -15,6 +15,8 @@ const UserSchema = new Schema({
   savedSignature:    { type: String, default: '' },   // base64 PNG de la signature sauvegardée
   autoUseSignature:  { type: Boolean, default: false }, // appliquer auto sur les rapports
   managerId:  { type: Schema.Types.ObjectId, ref: 'User', default: null },
+  // Support multi-managers : liste de tous les responsables de cet utilisateur
+  managerIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   lastLogin:  { type: Date, default: null },
   createdAt:  { type: Date, default: Date.now }
 });
@@ -27,7 +29,11 @@ const CompanySchema = new Schema({
   tel:          { type: String, default: '' },
   email:        { type: String, default: '' },
   resp:         { type: String, default: '' },
-  instructions: { type: String, default: '' }
+  instructions: { type: String, default: '' },
+  // Branding / UI Config
+  brandColors:  { type: Schema.Types.Mixed, default: {} },
+  logoUrl:      { type: String, default: '' },
+  logoData:     { type: String, default: '' },  // base64
 }, { timestamps: true });
 
 // ── Carnet Entreprises extérieures ───────────────────────────
@@ -68,6 +74,8 @@ const ReportSchema = new Schema({
 // ── Validations en attente ───────────────────────────────────
 const ValidationSchema = new Schema({
   managerId:      { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  // Support multi-managers
+  managerIds:     [{ type: Schema.Types.ObjectId, ref: 'User' }],
   submittedBy:    { type: Schema.Types.ObjectId, ref: 'User', required: true },
   submitterName:  { type: String },
   submitterSite:  { type: String, default: '—' },
@@ -81,6 +89,27 @@ const ValidationSchema = new Schema({
   treatedAt:      { type: Date, default: null },
   scoringDetails: { type: Schema.Types.Mixed, default: null },  // détail des scores par risque
   autoValidated:  { type: Boolean, default: false }
+}, { timestamps: true });
+
+// ── Évaluations sauvegardées en DB ───────────────────────────
+const EvaluationSchema = new Schema({
+  submittedBy:       { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  submitterName:     { type: String, default: '' },
+  submitterSite:     { type: String, default: '' },
+  interventionTitle: { type: String, default: '' },
+  operator:          { type: String, default: '' },
+  location:          { type: String, default: '' },
+  date:              { type: String, default: '' },
+  mission:           { type: String, default: '' },
+  missionSteps:      [String],
+  interventions:     [String],
+  selectedRisks:     [String],
+  derogations:       { type: Schema.Types.Mixed, default: {} },
+  epiSnapshot:       { type: Schema.Types.Mixed, default: {} },
+  selectedRisksCount:{ type: Number, default: 0 },
+  risksDetail:       { type: Schema.Types.Mixed, default: [] },
+  validationId:      { type: Schema.Types.ObjectId, ref: 'Validation', default: null },
+  status:            { type: String, enum: ['draft','submitted','approved','rejected'], default: 'draft' },
 }, { timestamps: true });
 
 // ── Risques custom ───────────────────────────────────────────
@@ -144,6 +173,7 @@ module.exports = {
   PPlan:           mongoose.model('PPlan', PPlanSchema),
   Report:          mongoose.model('Report', ReportSchema),
   Validation:      mongoose.model('Validation', ValidationSchema),
+  Evaluation:      mongoose.model('Evaluation', EvaluationSchema),
   CustomRisk:      mongoose.model('CustomRisk', CustomRiskSchema),
   CustomKeyword:   mongoose.model('CustomKeyword', CustomKeywordSchema),
   CustomType:      mongoose.model('CustomType', CustomTypeSchema),

@@ -8,7 +8,7 @@ const {
   Company, ExternalCompany, Worker,
   PPlan, Report, Settings,
   CustomRisk, CustomKeyword, CustomType, HiddenRisk,
-  Validation, User
+  Validation, Evaluation, User
 } = require('../models');
 
 // ─────────────────────────────────────────────────────────────
@@ -392,6 +392,97 @@ router.put('/validations/:id', auth, async (req, res) => {
 router.delete('/validations/:id', auth, adminOnly, async (req, res) => {
   try { await Validation.findByIdAndDelete(req.params.id); res.json({ ok: true }); }
   catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────
+// GET /validations/mine — validations soumises PAR l'utilisateur connecté
+// ─────────────────────────────────────────────────────────────
+router.get('/validations/mine', auth, async (req, res) => {
+  try {
+    const vals = await Validation.find({ submittedBy: req.user._id })
+      .sort('-createdAt').lean();
+    res.json(vals.map(v => ({ ...v, id: String(v._id) })));
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────
+// ÉVALUATIONS (sauvegarde en DB)
+// ─────────────────────────────────────────────────────────────
+router.get('/evaluations', auth, async (req, res) => {
+  try {
+    const filter = req.user.role === 'admin' ? {} : { submittedBy: req.user._id };
+    const evals = await Evaluation.find(filter).sort('-createdAt').limit(100);
+    res.json(evals);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.post('/evaluations', auth, async (req, res) => {
+  try {
+    const ev = await Evaluation.create({
+      ...req.body,
+      submittedBy:    req.user._id,
+      submitterName:  req.user.name,
+      submitterSite:  req.user.site || '—',
+    });
+    res.status(201).json(ev);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/evaluations/:id', auth, async (req, res) => {
+  try {
+    const ev = await Evaluation.findById(req.params.id);
+    if (!ev) return res.status(404).json({ error: 'Évaluation introuvable' });
+    if (String(ev.submittedBy) !== String(req.user._id) && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Non autorisé' });
+    Object.assign(ev, req.body);
+    await ev.save();
+    res.json(ev);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.delete('/evaluations/:id', auth, async (req, res) => {
+  try {
+    const ev = await Evaluation.findById(req.params.id);
+    if (!ev) return res.status(404).json({ error: 'Évaluation introuvable' });
+    if (String(ev.submittedBy) !== String(req.user._id) && req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Non autorisé' });
+    await ev.deleteOne();
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────
+// BRANDING / UI CONFIG  (logo + couleurs — stockés dans Company)
+// ─────────────────────────────────────────────────────────────
+router.get('/uiconfig', auth, async (req, res) => {
+  try {
+    const co = await Company.findOne() || {};
+    res.json({
+      companyName: co.name || '',
+      colors: co.brandColors || {},
+      logoUrl:    co.logoUrl    || '',
+      logoBase64: co.logoData   || '',
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ─────────────────────────────────────────────────────────────
+// PP CONFIG (configuration du plan de prévention)
+// ─────────────────────────────────────────────────────────────
+router.get('/ppconfig', auth, async (req, res) => {
+  try {
+    const s = await Settings.findOne({ key: 'ppconfig' });
+    res.json(s ? s.value : {});
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+router.put('/ppconfig', auth, adminOnly, async (req, res) => {
+  try {
+    await Settings.findOneAndUpdate(
+      { key: 'ppconfig' }, { key: 'ppconfig', value: req.body }, { upsert: true, new: true }
+    );
+    res.json({ ok: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ─────────────────────────────────────────────────────────────

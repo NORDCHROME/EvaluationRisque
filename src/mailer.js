@@ -165,12 +165,12 @@ function tplAutoValidation({ submitterName, interventionTitle, maxScore, thresho
   <div class="body">
     <p style="font-size:13.5px;color:#374151">Bonjour <strong>${submitterName}</strong>,</p>
     <div class="badge">✅ Rapport validé automatiquement par le système</div>
-    <p style="font-size:13px;color:#4b5563">Votre évaluation <strong>"${title}"</strong> a été analysée par le moteur de scoring EvalRisque. Tous les risques sont correctement protégés — aucune validation manuelle n'est requise.</p>
+    <p style="font-size:13px;color:#4b5563">Votre évaluation <strong>"${title}"</strong> a été analysée par le moteur de notation EvalRisque. Tous les risques sont correctement protégés — aucune validation manuelle n'est requise.</p>
     <table>
-      <thead><tr><th>Risque</th><th style="text-align:center">Brut</th><th style="text-align:center">Déductions</th><th style="text-align:center">Score résiduel</th></tr></thead>
+      <thead><tr><th>Risque</th><th style="text-align:center">Brut</th><th style="text-align:center">Déductions</th><th style="text-align:center">Note résiduelle</th></tr></thead>
       <tbody>${scoresHtml}</tbody>
     </table>
-    <p style="font-size:11.5px;color:#6b7280">Score maximum : <strong>${maxScore}</strong> / Seuil de validation : <strong>${threshold}</strong></p>
+    <p style="font-size:11.5px;color:#6b7280">Note maximum : <strong>${maxScore}</strong> / Seuil de validation : <strong>${threshold}</strong></p>
     <a href="${APP_URL}" class="btn">📋 Voir mes évaluations</a>
   </div>
   <div class="footer">EvalRisque • NORDCHROME • Validé automatiquement le ${new Date().toLocaleDateString('fr-FR')}.</div>
