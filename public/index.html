@@ -3298,7 +3298,7 @@ async function renderAdminUsers(){
   if(cbLow) cbLow.checked=sigSettings.autoLow!==false;
   if(cbMgr) cbMgr.checked=sigSettings.requireManager!==false;
   // Rendu tableau
-  document.getElementById('usersBody').innerHTML=users.map(u=>{\
+  document.getElementById('usersBody').innerHTML=users.map(u=>{
     const uid=u._id||u.id;
     // Construire la liste de tous les managers (principal + additionnels)
     const allMgrIds = [];
