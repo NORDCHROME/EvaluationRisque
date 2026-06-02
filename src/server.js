@@ -38,6 +38,16 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ── Servir le Service Worker avec les bons en-têtes ──────────
+app.get('/sw.js', (req, res) => {
+  res.set({
+    'Content-Type':           'application/javascript',
+    'Service-Worker-Allowed': '/',
+    'Cache-Control':          'no-cache, no-store, must-revalidate',
+  });
+  res.sendFile(path.join(__dirname, '../public/sw.js'));
+});
+
 // ── Servir le frontend ───────────────────────────────────────
 app.use(express.static(path.join(__dirname, '../public')));
 app.get('*', (req, res) => {

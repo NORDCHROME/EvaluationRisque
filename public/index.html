@@ -6,6 +6,7 @@
 <title>EvalRisque — NORDCHROME</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/offline.js"></script>
 <style>
 
 :root{
@@ -353,6 +354,11 @@ textarea{resize:vertical;min-height:80px;}
       <span id="validationBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:#c0392b;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:800;align-items:center;justify-content:center;line-height:1">0</span>
     </button>
     <button id="btnLogout" onclick="doLogout()" style="display:none;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;padding:6px 14px;border-radius:2px;cursor:pointer;border:none;background:rgba(200,75,49,.15);color:var(--accent);border:1px solid rgba(200,75,49,.3)">Déconnexion</button>
+    <!-- Indicateur connexion -->
+    <div id="offlineIndicator" title="Statut connexion" style="display:none;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:700;cursor:pointer" onclick="OfflineManager.syncNow()">
+      <span id="offlineDot" style="width:8px;height:8px;border-radius:50%;background:var(--safe);display:inline-block"></span>
+      <span id="offlineLabel">En ligne</span>
+    </div>
   </div>
 </header>
 
@@ -398,7 +404,7 @@ textarea{resize:vertical;min-height:80px;}
       </div>
       <div class="field-group">
         <label class="field-label">Machine / Équipement</label>
-        <input type="text" id="machineId" placeholder="ex: Rectifieuse , chromage…"/>
+        <input type="text" id="machineId" placeholder="ex: Pompe P12, Tour CN-04, Compresseur K3…"/>
       </div>
       <div class="field-group">
         <label class="field-label">Date d'évaluation</label>
@@ -1656,12 +1662,28 @@ function apiHeaders(){
 
 // API call wrapper avec gestion d'erreur
 async function api(method, path, body=null){
+  const fullUrl = API_BASE+'/api'+path;
+  const headers = apiHeaders();
+
+  // ── Mode hors ligne : mettre en file les mutations ─────────
+  if(!navigator.onLine && method !== 'GET'){
+    try {
+      await OfflineManager.enqueue(method, fullUrl, headers, body);
+      OfflineManager._updateStatusBanner?.() || OfflineManager.pendingCount().then(n => {
+        const b=document.getElementById('offlineBanner');
+        if(b&&b.style.display!=='none') b.querySelector('span').textContent=`🔄 ${n} action${n>1?'s':''} en attente de synchronisation`;
+      });
+      showToast('📵 Hors ligne — action mise en file d\'attente','warn');
+    } catch(e) { console.warn('Enqueue failed:', e); }
+    // Retourner un objet simulé pour ne pas bloquer l'UI
+    return body || { ok: true, _offline: true };
+  }
+
   try{
-    const opts = { method, headers: apiHeaders() };
+    const opts = { method, headers };
     if(body) opts.body=JSON.stringify(body);
-    const res = await fetch(API_BASE+'/api'+path, opts);
+    const res = await fetch(fullUrl, opts);
     if(res.status===401){
-      // Token expiré → déconnexion automatique
       _authToken=null; localStorage.removeItem('evalrisque_token');
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('appContainer').style.display='none';
@@ -1671,6 +1693,14 @@ async function api(method, path, body=null){
     if(!res.ok){ const err=await res.json(); throw new Error(err.error||res.statusText); }
     return await res.json();
   }catch(e){
+    // Si la requête échoue à cause du réseau (pas 4xx), mettre en queue
+    if(method !== 'GET' && (e instanceof TypeError || e.message.includes('fetch'))){
+      try {
+        await OfflineManager.enqueue(method, fullUrl, headers, body);
+        showToast('📵 Connexion perdue — action mise en file d\'attente','warn');
+        return body || { ok: true, _offline: true };
+      } catch {}
+    }
     console.error('API error',method,path,e);
     showToast('Erreur API: '+e.message,'error');
     return null;
@@ -2000,6 +2030,27 @@ function initUI(){
   document.getElementById('btnLogout').style.display='inline-flex';
   document.getElementById('evalDate').valueAsDate=new Date();
   refreshValidationBadge();
+
+  // Afficher l'indicateur de connexion et le garder à jour
+  const offInd=document.getElementById('offlineIndicator');
+  if(offInd) offInd.style.display='inline-flex';
+  function _updateOfflineIndicator(){
+    const dot=document.getElementById('offlineDot');
+    const lbl=document.getElementById('offlineLabel');
+    if(!dot||!lbl) return;
+    const online=navigator.onLine;
+    OfflineManager.pendingCount().then(n=>{
+      dot.style.background=online?(n>0?'#d97706':'var(--safe)'):'#dc2626';
+      lbl.style.color=online?(n>0?'#d97706':'#4ade80'):'#f87171';
+      lbl.textContent=online?(n>0?`${n} en attente`:'En ligne'):'Hors ligne';
+      if(offInd) offInd.title=online?(n>0?`Cliquer pour synchroniser ${n} action(s)`:'Connecté'):'Hors ligne — synchronisation en attente';
+    });
+  }
+  _updateOfflineIndicator();
+  window.addEventListener('online',  _updateOfflineIndicator);
+  window.addEventListener('offline', _updateOfflineIndicator);
+  OfflineManager.onSync(() => setTimeout(_updateOfflineIndicator, 500));
+  setInterval(_updateOfflineIndicator, 10000);
 }
 
 // ══════════════════════════════════════════════════════════════════════════
