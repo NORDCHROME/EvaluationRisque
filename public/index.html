@@ -397,6 +397,10 @@ textarea{resize:vertical;min-height:80px;}
         <input type="text" id="location" placeholder="Adresse / Site / Zone"/>
       </div>
       <div class="field-group">
+        <label class="field-label">Machine / Équipement</label>
+        <input type="text" id="machineId" placeholder="ex: Pompe P12, Tour CN-04, Compresseur K3…"/>
+      </div>
+      <div class="field-group">
         <label class="field-label">Date d'évaluation</label>
         <input type="date" id="evalDate"/>
       </div>
@@ -775,7 +779,27 @@ textarea{resize:vertical;min-height:80px;}
       </div>
       <button onclick="closeMyEvals()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:4px">✕</button>
     </div>
-    <div id="myEvalsList" style="padding:24px;max-height:75vh;overflow-y:auto"></div>
+    <div id="myEvalsList" style="padding:24px;max-height:75vh;overflow-y:auto">
+      <!-- Filtres -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+        <div style="position:relative;flex:1;min-width:180px">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af">🔍</span>
+          <input type="text" id="evalFilterMachine" placeholder="Filtrer par machine / équipement…"
+            oninput="filterMyEvals()"
+            style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--border);border-radius:4px;font-size:13px"/>
+        </div>
+        <select id="evalFilterStatus" onchange="filterMyEvals()"
+          style="padding:8px 12px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;background:#fff">
+          <option value="">Tous les statuts</option>
+          <option value="draft">💾 Brouillons</option>
+          <option value="pending">⏳ En attente</option>
+          <option value="approved">✅ Validés</option>
+          <option value="rejected">❌ Refusés</option>
+        </select>
+        <button onclick="filterMyEvals(true)" style="padding:8px 12px;background:none;border:1.5px solid var(--border);border-radius:4px;font-size:12px;cursor:pointer;color:#6b7280">↺ Tout afficher</button>
+      </div>
+      <div id="myEvalsListInner"></div>
+    </div>
   </div>
 </div>
 
@@ -834,7 +858,26 @@ textarea{resize:vertical;min-height:80px;}
       </div>
       <button onclick="closeValidationPanel()" style="background:rgba(255,255,255,.1);border:none;color:#fff;font-size:18px;cursor:pointer;width:34px;height:34px;border-radius:4px">✕</button>
     </div>
-    <div id="validationList" style="padding:24px;max-height:75vh;overflow-y:auto"></div>
+    <div id="validationList" style="padding:24px;max-height:75vh;overflow-y:auto">
+      <!-- Filtres -->
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap">
+        <div style="position:relative;flex:1;min-width:180px">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#9ca3af">🔍</span>
+          <input type="text" id="validFilterMachine" placeholder="Filtrer par machine / équipement…"
+            oninput="filterValidations()"
+            style="width:100%;padding:8px 12px 8px 32px;border:1.5px solid var(--border);border-radius:4px;font-size:13px"/>
+        </div>
+        <select id="validFilterStatus" onchange="filterValidations()"
+          style="padding:8px 12px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;background:#fff">
+          <option value="">Tous les statuts</option>
+          <option value="pending">⏳ En attente</option>
+          <option value="approved">✅ Validés</option>
+          <option value="rejected">❌ Refusés</option>
+        </select>
+        <button onclick="filterValidations(true)" style="padding:8px 12px;background:none;border:1.5px solid var(--border);border-radius:4px;font-size:12px;cursor:pointer;color:#6b7280">↺ Tout afficher</button>
+      </div>
+      <div id="validationListInner"></div>
+    </div>
   </div>
 </div>
 
@@ -2007,6 +2050,7 @@ function validateStep0(){
   if(!o){ showToast('Veuillez renseigner le nom de l\'intervenant.','error'); return false; }
   appState.operator=o;
   appState.location=document.getElementById('location').value.trim()||'Non précisé';
+  appState.machine=document.getElementById('machineId')?.value.trim()||'';
   appState.date=document.getElementById('evalDate').value||new Date().toISOString().split('T')[0];
   appState.interventionTitle=document.getElementById('interventionTitle')?.value.trim()||'';
   // Construire la mission à partir des étapes
@@ -4033,11 +4077,13 @@ async function sendToManagerForValidation(sigDataURL, level, managersInput){
   const payload={
     managerId:  String(managers[0].id),
     managerIds: managers.map(m=>String(m.id)),
+    machine:    appState.machine||'',
     level,
     evalSnapshot:{
       interventionTitle: appState.interventionTitle||'',
       operator:     appState.operator||currentUser.name,
       location:     appState.location||'—',
+      machine:      appState.machine||'',
       date:         appState.date||new Date().toISOString().split('T')[0],
       mission:      appState.mission||'',
       missionSteps: appState.missionSteps||[],
@@ -4119,7 +4165,7 @@ async function renderValidationList(){
   const done=mine.filter(r=>r.status!=='pending');
   const cntEl=document.getElementById('validPanelCount');
   if(cntEl) cntEl.textContent=pending.length+' en attente';
-  const container=document.getElementById('validationList'); if(!container) return;
+  const container=document.getElementById('validationListInner')||document.getElementById('validationList'); if(!container) return;
   if(!mine.length){
     container.innerHTML='<div style="text-align:center;padding:40px;color:#9ca3af;font-style:italic">Aucun rapport à valider pour le moment.</div>';
     return;
@@ -4137,7 +4183,8 @@ async function renderValidationList(){
       const ev=r.evalSnapshot||{};
       const risksList=(ev.risks||[]).map(x=>`<span style="font-size:10px;padding:2px 8px;background:${x.sev==='high'?'#fde8e6':x.sev==='medium'?'#fef3e6':'#e6f4ec'};color:${x.sev==='high'?'var(--danger)':x.sev==='medium'?'var(--warn)':'var(--safe)'};border-radius:10px;margin:2px;display:inline-block">${x.name}</span>`).join('');
       const stepsHtml=(ev.missionSteps||[]).map((s,i)=>`<div style="display:flex;gap:8px;align-items:flex-start;padding:4px 0;border-bottom:1px solid var(--cream)"><span style="background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${i+1}</span><span style="font-size:12px">${s}</span></div>`).join('');
-      html+=`<div style="border:1.5px solid var(--warn);border-radius:8px;margin-bottom:18px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
+      const rMachine=(ev.machine||'').toLowerCase().replace(/"/g,'');
+      html+=`<div data-machine="${rMachine}" data-status="${r.status}" style="border:1.5px solid var(--warn);border-radius:8px;margin-bottom:18px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.06)">
         <!-- En-tête rapport -->
         <div style="background:linear-gradient(135deg,#fffbeb,#fef9e6);padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid #fde68a">
           <div style="flex:1">
@@ -4150,6 +4197,7 @@ async function renderValidationList(){
             </div>
             <div style="font-size:12px;color:#374151;display:flex;gap:16px;flex-wrap:wrap">
               <span>📍 <strong>${ev.location||'—'}</strong></span>
+              ${ev.machine?`<span>⚙️ <strong>${ev.machine}</strong></span>`:''}
               <span>📅 <strong>${ev.date?new Date(ev.date).toLocaleDateString('fr-FR'):'—'}</strong></span>
               <span>⚠️ <strong>${(ev.risks||[]).length} risque(s)</strong></span>
               <span>📋 <strong>${(ev.interventions||[]).length} type(s)</strong></span>
@@ -4205,7 +4253,8 @@ async function renderValidationList(){
       const uid='done-'+r.id;
       const borderCol=r.status==='approved'?'var(--safe)':'var(--danger)';
       const sevLbl2=s=>s==='high'?'CRITIQUE':s==='medium'?'MODÉRÉ':'FAIBLE';
-      html+=`<div style="border:1.5px solid ${borderCol};border-radius:8px;margin-bottom:10px;overflow:hidden;background:#fff;opacity:.9">
+      const dMachine=(ev.machine||r.machine||'').toLowerCase().replace(/"/g,'');
+      html+=`<div data-machine="${dMachine}" data-status="${r.status}" style="border:1.5px solid ${borderCol};border-radius:8px;margin-bottom:10px;overflow:hidden;background:#fff;opacity:.9">
         <div style="padding:12px 18px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <div style="flex:1">
             ${ev.interventionTitle?`<div style="font-size:10px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">🏷️ ${ev.interventionTitle}</div>`:''}
@@ -4215,7 +4264,7 @@ async function renderValidationList(){
               ${levelLabel(r.level)} ${statusBadge(r.status)}
             </div>
             <div style="font-size:11px;color:#9ca3af;margin-top:3px">
-              📍 ${ev.location||'—'} · 📅 ${ev.date?new Date(ev.date).toLocaleDateString('fr-FR'):'—'} · ${(ev.risks||[]).length} risque(s)
+              📍 ${ev.location||'—'}${(ev.machine||r.machine)?` · ⚙️ ${ev.machine||r.machine}`:''}  · 📅 ${ev.date?new Date(ev.date).toLocaleDateString('fr-FR'):'—'} · ${(ev.risks||[]).length} risque(s)
             </div>
           </div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -4965,7 +5014,9 @@ function generatePDF(sigData){
     id:'eval_'+Date.now(),
     savedAt:new Date().toISOString(),
     interventionTitle:appState.interventionTitle,
-    operator:appState.operator,location:appState.location,date:appState.date,
+    operator:appState.operator,location:appState.location,
+    machine:appState.machine||'',
+    date:appState.date,
     mission:appState.mission,missionSteps:appState.missionSteps||[],
     interventions:[...appState.selectedInterventions],
     selectedRisks:[...appState.selectedRisks],
@@ -5366,10 +5417,10 @@ async function _saveEvalToDB(ev){
   return null;
 }
 async function renderMyEvals(){
-  const container=document.getElementById('myEvalsList');
+  const container=document.getElementById('myEvalsListInner') || document.getElementById('myEvalsList');
   const countEl=document.getElementById('myEvalsCount');
   if(!container) return;
-  container.innerHTML=`<div style="text-align:center;padding:24px;color:#9ca3af;display:flex;align-items:center;justify-content:center;gap:10px"><span class="ai-spinner"></span> Chargement de vos évaluations…</div>`;
+  container.innerHTML=`<div style="text-align:center;padding:24px;color:#9ca3af;display:flex;align-items:center;justify-content:center;gap:10px"><span class="ai-spinner"></span> Chargement…</div>`;
 
   const fmt=d=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'—';
 
@@ -5463,13 +5514,15 @@ async function renderMyEvals(){
     const status=validInfo?validInfo.status:(ev.status||'draft');
     const mgrName=validInfo?validInfo.managerName:'';
     const borderCol=status==='approved'?'var(--safe)':status==='rejected'?'var(--danger)':status==='pending'?'var(--warn)':'#ddd5fe';
-    return `<div style="border:2px solid ${borderCol};border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)">
+    const evMachine=(ev.machine||ev.evalSnapshot?.machine||"").replace(/"/g,"");
+    return `<div data-machine="${evMachine.toLowerCase()}" data-status="${status}" style="border:2px solid ${borderCol};border-radius:10px;margin-bottom:14px;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.05)">
       <div style="padding:16px 20px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
         <div style="flex:1;min-width:0">
           <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px">${title}</div>
           <div style="font-size:12px;color:#6b7280;display:flex;gap:14px;flex-wrap:wrap">
             <span>👤 ${ev.operator||ev.submitterName||currentUser.name}</span>
             <span>📍 ${ev.location||'—'}</span>
+            ${(ev.machine||ev.evalSnapshot?.machine)?`<span>⚙️ ${ev.machine||ev.evalSnapshot?.machine}</span>`:''}
             <span>📅 ${fmt(ev.createdAt||ev.date)}</span>
             <span>⚠️ ${risks.length||ev.selectedRisksCount||0} risque(s)</span>
           </div>
@@ -5552,6 +5605,73 @@ async function deleteDBEval(id, btn){
   await api('DELETE','/data/evaluations/'+id);
   renderMyEvals();
   refreshMyEvalsBadge();
+}
+
+// Cache des données chargées pour les filtres
+let _myEvalsCache = { dbEvals:[], myValidations:[], local:[] };
+
+function filterMyEvals(reset){
+  const machineQ = reset ? '' : (document.getElementById('evalFilterMachine')?.value.trim().toLowerCase()||'');
+  const statusQ  = reset ? '' : (document.getElementById('evalFilterStatus')?.value||'');
+  if(reset){
+    if(document.getElementById('evalFilterMachine')) document.getElementById('evalFilterMachine').value='';
+    if(document.getElementById('evalFilterStatus'))  document.getElementById('evalFilterStatus').value='';
+  }
+  const inner = document.getElementById('myEvalsListInner');
+  if(!inner) return;
+  // Filtrer les cards visibles
+  const cards = inner.querySelectorAll('[data-machine],[data-status]');
+  let visible=0;
+  cards.forEach(card=>{
+    const machine = (card.dataset.machine||'').toLowerCase();
+    const status  = (card.dataset.status||'');
+    const matchM  = !machineQ || machine.includes(machineQ);
+    const matchS  = !statusQ  || status===statusQ;
+    card.style.display = (matchM&&matchS)?'':'none';
+    if(matchM&&matchS) visible++;
+  });
+  // Message si aucun résultat
+  let noResult = inner.querySelector('.no-filter-result');
+  if(!visible && (machineQ||statusQ)){
+    if(!noResult){
+      noResult = document.createElement('div');
+      noResult.className='no-filter-result';
+      noResult.style.cssText='text-align:center;padding:32px;color:#9ca3af;font-style:italic';
+      noResult.textContent='Aucune évaluation ne correspond aux filtres.';
+      inner.appendChild(noResult);
+    }
+  } else if(noResult){ noResult.remove(); }
+}
+
+function filterValidations(reset){
+  const machineQ = reset ? '' : (document.getElementById('validFilterMachine')?.value.trim().toLowerCase()||'');
+  const statusQ  = reset ? '' : (document.getElementById('validFilterStatus')?.value||'');
+  if(reset){
+    if(document.getElementById('validFilterMachine')) document.getElementById('validFilterMachine').value='';
+    if(document.getElementById('validFilterStatus'))  document.getElementById('validFilterStatus').value='';
+  }
+  const inner = document.getElementById('validationListInner');
+  if(!inner) return;
+  const cards = inner.querySelectorAll('[data-machine],[data-status]');
+  let visible=0;
+  cards.forEach(card=>{
+    const machine = (card.dataset.machine||'').toLowerCase();
+    const status  = (card.dataset.status||'');
+    const matchM  = !machineQ || machine.includes(machineQ);
+    const matchS  = !statusQ  || status===statusQ;
+    card.style.display = (matchM&&matchS)?'':'none';
+    if(matchM&&matchS) visible++;
+  });
+  let noResult = inner.querySelector('.no-filter-result');
+  if(!visible && (machineQ||statusQ)){
+    if(!noResult){
+      noResult = document.createElement('div');
+      noResult.className='no-filter-result';
+      noResult.style.cssText='text-align:center;padding:32px;color:#9ca3af;font-style:italic';
+      noResult.textContent='Aucune validation ne correspond aux filtres.';
+      inner.appendChild(noResult);
+    }
+  } else if(noResult){ noResult.remove(); }
 }
 function deleteLocalEval(idx){
   if(!confirm('Supprimer cette évaluation locale ?')) return;
@@ -8050,7 +8170,560 @@ async function initDBRisksAndUI() {
 const _permisData = {}; // { [permitName]: { fieldId: value, fieldId_sig: dataURL } }
 
 // ── Correspondance entre noms de permis PP et clés PERMIS_FORMS ──────────
+const PERMIS_NAME_MAP = {
+  'Permis de feu':          'Permis de feu',
+  'Pénétration EC':         'Pénétration EC',
+  'Consignation électrique':'Consignation électrique',
+  'Travaux en hauteur':     'Travaux en hauteur',
+  'Levage exceptionnel':    'Levage exceptionnel',
+  'Fouilles / Tranchées':   'Fouilles / Tranchées',
+  'Zone ATEX':              'Zone ATEX',
+  'Amiante SS4':            'Amiante SS4',
+};
 
+// ── Définition complète des formulaires ──────────────────────────────────
+const PERMIS_FORMS = {
+
+  'Permis de feu': {
+    icon:'🔥', color:'#c84b31',
+    description:'Travaux par points chauds — Art. R.4512-13 CT',
+    sections:[
+      { title:'1. IDENTIFICATION', fields:[
+        {id:'site',    label:'Site / Établissement',    type:'text',    autoFill:()=>(_cache['company']||{}).name||'NORDCHROME'},
+        {id:'service', label:'Service / Atelier',       type:'text',    autoFill:()=>appState.location||''},
+        {id:'zone',    label:'Zone / Local concerné',   type:'text',    autoFill:()=>appState.location||''},
+        {id:'nature',  label:'Nature des travaux',      type:'textarea',autoFill:()=>appState.missionSteps?(appState.missionSteps.join(' — ')):appState.mission||''},
+        {id:'date',    label:'Date',                    type:'date',    autoFill:()=>appState.date||''},
+        {id:'hdebut',  label:'Heure de début',          type:'time',    autoFill:()=>''},
+        {id:'hfin',    label:'Heure de fin prévue',     type:'time',    autoFill:()=>''},
+      ]},
+      { title:'2. INTERVENANTS', fields:[
+        {id:'intervenants', label:'Intervenant(s)',         type:'text', autoFill:()=>appState.operator||currentUser?.name||''},
+        {id:'ee',           label:'Entreprise extérieure',  type:'text', autoFill:()=>document.getElementById('pp-ee')?.value||''},
+        {id:'responsable',  label:'Responsable autorisant', type:'text', autoFill:()=>(_cache['managerInfo']||{}).name||''},
+      ]},
+      { title:'3. TYPE DE TRAVAUX À CHAUD', fields:[
+        {id:'type_travaux', label:'Type', type:'select', options:['Soudage (MIG/MAG/TIG/électrode)','Découpe thermique (plasma/chalumeau)','Meulage / découpe disque','Brasage / soudobrasage','Chalumeau décapage peinture','Pistolet à air chaud','Autre']},
+        {id:'equipement',   label:'Équipement / outil utilisé', type:'text', autoFill:()=>''},
+      ]},
+      { title:'4. RISQUES IDENTIFIÉS', fields:[
+        {id:'risques', label:'Risques présents sur la zone', type:'checkboxes', options:[
+          'Matériaux combustibles à proximité (< 10 m)',
+          'Produits inflammables stockés à proximité',
+          'Gaz sous pression (bouteilles, réseaux)',
+          'Zone ATEX ou risque explosion',
+          'Réseau électrique à proximité',
+          'Structure sensible (charpente bois, isolation…)',
+          'Risque de projection vers des tiers',
+          'Autre',
+        ]},
+      ]},
+      { title:'5. MESURES DE PRÉVENTION', fields:[
+        {id:'prev', label:'Mesures mises en œuvre', type:'checkboxes', options:[
+          'Matériaux combustibles retirés / protégés (rayon ≥ 10 m)',
+          'Extincteur CO2 à portée immédiate (≤ 5 m)',
+          'Balisage et périmètre de sécurité mis en place',
+          'Rideaux de soudage / protections anti-projections installés',
+          'Ventilation assurée (naturelle ou forcée)',
+          'Permis de feu affiché sur le lieu de travail',
+          'Surveillance incendie pendant les travaux assurée',
+          'Rondes post-travaux prévues (≥ 2 h après fin)',
+          'Détecteur de gaz en fonctionnement',
+        ]},
+        {id:'mesures_comp', label:'Mesures complémentaires', type:'textarea', autoFill:()=>''},
+      ]},
+      { title:'6. EPI OBLIGATOIRES', fields:[
+        {id:'epi', label:'EPI portés', type:'checkboxes', options:[
+          'Masque auto-obscurcissant DIN ≥ 11',
+          'Combinaison soudeur EN ISO 11611',
+          'Gants de soudeur EN 12477',
+          'Guêtres et jambières soudeur',
+          'Tablier cuir soudeur',
+          'Chaussures de sécurité S3',
+          'Bouchons anti-bruit ou casque (si meulage)',
+          'Lunettes de protection (si meulage)',
+        ]},
+      ]},
+      { title:'7. SURVEILLANCE INCENDIE', fields:[
+        {id:'surv', label:'Surveillance organisée', type:'checkboxes', options:[
+          'Surveillant désigné et présent pendant toute la durée',
+          'Rondes post-travaux planifiées (durée : ___h)',
+          'Détecteur de fumée opérationnel dans la zone',
+          'Numéro pompiers (18) affiché',
+        ]},
+      ]},
+      { title:'8. AUTORISATION', fields:[
+        {id:'autoriseur_nom',  label:'Nom de l\'autoriseur (EU)',  type:'text', autoFill:()=>(_cache['managerInfo']||{}).name||''},
+        {id:'autoriseur_date', label:'Date d\'autorisation',       type:'date', autoFill:()=>appState.date||''},
+        {id:'autoriseur_sig',  label:'Signature autoriseur',       type:'signature'},
+        {id:'interv_nom',      label:'Nom intervenant / EE',       type:'text', autoFill:()=>appState.operator||''},
+        {id:'interv_sig',      label:'Signature intervenant',      type:'signature'},
+      ]},
+      { title:'9. CLÔTURE DES TRAVAUX', fields:[
+        {id:'clot_ok',   label:'Vérifications de clôture', type:'checkboxes', options:[
+          'Zone inspectée : aucun point chaud résiduel',
+          'Matériaux et outillage rangés',
+          'Protections / rideaux de soudage retirés',
+          'Détecteurs réarmés',
+          'Signalement à l\'accueil / sécurité site',
+        ]},
+        {id:'clot_nom',  label:'Nom du responsable de clôture', type:'text', autoFill:()=>appState.operator||''},
+        {id:'clot_heure',label:'Heure de clôture',              type:'time',  autoFill:()=>''},
+        {id:'clot_date', label:'Date',                          type:'date',  autoFill:()=>appState.date||''},
+        {id:'clot_sig',  label:'Signature clôture',             type:'signature'},
+      ]},
+    ]
+  },
+
+  'Pénétration EC': {
+    icon:'🕳️', color:'#1a4d6e',
+    description:'Espace confiné — Art. R.4222-1 et R.4412-94 CT',
+    sections:[
+      { title:'1. IDENTIFICATION DE L\'INTERVENTION', fields:[
+        {id:'site',    label:'Site / Établissement',     type:'text', autoFill:()=>(_cache['company']||{}).name||'NORDCHROME'},
+        {id:'equipt',  label:'Espace confiné concerné',  type:'text', autoFill:()=>appState.location||''},
+        {id:'type_ec', label:'Type d\'espace confiné',   type:'select', options:['Cuve','Réservoir','Silo','Citerne','Fosse (septique, pompage…)','Galerie / tunnel','Collecteur / égout','Puits / regard','Autre']},
+        {id:'nature',  label:'Nature de l\'intervention',type:'textarea', autoFill:()=>appState.missionSteps?(appState.missionSteps.join(' — ')):appState.mission||''},
+        {id:'date',    label:'Date',                     type:'date', autoFill:()=>appState.date||''},
+        {id:'hdebut',  label:'Heure de début',           type:'time', autoFill:()=>''},
+        {id:'hfin',    label:'Heure de fin prévue',      type:'time', autoFill:()=>''},
+      ]},
+      { title:'2. INTERVENANTS', fields:[
+        {id:'intervenant',  label:'Intervenant(s) en espace confiné', type:'text', autoFill:()=>appState.operator||''},
+        {id:'surveillant',  label:'Surveillant extérieur désigné',    type:'text', autoFill:()=>''},
+        {id:'responsable',  label:'Responsable autorisant',           type:'text', autoFill:()=>(_cache['managerInfo']||{}).name||''},
+        {id:'secours',      label:'Équipe de secours / SST désigné',  type:'text', autoFill:()=>''},
+        {id:'tel_urgence',  label:'Contact urgence site',             type:'text', autoFill:()=>document.getElementById('pp-site-tel')?.value||''},
+      ]},
+      { title:'3. ANALYSE DES RISQUES', fields:[
+        {id:'risques_ec', label:'Risques identifiés dans l\'espace', type:'checkboxes', options:[
+          'Manque d\'oxygène (O₂ < 19,5 %)',
+          'Gaz toxiques (CO, H₂S, NH₃, solvants…)',
+          'Atmosphère explosive (> 10 % LIE)',
+          'Produits chimiques résiduels / corrosifs',
+          'Risque mécanique (agitateur, pompe, presse…)',
+          'Risque de chute de hauteur',
+          'Risque d\'ensevelissement / noyade',
+          'Risque thermique (chaleur / froid)',
+          'Manque d\'éclairage',
+          'Autre',
+        ]},
+      ]},
+      { title:'4. MESURES DE PRÉVENTION', fields:[
+        {id:'consignation', label:'Consignations réalisées', type:'checkboxes', options:[
+          'Consignation électrique (LOTO — cadenas + étiquette)',
+          'Consignation fluides (vannes fermées + purge)',
+          'Consignation produits chimiques',
+          'Neutralisation organes mécaniques (agitateur…)',
+          'Cadenassage et étiquetage contrôlés',
+        ]},
+        {id:'preparation', label:'Préparation de l\'espace', type:'checkboxes', options:[
+          'Vidange complète effectuée',
+          'Nettoyage / dégazage réalisé',
+          'Ventilation forcée continue en place (débit : ___ m³/h)',
+          'Mesures atmosphériques initiales concluantes (voir §5)',
+          'Balisage et signalisation périmètre extérieur',
+          'Accès sécurisé (garde-corps, échelle fixée)',
+        ]},
+      ]},
+      { title:'5. CONTRÔLE ATMOSPHÉRIQUE', fields:[
+        {id:'o2_taux',    label:'Taux d\'oxygène — O₂ (%)', type:'text', autoFill:()=>'' },
+        {id:'co_ppm',     label:'Monoxyde de carbone — CO (ppm)', type:'text', autoFill:()=>''},
+        {id:'h2s_ppm',    label:'Sulfure d\'hydrogène — H₂S (ppm)', type:'text', autoFill:()=>''},
+        {id:'explosive',  label:'Explosivité (% LIE)', type:'text', autoFill:()=>''},
+        {id:'autre_gaz',  label:'Autre gaz mesuré', type:'text', autoFill:()=>''},
+        {id:'mesure_ok',  label:'Résultats acceptables ?', type:'checkboxes', options:['O₂ ≥ 19,5 %','CO < 20 ppm','H₂S < 1 ppm','LIE < 10 %','Autre gaz < VLE']},
+        {id:'controleur', label:'Nom du contrôleur atmosphère', type:'text', autoFill:()=>appState.operator||''},
+        {id:'appareil',   label:'Appareil de mesure utilisé', type:'text', autoFill:()=>''},
+      ]},
+      { title:'6. ÉQUIPEMENTS DE PROTECTION INDIVIDUELS', fields:[
+        {id:'epi_ec', label:'EPI requis et vérifiés', type:'checkboxes', options:[
+          'Appareil respiratoire isolant — ARI (si atmosphère non respiratoire)',
+          'Harnais antichute EN 361 + longe d\'évacuation',
+          'Combinaison de protection type 5/6',
+          'Casque avec éclairage intégré (certifié ATEX si zone à risque)',
+          'Détecteur multigaz individuel (alarme sonore + visuelle)',
+          'Trépied de sauvetage + câble de récupération',
+          'Gants résistants aux produits présents',
+          'Chaussures antistatiques EN 20345',
+          'Lampe ATEX (si applicable)',
+        ]},
+      ]},
+      { title:'7. SURVEILLANCE CONTINUE', fields:[
+        {id:'surv_ec', label:'Dispositif de surveillance', type:'checkboxes', options:[
+          'Surveillant EN PERMANENCE à l\'extérieur (ne pénètre pas)',
+          'Communication opérationnelle radio / téléphone testée',
+          'Détecteur multigaz fixe opérationnel et étalonné',
+          'Mesures atmosphériques continues pendant travaux',
+          'Durée max. par rotation définie et respectée',
+          'Plan de secours affiché à l\'extérieur de l\'espace',
+        ]},
+        {id:'duree_rotation', label:'Durée maximale par rotation (min)', type:'text', autoFill:()=>''},
+      ]},
+      { title:'8. PLAN DE SECOURS', fields:[
+        {id:'secours_ok', label:'Moyens de secours en place', type:'checkboxes', options:[
+          'Procédure de secours écrite disponible sur site',
+          'Trépied de sauvetage + câble installé',
+          'SAMU (15), Pompiers (18) affichés',
+          'SST ou infirmier joignable',
+          'Exercice de simulation effectué',
+        ]},
+      ]},
+      { title:'9. AUTORISATION', fields:[
+        {id:'autoriseur_nom',  label:'Nom de l\'autoriseur (EU)',  type:'text', autoFill:()=>(_cache['managerInfo']||{}).name||''},
+        {id:'autoriseur_date', label:'Date / Heure d\'autorisation',type:'datetime-local', autoFill:()=>''},
+        {id:'autoriseur_sig',  label:'Signature autoriseur',       type:'signature'},
+        {id:'interv_sig',      label:'Signature intervenant',      type:'signature'},
+        {id:'surv_sig',        label:'Signature surveillant',      type:'signature'},
+      ]},
+      { title:'10. FIN D\'INTERVENTION', fields:[
+        {id:'fin_ok',   label:'Clôture vérifiée', type:'checkboxes', options:[
+          'Zone inspectée et sécurisée',
+          'Tous les équipements retirés',
+          'Accès condamné / rebouché',
+          'Consignations levées selon procédure',
+          'Ventilation arrêtée',
+        ]},
+        {id:'fin_nom',  label:'Nom du responsable de clôture', type:'text', autoFill:()=>appState.operator||''},
+        {id:'fin_heure',label:'Heure de clôture',              type:'time',  autoFill:()=>''},
+        {id:'fin_sig',  label:'Signature clôture',             type:'signature'},
+      ]},
+    ]
+  },
+
+  'Consignation électrique': {
+    icon:'⚡', color:'#d97706',
+    description:'Procédure LOTO — NF C 18-510',
+    sections:[
+      { title:'1. IDENTIFICATION', fields:[
+        {id:'site',       label:'Site / Établissement',      type:'text', autoFill:()=>(_cache['company']||{}).name||'NORDCHROME'},
+        {id:'equipt_e',   label:'Équipement / Installation', type:'text', autoFill:()=>appState.location||''},
+        {id:'nature_e',   label:'Nature des travaux',        type:'textarea', autoFill:()=>appState.missionSteps?(appState.missionSteps.join(' — ')):appState.mission||''},
+        {id:'habilitation',label:'Habilitation requise',     type:'select', options:['BR — Chargé de consignation BT','B1V — Exécutant travaux sous tension','B2V — Chargé de travaux sous tension','BC — Chargé de consignation BT','H1V — Exécutant HT sous tension','H2V — Chargé de travaux HT','HC — Chargé de consignation HT','Autre']},
+        {id:'date_e',     label:'Date',                      type:'date', autoFill:()=>appState.date||''},
+      ]},
+      { title:'2. INTERVENANTS', fields:[
+        {id:'charge_consign', label:'Chargé de consignation',    type:'text', autoFill:()=>appState.operator||''},
+        {id:'charge_travaux', label:'Chargé de travaux',         type:'text', autoFill:()=>appState.operator||''},
+        {id:'autoriseur_e',   label:'Responsable autorisant (EU)',type:'text', autoFill:()=>(_cache['managerInfo']||{}).name||''},
+        {id:'ee_e',           label:'Entreprise extérieure',     type:'text', autoFill:()=>document.getElementById('pp-ee')?.value||''},
+      ]},
+      { title:'3. PROCÉDURE LOTO — 5 ÉTAPES OBLIGATOIRES', fields:[
+        {id:'etapes_consign', label:'Étapes réalisées et validées', type:'checkboxes', options:[
+          '① SÉPARATION — Mise hors tension / hors énergie de l\'installation',
+          '② CONDAMNATION — Cadenassage de chaque source + pancarte interdiction',
+          '③ IDENTIFICATION — Vérification de l\'équipement consigné (visualisation)',
+          '④ VAT — Vérification d\'Absence de Tension avec VAT homologué',
+          '⑤ MAT — Mise À la Terre et en court-circuit (si BT ≥ 1000 V ou HT)',
+        ]},
+      ]},
+      { title:'4. VÉRIFICATIONS AVANT INTERVENTION', fields:[
+        {id:'verif_e', label:'Points de contrôle', type:'checkboxes', options:[
+          'Tension mesurée = 0 V (VAT homologué)',
+          'Toutes les sources d\'énergie identifiées et consignées',
+          'Tapis isolant de sol en place',
+          'Outillage isolé 1000 V disponible (IEC 60900)',
+          'Gants diélectriques EN 60903 vérifiés et conformes',
+          'Visière anti-arc et combinaison arc flash si nécessaire',
+          'Armoire électrique fermée à clé hors zone de travail',
+        ]},
+        {id:'tension_mesuree', label:'Tension mesurée (V)', type:'text', autoFill:()=>'0'},
+        {id:'vat_modele',      label:'Modèle du VAT utilisé', type:'text', autoFill:()=>''},
+      ]},
+      { title:'5. LEVÉE DE CONSIGNATION', fields:[
+        {id:'levee_ok', label:'Conditions de levée vérifiées', type:'checkboxes', options:[
+          'Zone de travail nettoyée et dégagée',
+          'Tous les intervenants informés et éloignés de la zone',
+          'Protections (capots, coffrets) remises en place',
+          'MAT / court-circuit retirés AVANT remise en tension',
+          'Cadenasses retirés par leurs propriétaires uniquement',
+          'Ordre chronologique inverse respecté',
+        ]},
+        {id:'levee_nom',  label:'Nom du chargé de levée',  type:'text', autoFill:()=>appState.operator||''},
+        {id:'levee_heure',label:'Heure de levée',          type:'time', autoFill:()=>''},
+        {id:'levee_sig',  label:'Signature levée',         type:'signature'},
+      ]},
+      { title:'6. AUTORISATION ET SIGNATURES', fields:[
+        {id:'consign_sig',  label:'Signature chargé de consignation', type:'signature'},
+        {id:'travaux_sig',  label:'Signature chargé de travaux',      type:'signature'},
+        {id:'autoris_sig',  label:'Signature autoriseur EU',          type:'signature'},
+        {id:'date_autoris', label:'Date d\'autorisation',             type:'date', autoFill:()=>appState.date||''},
+      ]},
+    ]
+  },
+
+  'Travaux en hauteur': {
+    icon:'🏗️', color:'#2d6a4f',
+    description:'Travaux en hauteur — NF EN 363 / NF EN 13374',
+    sections:[
+      { title:'1. IDENTIFICATION', fields:[
+        {id:'site_h',  label:'Site',                   type:'text', autoFill:()=>(_cache['company']||{}).name||'NORDCHROME'},
+        {id:'zone_h',  label:'Zone / Structure',        type:'text', autoFill:()=>appState.location||''},
+        {id:'nature_h',label:'Nature des travaux',      type:'textarea', autoFill:()=>appState.missionSteps?(appState.missionSteps.join(' — ')):appState.mission||''},
+        {id:'hauteur', label:'Hauteur maximale de travail (m)', type:'text', autoFill:()=>''},
+        {id:'date_h',  label:'Date',                   type:'date', autoFill:()=>appState.date||''},
+        {id:'meteo',   label:'Conditions météo prévues',type:'text', autoFill:()=>''},
+      ]},
+      { title:'2. INTERVENANTS', fields:[
+        {id:'interv_h',     label:'Intervenant(s)',           type:'text', autoFill:()=>appState.operator||''},
+        {id:'responsable_h',label:'Responsable autorisant',   type:'text', autoFill:()=>(_cache['managerInfo']||{}).name||''},
+        {id:'sauveteur',    label:'SST / Sauveteur désigné',  type:'text', autoFill:()=>''},
+      ]},
+      { title:'3. MOYEN D\'ACCÈS EN HAUTEUR', fields:[
+        {id:'moyen_acces', label:'Moyen(s) utilisé(s)', type:'checkboxes', options:[
+          'Échelle simple (h < 3 m, 3 points de contact)',
+          'Échafaudage fixe homologué (réceptionné)',
+          'Plateforme individuelle roulante — PIRL',
+          'Nacelle élévatrice — PEMP (CACES R486)',
+          'Plateforme suspendue / échafaudage volant',
+          'Ligne de vie avec harnais sur structure existante',
+          'Techniques de cordiste / accès difficile',
+        ]},
+      ]},
+      { title:'4. VÉRIFICATIONS AVANT TRAVAUX', fields:[
+        {id:'verif_h', label:'Points de contrôle', type:'checkboxes', options:[
+          'Harnais antichute EN 361 inspecté (date : ___)',
+          'Longe à absorption d\'énergie EN 355 vérifiée',
+          'Points d\'ancrage EN 795 certifiés et résistants',
+          'Stabilité et portance du sol vérifiées',
+          'Météo favorable (vent < 72 km/h, pas de verglas, pas d\'orage)',
+          'Périmètre au sol balisé (risque de chute d\'objet)',
+          'Protection collective (garde-corps, filets) en place',
+          'Plan de secours pour intervention en cas de chute défini',
+        ]},
+      ]},
+      { title:'5. EPI OBLIGATOIRES', fields:[
+        {id:'epi_h', label:'EPI portés et vérifiés', type:'checkboxes', options:[
+          'Harnais antichute complet EN 361',
+          'Longe à absorption d\'énergie EN 355',
+          'Casque avec jugulaire / mentonnière EN 397',
+          'Chaussures de sécurité S3 EN ISO 20345',
+          'Gants anti-coupure EN 388',
+          'Lunettes de protection',
+          'Vêtements haute visibilité classe 3',
+        ]},
+      ]},
+      { title:'6. AUTORISATION ET SIGNATURES', fields:[
+        {id:'resp_sig_h',  label:'Signature responsable EU', type:'signature'},
+        {id:'interv_sig_h',label:'Signature intervenant',    type:'signature'},
+        {id:'date_sig_h',  label:'Date',                     type:'date', autoFill:()=>appState.date||''},
+      ]},
+    ]
+  },
+
+  'Levage exceptionnel': {
+    icon:'🏋️', color:'#5b3fb5',
+    description:'Levage — NF EN 13001 / R.4323-22 CT',
+    sections:[
+      { title:'1. IDENTIFICATION DU LEVAGE', fields:[
+        {id:'site_l',    label:'Site',                    type:'text', autoFill:()=>(_cache['company']||{}).name||'NORDCHROME'},
+        {id:'zone_l',    label:'Zone de levage',          type:'text', autoFill:()=>appState.location||''},
+        {id:'objet_l',   label:'Objet / charge à lever', type:'text', autoFill:()=>''},
+        {id:'masse_l',   label:'Masse estimée (kg)',      type:'text', autoFill:()=>''},
+        {id:'dim_l',     label:'Dimensions (L × l × H m)',type:'text', autoFill:()=>''},
+        {id:'cmu_l',     label:'CMU de l\'engin (kg)',    type:'text', autoFill:()=>''},
+        {id:'date_l',    label:'Date',                    type:'date', autoFill:()=>appState.date||''},
+      ]},
+      { title:'2. ÉQUIPE DE LEVAGE', fields:[
+        {id:'grutier',      label:'Grutier / Conducteur PEMP',  type:'text', autoFill:()=>''},
+        {id:'caces_num',    label:'N° CACES / habilitation',    type:'text', autoFill:()=>''},
+        {id:'chef_manoeuvre',label:'Chef de manœuvre désigné',  type:'text', autoFill:()=>appState.operator||''},
+        {id:'elingage_ok',  label:'Vérification élingage', type:'checkboxes', options:['Élingues inspectées avant usage','Certification valide et visible','Capacité suffisante (avec angle)','Marquage/étiquetage en bon état']},
+      ]},
+      { title:'3. VÉRIFICATIONS ENGIN', fields:[
+        {id:'verif_l', label:'Contrôles engin et zone', type:'checkboxes', options:[
+          'Vérification périodique levage à jour (VGP)',
+          'Stabilisateurs / béquilles déployés et calés',
+          'Portance du sol vérifiée (plaques de répartition si besoin)',
+          'Crochet et verrou de sécurité en bon état',
+          'Signaux sonores et lumineux opérationnels',
+          'Charge test / essai à vide effectué',
+        ]},
+      ]},
+      { title:'4. SÉCURITÉ DE LA MANŒUVRE', fields:[
+        {id:'secu_l', label:'Mesures de sécurité', type:'checkboxes', options:[
+          'Zone de levage balisée et interdite au personnel',
+          'Interdiction passage sous charge signalée',
+          'Chef de manœuvre UNIQUE désigné',
+          'Communication radio ou signaux convenus et testés',
+          'Cales anti-rotation / anti-balancement prévues',
+          'Ligne électrique aérienne identifiée (si applicable)',
+          'Distances de sécurité ligne électrique respectées',
+        ]},
+      ]},
+      { title:'5. AUTORISATION ET SIGNATURES', fields:[
+        {id:'resp_sig_l',   label:'Signature responsable EU',  type:'signature'},
+        {id:'grutier_sig',  label:'Signature grutier',         type:'signature'},
+        {id:'chef_sig_l',   label:'Signature chef de manœuvre',type:'signature'},
+        {id:'date_sig_l',   label:'Date',                      type:'date', autoFill:()=>appState.date||''},
+      ]},
+    ]
+  },
+
+  'Fouilles / Tranchées': {
+    icon:'⛏️', color:'#92400e',
+    description:'Terrassement — R.4534-1 CT / NF P98-300',
+    sections:[
+      { title:'1. IDENTIFICATION', fields:[
+        {id:'site_f',   label:'Site',                     type:'text', autoFill:()=>(_cache['company']||{}).name||'NORDCHROME'},
+        {id:'zone_f',   label:'Zone de fouille',          type:'text', autoFill:()=>appState.location||''},
+        {id:'prof_f',   label:'Profondeur prévue (m)',    type:'text', autoFill:()=>''},
+        {id:'larg_f',   label:'Largeur (m)',              type:'text', autoFill:()=>''},
+        {id:'long_f',   label:'Longueur (m)',             type:'text', autoFill:()=>''},
+        {id:'nature_f', label:'Nature des travaux',       type:'textarea', autoFill:()=>appState.missionSteps?(appState.missionSteps.join(' — ')):appState.mission||''},
+        {id:'date_f',   label:'Date',                     type:'date',  autoFill:()=>appState.date||''},
+        {id:'geo',      label:'Nature géotechnique du sol',type:'text', autoFill:()=>''},
+      ]},
+      { title:'2. REPÉRAGE DES RÉSEAUX (DICT)', fields:[
+        {id:'dict_ok', label:'DICT réalisée', type:'checkboxes', options:[
+          'Déclaration DICT télédéclarée (impresso.fr)',
+          'Récépissés des gestionnaires reçus et consultés',
+          'Plans de réseaux téléchargés et disponibles sur chantier',
+          'Détecteur de réseaux électromagnétique utilisé',
+          'Sondages manuels réalisés à < 1,50 m des réseaux repérés',
+          'Numéros d\'urgence gestionnaires disponibles sur site',
+        ]},
+        {id:'reseaux_ids', label:'Réseaux identifiés dans la zone', type:'checkboxes', options:[
+          'Électricité BT / HT','Gaz','Eau potable','Assainissement',
+          'Télécom / fibre','Éclairage public','Thermique','Aucun réseau identifié',
+        ]},
+      ]},
+      { title:'3. SÉCURISATION DE LA FOUILLE', fields:[
+        {id:'secu_f', label:'Mesures mises en œuvre', type:'checkboxes', options:[
+          'Blindage de fouille (obligatoire si profondeur > 1,30 m)',
+          'Béquilles / étais / ridgeaux de palplanches en place',
+          'Passerelles d\'accès avec garde-corps (si traversée piétons)',
+          'Balisage périmètre fouille (barrières rigides + balises)',
+          'Matériaux déblayés stockés à > 2 m du bord',
+          'Parois inspectées en début de chaque journée',
+          'Système de pompage préventif (si nappe phréatique)',
+          'Échelle d\'accès sécurisée en fond de fouille',
+        ]},
+      ]},
+      { title:'4. EPI', fields:[
+        {id:'epi_f', label:'EPI portés', type:'checkboxes', options:[
+          'Casque de chantier',
+          'Chaussures S3 anti-perforation',
+          'Gants de travail renforcés',
+          'Vêtements haute visibilité',
+          'Lunettes anti-projection',
+          'Gilet de signalisation',
+        ]},
+      ]},
+      { title:'5. AUTORISATION ET SIGNATURES', fields:[
+        {id:'resp_sig_f',   label:'Signature responsable EU',  type:'signature'},
+        {id:'interv_sig_f', label:'Signature intervenant',     type:'signature'},
+        {id:'date_sig_f',   label:'Date',                      type:'date', autoFill:()=>appState.date||''},
+      ]},
+    ]
+  },
+
+  'Zone ATEX': {
+    icon:'💥', color:'#991b1b',
+    description:'Atmosphères explosives — Directive 1999/92/CE / ATEX',
+    sections:[
+      { title:'1. IDENTIFICATION', fields:[
+        {id:'site_a',    label:'Site',                     type:'text', autoFill:()=>(_cache['company']||{}).name||'NORDCHROME'},
+        {id:'zone_a',    label:'Zone ATEX concernée',      type:'text', autoFill:()=>appState.location||''},
+        {id:'classe_a',  label:'Classification zone',      type:'select', options:['Zone 0 — gaz/vapeur (risque continu)','Zone 1 — gaz/vapeur (risque probable)','Zone 2 — gaz/vapeur (risque occasionnel)','Zone 20 — poussières (risque continu)','Zone 21 — poussières (risque probable)','Zone 22 — poussières (risque occasionnel)']},
+        {id:'produits_a',label:'Produits / substances présents', type:'text', autoFill:()=>''},
+        {id:'nature_a',  label:'Nature des travaux',       type:'textarea', autoFill:()=>appState.missionSteps?(appState.missionSteps.join(' — ')):appState.mission||''},
+        {id:'date_a',    label:'Date',                     type:'date', autoFill:()=>appState.date||''},
+      ]},
+      { title:'2. VÉRIFICATIONS ATEX OBLIGATOIRES', fields:[
+        {id:'verif_a', label:'Contrôles', type:'checkboxes', options:[
+          'Matériel certifié ATEX vérifié (directive 2014/34/UE)',
+          'Groupe et catégorie d\'équipement conformes à la zone',
+          'Mesure des concentrations gaz/poussières effectuée',
+          'Toutes sources d\'ignition identifiées et supprimées',
+          'Pas de soudage / meulage sans permis de feu additionnel',
+          'Détecteur de gaz ATEX en fonctionnement continu',
+          'Équipements de communication ATEX (radio, téléphone)',
+          'DRPCE (Document Relatif à la Protection contre les Explosions) consulté',
+        ]},
+      ]},
+      { title:'3. EPI CERTIFIÉS ATEX', fields:[
+        {id:'epi_a', label:'EPI antistatiques et certifiés', type:'checkboxes', options:[
+          'Chaussures antistatiques EN 20345 (marquage ESD)',
+          'Vêtements antistatiques EN 1149',
+          'Gants antistatiques certifiés',
+          'Détecteur de gaz individuel certifié ATEX',
+          'Lampe d\'éclairage ATEX certifiée',
+          'Radio de communication ATEX (si requise)',
+          'Masque respiratoire adapté aux substances présentes',
+        ]},
+      ]},
+      { title:'4. AUTORISATION ET SIGNATURES', fields:[
+        {id:'resp_sig_a',   label:'Signature responsable EU',  type:'signature'},
+        {id:'interv_sig_a', label:'Signature intervenant',     type:'signature'},
+        {id:'date_sig_a',   label:'Date',                      type:'date', autoFill:()=>appState.date||''},
+      ]},
+    ]
+  },
+
+  'Amiante SS4': {
+    icon:'⚠️', color:'#6d28d9',
+    description:'Retrait amiante SS4 — Art. R.4412-94 CT / Arrêté 08/04/2013',
+    sections:[
+      { title:'1. IDENTIFICATION', fields:[
+        {id:'site_am',    label:'Site / Établissement',     type:'text', autoFill:()=>(_cache['company']||{}).name||'NORDCHROME'},
+        {id:'zone_am',    label:'Zone concernée',           type:'text', autoFill:()=>appState.location||''},
+        {id:'type_mat',   label:'Type de matériau amianté', type:'select', options:['Fibrociment (toiture / bardage / plaques)','Flocage (isolation thermique projetée)','Calorifugeage (isolation tuyauteries)','Dalles de sol vinyle-amiante','Joints / garnitures / colles amiante','Ardoises amiante','Peintures / enduits amiante','Autre matériau amianté']},
+        {id:'nature_am',  label:'Nature des travaux',       type:'textarea', autoFill:()=>appState.missionSteps?(appState.missionSteps.join(' — ')):appState.mission||''},
+        {id:'date_am',    label:'Date de début des travaux',type:'date', autoFill:()=>appState.date||''},
+        {id:'duree_am',   label:'Durée prévisionnelle',     type:'text', autoFill:()=>''},
+      ]},
+      { title:'2. ENTREPRISE CERTIFIÉE SS4', fields:[
+        {id:'ee_am',      label:'Entreprise extérieure (SS4)', type:'text', autoFill:()=>document.getElementById('pp-ee')?.value||''},
+        {id:'certif_am',  label:'N° de certification SS4',    type:'text', autoFill:()=>''},
+        {id:'validite_am',label:'Validité de la certification',type:'date', autoFill:()=>''},
+        {id:'chef_am',    label:'Chef de chantier amiante',   type:'text', autoFill:()=>appState.operator||''},
+        {id:'med_trav',   label:'Médecin du travail référent',type:'text', autoFill:()=>''},
+        {id:'resp_eu',    label:'Responsable EU (NORDCHROME)',  type:'text', autoFill:()=>(_cache['managerInfo']||{}).name||''},
+      ]},
+      { title:'3. DOCUMENTS PRÉALABLES', fields:[
+        {id:'docs_am', label:'Documents disponibles', type:'checkboxes', options:[
+          'DTA (Diagnostic Technique Amiante) consulté et disponible',
+          'Repérage avant travaux réalisé (RAT)',
+          'Plan de retrait ou plan de travaux établi',
+          'Plan de retrait transmis à l\'inspection du travail (si type 1)',
+          'Notification CARSAT / OPPBTP effectuée (si nécessaire)',
+          'Mode opératoire validé',
+        ]},
+      ]},
+      { title:'4. MESURES AMIANTE OBLIGATOIRES', fields:[
+        {id:'mesures_am', label:'Dispositions mises en œuvre', type:'checkboxes', options:[
+          'Zone de travail confinée et étanche (polyane 200 µm)',
+          'Sas d\'entrée/sortie avec douche décontamination opérationnel',
+          'Extraction d\'air avec HEPA H14 en place (dépression)',
+          'Humidification continue des matériaux avant démontage',
+          'Conditionnement en double sac hermétique étiqueté "AMIANTE"',
+          'Bennes amiante identifiées et sécurisées',
+          'Filière agréée amiante identifiée pour évacuation des déchets',
+          'Contrôle empoussièrement : mesures METAM réalisées',
+        ]},
+      ]},
+      { title:'5. EPI AMIANTE CERTIFIÉS', fields:[
+        {id:'epi_am', label:'EPI portés pour chaque intervenant', type:'checkboxes', options:[
+          'Combinaison jetable type 5 EN 13982 (usage unique)',
+          'Masque à adduction d\'air ou TM3P / ARL (EN 136)',
+          'Gants nitrile ou PVC jetables',
+          'Surchaussures jetables',
+          'Lunettes de protection étanches (si masque non intégral)',
+          'Combinaison changée à chaque sortie du confinement',
+        ]},
+      ]},
+      { title:'6. AUTORISATION ET SIGNATURES', fields:[
+        {id:'resp_sig_am',   label:'Signature responsable EU (NORDCHROME)', type:'signature'},
+        {id:'chef_sig_am',   label:'Signature chef de chantier SS4',        type:'signature'},
+        {id:'date_sig_am',   label:'Date',                                  type:'date', autoFill:()=>appState.date||''},
+      ]},
+    ]
+  },
+
+}; // fin PERMIS_FORMS
+
+// ── Ouvrir un formulaire de permis ────────────────────────────────────────
 function openPermisForm(permitName){
   const key = PERMIS_NAME_MAP[permitName] || permitName;
   const form = PERMIS_FORMS[key];

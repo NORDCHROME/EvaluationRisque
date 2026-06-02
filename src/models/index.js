@@ -76,6 +76,7 @@ const ValidationSchema = new Schema({
   managerId:      { type: Schema.Types.ObjectId, ref: 'User', required: true },
   // Support multi-managers
   managerIds:     [{ type: Schema.Types.ObjectId, ref: 'User' }],
+  machine:        { type: String, default: '' },
   submittedBy:    { type: Schema.Types.ObjectId, ref: 'User', required: true },
   submitterName:  { type: String },
   submitterSite:  { type: String, default: '—' },
@@ -99,6 +100,7 @@ const EvaluationSchema = new Schema({
   interventionTitle: { type: String, default: '' },
   operator:          { type: String, default: '' },
   location:          { type: String, default: '' },
+  machine:           { type: String, default: '' },
   date:              { type: String, default: '' },
   mission:           { type: String, default: '' },
   missionSteps:      [String],
