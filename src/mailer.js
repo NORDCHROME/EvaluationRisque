@@ -94,7 +94,7 @@ function tplValidationResult({ submitterName, interventionTitle, status, comment
   const isApproved = status === 'approved';
   const statusColor = isApproved ? '#2d7a4f' : '#c84b31';
   const statusBg    = isApproved ? '#e6f4ec'  : '#fde8e6';
-  const statusLabel = isApproved ? '✅ Rapport VALIDÉ' : '❌ Rapport REFUSÉ';
+  const statusLabel = isApproved ? '✅ Rapport VALIDÉ , Vous pouvez commencer les travaux' : '❌ Rapport REFUSÉ , Veuillez lire le motif de refus et mettre a jour votre analyse de risque pour effectuer une nouvelle demande de validation';
   const statusMsg   = isApproved
     ? 'Votre rapport a été approuvé et signé. Téléchargez-le depuis "Mes Évaluations".'
     : 'Votre rapport a été refusé. Consultez le commentaire et corrigez votre évaluation.';
