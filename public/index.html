@@ -2389,7 +2389,7 @@ function buildLegacyDerogationSection(riskId){
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:${d.active?'10px':'0'}">
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1;padding:10px 12px;border:1.5px solid;border-radius:4px;transition:all .2s;${activeStyle}">
         <input type="checkbox" id="derog-check-${riskId}" ${d.active?'checked':''} onchange="toggleDerogation('${riskId}',this.checked)" style="accent-color:#c0392b;width:15px;height:15px">
-        <span style="font-size:12px;font-weight:700;color:#c0392b">⚠ Dérogation accordée</span>
+        <span style="font-size:12px;font-weight:700;color:#c0392b">⚠ Dérogation demandée</span>
         <span style="font-size:10.5px;color:#9ca3af;margin-left:auto">Risque accepté avec conditions particulières</span>
       </label>
     </div>
@@ -2397,10 +2397,6 @@ function buildLegacyDerogationSection(riskId){
       <div>
         <label style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Justification / Conditions de la dérogation</label>
         <textarea id="derog-justif-${riskId}" rows="2" placeholder="Ex: Travaux urgents de maintenance, échelle sécurisée par haubans, présence d'un second homme…" style="width:100%;padding:7px 9px;border:1.5px solid #f5a9a0;border-radius:3px;font-size:12px;font-family:inherit;resize:vertical;box-sizing:border-box" oninput="saveDerogation('${riskId}')">${d.justification}</textarea>
-      </div>
-      <div>
-        <label style="font-size:10px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:4px">Nom du signataire de la dérogation</label>
-        <input type="text" id="derog-sig-${riskId}" value="${d.signataire}" placeholder="Prénom Nom — Fonction" style="width:100%;padding:7px 9px;border:1.5px solid #f5a9a0;border-radius:3px;font-size:12px;font-family:inherit;box-sizing:border-box" oninput="saveDerogation('${riskId}')">
       </div>
     </div>` : ''}
   </div>`;
@@ -2496,8 +2492,6 @@ function buildDerogationSection(riskId){
       <div style="display:flex;flex-direction:column;gap:8px;padding:10px;background:#fff8f7;border:1.5px solid #f5a9a0;border-radius:4px">
         <div><label style="${lbl}">Justification / Conditions de la dérogation</label>
           <textarea id="derog-justif-${riskId}" rows="2" placeholder="Pourquoi la règle ne peut pas être appliquée, mesures compensatoires retenues…" style="${inp};resize:vertical" oninput="saveDerogation('${riskId}')">${escHtml(d.justification||'')}</textarea></div>
-        <div><label style="${lbl}">Nom du signataire de la dérogation</label>
-          <input type="text" id="derog-sig-${riskId}" value="${escHtml(d.signataire||'')}" placeholder="Prénom Nom — Fonction" style="${inp}" oninput="saveDerogation('${riskId}')"></div>
       </div></div>`;
   }
   if(d.active) return buildLegacyDerogationSection(riskId); // anciennes évaluations
@@ -2913,7 +2907,7 @@ function buildSummary(){
     const epcHtml=epcAll.length?epcAll.map(e=>`<div class="src-sol-line c">${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af">Non renseigné</div>';
     const epiHtml=epiAll.length?epiAll.map(e=>`<div class="src-sol-line i">${e}</div>`).join(''):'<div style="font-size:11px;color:#9ca3af">Non renseigné</div>';
     const derog=appState.derogations[r.id];
-    const derogHtml=derog&&derog.active?`<div style="margin-top:10px;padding:8px 12px;background:#fff8f7;border:1.5px solid #f5a9a0;border-radius:4px;font-size:11.5px"><span style="font-weight:700;color:#c0392b">⚠ DÉROGATION ACCORDÉE</span>${derog.justification?' — '+derog.justification:''}${derog.signataire?'<span style="color:#9ca3af;margin-left:8px">Signataire : '+derog.signataire+'</span>':''}</div>`:'';
+    const derogHtml=derog&&derog.active?`<div style="margin-top:10px;padding:8px 12px;background:#fff8f7;border:1.5px solid #f5a9a0;border-radius:4px;font-size:11.5px"><span style="font-weight:700;color:#c0392b">⚠ DÉROGATION DEMANDÉE — en attente de validation</span>${derog.justification?' — '+derog.justification:''}</div>`:'';
     const manualBadge=r.isDerogation?`<span style="padding:2px 8px;background:#fde8e6;color:#c0392b;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px">⚠ Dérogation · ${r.value||getDerogScore()} pts</span>`:r.isManual?`<span style="padding:2px 8px;background:#e8f0fe;color:var(--accent2);border-radius:10px;font-size:10px;font-weight:700;margin-left:4px">✏️ Personnalisé</span>`:'';
     return `<div class="summary-risk-card"><div class="src-head"><span class="src-name">${r.name}</span><span class="src-int-tag">${r.interventionType}</span><span class="sev-badge sev-${r.sev}">${sevLabel}</span>${manualBadge}</div>
     <div class="src-body"><div class="src-col-grid">
@@ -4964,9 +4958,8 @@ function generateValidatedPDF(r, ev){
       doc.setDrawColor(192,57,43);doc.setLineWidth(0.6);doc.rect(mg,y,IW,10,'S');doc.setLineWidth(0.2);
       doc.setFillColor(192,57,43);doc.rect(mg,y,3,10,'F');
       doc.setTextColor(192,57,43);doc.setFontSize(7);doc.setFont('helvetica','bold');
-      const derogText='⚠ DÉROGATION'+(d3.justification?' — '+d3.justification.substring(0,80):'');
+      const derogText=(r.status==='approved'?'⚠ DÉROGATION ACCORDÉE':'⚠ DÉROGATION REFUSÉE')+(d3.justification?' — '+d3.justification.substring(0,80):'');
       doc.text(derogText,mg+6,y+4);
-      if(d3.signataire){ doc.setTextColor(120,60,60);doc.setFontSize(6.5);doc.setFont('helvetica','italic');doc.text('Signataire : '+d3.signataire,mg+6,y+8); }
       y+=12;
     }
   });
@@ -5418,18 +5411,13 @@ function generatePDF(sigData){
         doc.setDrawColor(192,57,43);doc.setLineWidth(0.8);doc.rect(mg,y,INNER,12,'S');doc.setLineWidth(0.2);
         doc.setFillColor(192,57,43);doc.rect(mg,y,3,12,'F');
         doc.setTextColor(192,57,43);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
-        doc.text('⚠ DÉROGATION ACCORDÉE',mg+7,y+5);
+        doc.text('⚠ DÉROGATION DEMANDÉE — EN ATTENTE DE VALIDATION DU RESPONSABLE',mg+7,y+5);
         if(derog.justification){
           const jLines=doc.splitTextToSize(derog.justification,INNER-14);
           doc.setTextColor(60,40,40);doc.setFontSize(7);doc.setFont('helvetica','normal');
           doc.text(jLines,mg+7,y+9.5);
           y+=Math.max(12, 9+jLines.length*3.8)+3;
         } else { y+=15; }
-        if(derog.signataire){
-          doc.setTextColor(120,100,100);doc.setFontSize(7);doc.setFont('helvetica','italic');
-          doc.text('Signataire dérogation : '+derog.signataire,mg+7,y);
-          y+=6;
-        }
       }
     });
   }
