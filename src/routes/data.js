@@ -696,7 +696,7 @@ router.get('/validations/mine', auth, async (req, res) => {
 router.get('/evaluations', auth, async (req, res) => {
   try {
     const filter = req.user.role === 'admin' ? {} : { submittedBy: req.user._id };
-    const evals = await Evaluation.find(filter).sort('-createdAt').limit(200);
+    const evals = await Evaluation.find(filter).sort('-createdAt').limit(100);
     res.json(evals);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
