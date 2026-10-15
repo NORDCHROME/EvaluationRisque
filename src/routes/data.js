@@ -228,6 +228,23 @@ router.get('/validations', auth, async (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+
+// GET /api/data/mail-status — diagnostic mails (admin)
+router.get('/mail-status', auth, adminOnly, async (req, res) => {
+  try {
+    const conn = await testConnection();
+    const mgrs = await User.find({ $or: [{ managerId: { $ne: null } }, { managerIds: { $exists: true, $ne: [] } }] })
+      .select('name email').lean();
+    res.json({
+      brevoKey:    !!process.env.BREVO_API_KEY,
+      brevoSender: process.env.BREVO_SENDER || null,
+      appUrl:      process.env.APP_URL || null,
+      brevoApi:    conn,
+      usersWithManagers: mgrs.length,
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // POST — soumettre un rapport pour validation
 router.post('/validations', auth, async (req, res) => {
   try {
@@ -304,6 +321,30 @@ router.post('/validations', auth, async (req, res) => {
 
     console.log('[POST /validations] Créé:', v._id);
 
+    // Envoi du mail à tous les responsables (scoring facultatif)
+    const notifyManagers = async (scoring) => {
+      console.log('[Mailer] Responsables à notifier :',
+        allManagers.map(m => m.name + ' <' + (m.email || 'PAS D\'EMAIL') + '>').join(', ') || 'AUCUN');
+      const results = await Promise.allSettled(
+        allManagers.map(m => {
+          if (!m.email) return Promise.resolve(false);
+          return sendNewValidationNotification(m.email, {
+            managerName:       m.name,
+            submitterName:     req.user.name,
+            interventionTitle: cleanSnapshot.interventionTitle || '',
+            location:          cleanSnapshot.location || '',
+            date:              cleanSnapshot.date || new Date().toISOString(),
+            riskCount:         (cleanSnapshot.risks || []).length,
+            maxScore:          scoring?.maxScore,
+            threshold:         scoring?.cfg?.threshold,
+            scores:            scoring?.scores,
+            validationId:      String(v._id),
+          });
+        })
+      );
+      console.log('[Mailer] Résultats :', results.map(r => r.status === 'fulfilled' ? r.value : 'erreur').join(', '));
+    };
+
     // ── Scoring & décision auto-validation ──────────────────
     try {
       const scoring = await evaluateReport(cleanSnapshot);
@@ -337,33 +378,13 @@ router.post('/validations', auth, async (req, res) => {
         await v.save();
         console.log('[Scoring] ⚠️ Validation requise — score max:', scoring.maxScore, '>= seuil:', scoring.cfg.threshold);
 
-        try {
-          const results = await Promise.allSettled(
-            allManagers.map(m => {
-              if (!m.email) {
-                console.warn('[Mailer] Responsable sans email, ignoré :', m.name);
-                return Promise.resolve(false);
-              }
-              return sendNewValidationNotification(m.email, {
-                managerName:       m.name,
-                submitterName:     req.user.name,
-                interventionTitle: cleanSnapshot.interventionTitle || '',
-                location:          cleanSnapshot.location || '',
-                date:              cleanSnapshot.date || new Date().toISOString(),
-                riskCount:         (cleanSnapshot.risks || []).length,
-                maxScore:          scoring.maxScore,
-                threshold:         scoring.cfg.threshold,
-                scores:            scoring.scores,
-                validationId:      String(v._id),
-              });
-            })
-          );
-          console.log('[Mailer] Notifs responsables :', results.map(r => r.status === 'fulfilled' ? r.value : 'erreur').join(', '));
-        } catch (mailErr) { console.error('[Mailer] Erreur non bloquante:', mailErr.message); }
+        try { await notifyManagers(scoring); }
+        catch (mailErr) { console.error('[Mailer] Erreur non bloquante:', mailErr.message); }
       }
     } catch (scoringErr) {
-      console.error('[Scoring] Erreur non bloquante:', scoringErr.message);
+      console.error('[Scoring] Erreur — validation manuelle par défaut:', scoringErr.message);
       await v.save();
+      try { await notifyManagers(null); } catch (mailErr) { console.error('[Mailer] Erreur non bloquante:', mailErr.message); }
     }
 
     res.status(201).json(v);
