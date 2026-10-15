@@ -220,14 +220,18 @@ router.put('/settings/:key', auth, adminOnly, async (req, res) => {
 
 // GET — validations pour le manager connecté
 router.get('/validations', auth, async (req, res) => {
-  try { res.json(await Validation.find({ managerId: req.user._id }).sort('-createdAt')); }
+  try {
+    res.json(await Validation.find({
+      $or: [{ managerId: req.user._id }, { managerIds: req.user._id }]
+    }).sort('-createdAt'));
+  }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // POST — soumettre un rapport pour validation
 router.post('/validations', auth, async (req, res) => {
   try {
-    const { managerId, level, evalSnapshot, sigIntervenant } = req.body;
+    const { managerId, managerIds, level, evalSnapshot, sigIntervenant } = req.body;
 
     // Logs pour debug
     console.log('[POST /validations] managerId reçu:', managerId);
@@ -245,6 +249,14 @@ router.post('/validations', auth, async (req, res) => {
     if (!manager) {
       return res.status(404).json({ error: 'Responsable introuvable.' });
     }
+
+    // Tous les responsables (principal + additionnels), sans doublon, IDs valides uniquement
+    const allMgrIds = [...new Set(
+      [managerId, ...(Array.isArray(managerIds) ? managerIds : [])]
+        .map(x => String(x || '').trim())
+        .filter(x => mongoose.Types.ObjectId.isValid(x))
+    )];
+    const allManagers = await User.find({ _id: { $in: allMgrIds } }).select('name email');
 
     // Nettoyer evalSnapshot — supprimer tout champ _id ou id qui pourrait casser Mongoose
     const cleanSnapshot = JSON.parse(JSON.stringify(evalSnapshot || {}));
@@ -276,6 +288,8 @@ router.post('/validations', auth, async (req, res) => {
 
     const v = await Validation.create({
       managerId:      new mongoose.Types.ObjectId(managerId),
+      managerIds:     allMgrIds.map(x => new mongoose.Types.ObjectId(x)),
+      machine:        (req.body.machine || cleanSnapshot.machine || ''),
       submittedBy:    req.user._id,
       submitterName:  req.user.name  || '',
       submitterSite:  req.user.site  || '—',
@@ -324,21 +338,27 @@ router.post('/validations', auth, async (req, res) => {
         console.log('[Scoring] ⚠️ Validation requise — score max:', scoring.maxScore, '>= seuil:', scoring.cfg.threshold);
 
         try {
-          const managerFull = await User.findById(managerId).select('email name');
-          if (managerFull?.email) {
-            await sendNewValidationNotification(managerFull.email, {
-              managerName:       managerFull.name,
-              submitterName:     req.user.name,
-              interventionTitle: cleanSnapshot.interventionTitle || '',
-              location:          cleanSnapshot.location || '',
-              date:              cleanSnapshot.date || new Date().toISOString(),
-              riskCount:         (cleanSnapshot.risks || []).length,
-              maxScore:          scoring.maxScore,
-              threshold:         scoring.cfg.threshold,
-              scores:            scoring.scores,
-              validationId:      String(v._id),
-            });
-          }
+          const results = await Promise.allSettled(
+            allManagers.map(m => {
+              if (!m.email) {
+                console.warn('[Mailer] Responsable sans email, ignoré :', m.name);
+                return Promise.resolve(false);
+              }
+              return sendNewValidationNotification(m.email, {
+                managerName:       m.name,
+                submitterName:     req.user.name,
+                interventionTitle: cleanSnapshot.interventionTitle || '',
+                location:          cleanSnapshot.location || '',
+                date:              cleanSnapshot.date || new Date().toISOString(),
+                riskCount:         (cleanSnapshot.risks || []).length,
+                maxScore:          scoring.maxScore,
+                threshold:         scoring.cfg.threshold,
+                scores:            scoring.scores,
+                validationId:      String(v._id),
+              });
+            })
+          );
+          console.log('[Mailer] Notifs responsables :', results.map(r => r.status === 'fulfilled' ? r.value : 'erreur').join(', '));
         } catch (mailErr) { console.error('[Mailer] Erreur non bloquante:', mailErr.message); }
       }
     } catch (scoringErr) {
@@ -358,8 +378,12 @@ router.put('/validations/:id', auth, async (req, res) => {
   try {
     const v = await Validation.findById(req.params.id);
     if (!v) return res.status(404).json({ error: 'Validation introuvable' });
-    if (String(v.managerId) !== String(req.user._id))
+    const isManager = String(v.managerId) === String(req.user._id)
+      || (v.managerIds || []).some(id => String(id) === String(req.user._id));
+    if (!isManager)
       return res.status(403).json({ error: 'Non autorisé' });
+    if (v.status !== 'pending')
+      return res.status(409).json({ error: 'Ce rapport a déjà été traité par ' + (v.managerName || 'un responsable') });
     if (req.body.status)              v.status     = req.body.status;
     if (req.body.comment !== undefined) v.comment  = req.body.comment;
     if (req.body.sigManager)          v.sigManager = req.body.sigManager;
