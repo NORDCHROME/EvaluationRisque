@@ -2891,13 +2891,9 @@ function buildSummary(){
     <div class="meta-block" style="grid-column:span 3"><div class="meta-label">Étapes de l'intervention</div><div style="margin-top:6px;display:flex;flex-direction:column;gap:4px">${(appState.missionSteps||[appState.mission]).map((s,i)=>`<div style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px"><span style="background:var(--accent2);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0;margin-top:1px">${i+1}</span><span>${s}${(appState.stopFlashSteps||[])[i]?' <span class="sf-badge">⛔ STOP FLASH</span>':''}</span></div>`).join('')}</div></div>
     ${(appState.stopFlashSteps||[]).some(Boolean)?`<div class="meta-block" style="grid-column:span 3;background:#fff7e6;border-color:#d97706"><div class="meta-label" style="color:#9a5b00">⛔ STOP FLASH — étape(s) n° ${(appState.stopFlashSteps||[]).map((f,i)=>f?i+1:null).filter(Boolean).join(', ')}</div><div style="font-size:12.5px;margin-top:4px;color:#7c4a00;line-height:1.5">Le contenu à découvrir est inconnu : une fois l'étape réalisée, <strong>stopper l'intervention</strong>, évaluer ce qui a été découvert et <strong>compléter l'analyse de risques</strong> avant de poursuivre.</div></div>`:''}
     <div class="meta-block" style="grid-column:span 3"><div class="meta-label">Interventions</div><div class="meta-value" style="font-size:12.5px;font-weight:500">${[...appState.selectedInterventions].join(', ')}</div></div>`;
-  const highCount=selected.filter(r=>r.sev==='high').length;
-  let cls='low',label='✅ NIVEAU FAIBLE',desc='Aucun risque critique.';
-  if(highCount>=3){cls='high';label='🔴 NIVEAU ÉLEVÉ';desc=highCount+' risque(s) critique(s) — Mesures urgentes.';}
-  else if(highCount>0||selected.length>2){cls='medium';label='🟠 NIVEAU MODÉRÉ';desc=highCount+' risque(s) critique(s) — Vigilance.';}
-  const _derogSel=selected.filter(r=>r.isDerogation);
-  if(_derogSel.length){ cls='high'; label='🔴 NIVEAU ÉLEVÉ'; desc=_derogSel.length+' dérogation(s) — '+(_derogSel.reduce((a,r)=>a+(r.value||getDerogScore()),0))+' pts de risque — validation du responsable requise.'; }
-  document.getElementById('scoreBanner').innerHTML=`<div class="score-banner ${cls}"><div><div class="score-label">${label}</div><div style="font-size:13px;margin-top:4px;color:#4b5563">${desc}</div></div><div class="score-value">${selected.length}</div></div>`;
+  // Bandeau : état provisoire, puis résultat réel du moteur de notation
+  document.getElementById('scoreBanner').innerHTML=`<div class="score-banner low"><div><div class="score-label">⏳ Calcul du niveau de risque…</div><div style="font-size:13px;margin-top:4px;color:#4b5563">Analyse par le moteur de notation</div></div><div class="score-value">${selected.length}</div></div>`;
+  refreshScoreBanner(selected);
   if(!selected.length){document.getElementById('summaryContent').innerHTML='<p style="text-align:center;color:#9ca3af;padding:32px;font-style:italic">Aucun risque sélectionné.</p>';return;}
   selected.sort((a,b)=>({high:0,medium:1,low:2}[a.sev]-{high:0,medium:1,low:2}[b.sev]));
   document.getElementById('summaryContent').innerHTML=selected.map(r=>{
@@ -2917,10 +2913,70 @@ function buildSummary(){
   }).join('');
 
   // Afficher la zone de signature selon le niveau de risque
-  updateSignatureZone(selected);
+  // (la zone de signature est mise à jour par refreshScoreBanner une fois le niveau connu)
 }
 
-function updateSignatureZone(selected){
+// ── Niveau de risque réel = résultat du moteur de notation serveur ───────────
+// low = aucune note résiduelle au-dessus du seuil (validation automatique)
+// medium = au moins un risque dépasse le seuil (validation du responsable requise)
+// high = au moins une dérogation (validation du responsable requise)
+async function computeEngineLevel(){
+  const selected=getAllRisks().filter(r=>appState.selectedRisks.has(r.id));
+  const fallback=()=>({level:getReportRiskLevel(),engine:null,fallback:true});
+  if(!selected.length) return {level:'low',engine:null};
+  if(!navigator.onLine) return fallback();
+  const evalSnapshot={
+    risks: selected.map(r=>{
+      const es=getEPI(r.id);
+      return {id:r.id,name:r.name,sev:r.sev,type:r.interventionType,
+        solutions:r.solutions||[],epc:[...es.collectif,...es.customC],epi:[...es.individuel,...es.customI]};
+    }),
+    derogations: appState.derogations||{},
+  };
+  try{
+    // fetch direct : api() mettrait la requête en file d'attente hors ligne
+    const res=await fetch(API_BASE+'/api/scoring/simulate',{method:'POST',headers:apiHeaders(),body:JSON.stringify({evalSnapshot})});
+    if(!res.ok) return fallback();
+    const result=await res.json();
+    if(!result||!Array.isArray(result.scores)) return fallback();
+    applyDerogScoreOverride(result,selected);
+    let level=result.requiresValidation?'medium':'low';
+    if(selected.some(r=>r.isDerogation)) level='high';
+    return {level,engine:result};
+  }catch(e){ return fallback(); }
+}
+
+let _bannerSeq=0;
+async function refreshScoreBanner(selected){
+  const seq=++_bannerSeq;
+  const r=await computeEngineLevel();
+  if(seq!==_bannerSeq) return; // un calcul plus récent est en cours
+  const el=document.getElementById('scoreBanner'); if(!el) return;
+  let cls=r.level,label,desc;
+  const eng=r.engine;
+  const thr=(eng&&eng.cfg&&eng.cfg.threshold)||40;
+  const scores=(eng&&eng.scores)||[];
+  const over=scores.filter(s=>s.overThreshold).length;
+  const maxRes=scores.reduce((m,s)=>Math.max(m,s.residuel||0),0);
+  const derogs=selected.filter(x=>x.isDerogation);
+  if(r.level==='high'){
+    label='🔴 NIVEAU ÉLEVÉ';
+    desc=derogs.length+' dérogation(s) — '+derogs.reduce((a,x)=>a+(x.value||getDerogScore()),0)+' pts de risque — validation du responsable requise.';
+  }else if(r.level==='medium'){
+    label='🟠 VALIDATION REQUISE';
+    desc=eng?over+' risque(s) au-dessus du seuil de '+thr+' pts (note résiduelle max : '+maxRes+' pts) — validation du responsable requise.'
+            :'Risque(s) modéré(s)/critique(s) — validation du responsable requise.';
+  }else{
+    label='✅ NIVEAU FAIBLE';
+    desc=eng?'Note résiduelle max : '+maxRes+' pts, sous le seuil de '+thr+' pts — validation automatique.'
+            :'Aucun risque modéré ou critique.';
+  }
+  if(r.fallback) desc+=' (estimation locale : moteur de notation injoignable)';
+  el.innerHTML=`<div class="score-banner ${cls}"><div><div class="score-label">${label}</div><div style="font-size:13px;margin-top:4px;color:#4b5563">${desc}</div></div><div class="score-value">${selected.length}</div></div>`;
+  updateSignatureZone(selected,r.level);
+}
+
+function updateSignatureZone(selected,engineLevel){
   const zone=document.getElementById('signatureZone'); if(!zone) return;
   const settings=_cache['signatureSettings']||({autoLow:true,requireManager:true});
   // Construire la liste des managers depuis le cache (multi-managers)
@@ -2929,7 +2985,7 @@ function updateSignatureZone(selected){
     managers.push({id:String(_cache['managerInfo']._id), name:_cache['managerInfo'].name});
   }
   const highCount=(selected||[]).filter(r=>r.sev==='high').length;
-  const level=highCount>0?'high':((selected||[]).some(r=>r.sev==='medium')?'medium':'low');
+  const level=engineLevel||(highCount>0?'high':((selected||[]).some(r=>r.sev==='medium')?'medium':'low'));
 
   let html='';
   if(level==='low' && settings.autoLow!==false){
@@ -4439,7 +4495,7 @@ function getReportRiskLevel(){
 // ── Handler principal du bouton "Générer PDF" ─────────────────────────────
 async function handleGeneratePDF(){
   const settings=_cache['signatureSettings']||{autoLow:true,requireManager:true};
-  const level=getReportRiskLevel();
+  const level=(await computeEngineLevel()).level; // même niveau que le bandeau de synthèse
 
   // Récupérer TOUS les responsables depuis l'API (multi-managers)
   let managers=[];
