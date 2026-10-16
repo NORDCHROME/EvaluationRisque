@@ -1567,12 +1567,6 @@ const EPI_COL={
   mi1:{c:['Consignation LOTO complète','Capots et protecteurs machine','Balisage zones dangereuses'],i:['Chaussures S3','Gants anti-coupure EN 388','Lunettes de protection']},
   mi2:{c:['Consignation LOTO complète','Signalétique mise en attente','Purge automatique pneumatique'],i:['Gants anti-coupure EN 388','Bouchons/casque anti-bruit EN 352','Lunettes de protection']},
   mi3:{c:['Capots et protecteurs machine','Balisage zones dangereuses'],i:['Gants anti-coupure EN 388','Lunettes de protection','Vêtement de travail ajusté']},
-  mi9:{c:['Aspiration / extraction à la source en service','Capots et protecteurs machine fermés','Ventilation générale de l\'atelier'],i:['Masque FFP3 (aérosols huileux)','Gants nitrile résistant aux huiles','Lunettes de protection','Vêtement de travail ajusté']},
-  mi10:{c:['Extincteur CO2 / poudre à proximité','Consignation LOTO complète','Balisage zones dangereuses'],i:['Vêtement de travail ignifugé ou coton','Gants résistant chaleur','Lunettes de protection']},
-  mi11:{c:['Bacs de rétention et absorbants','Balisage zones dangereuses','Signalétique sol glissant'],i:['Chaussures S3 antidérapantes','Gants nitrile résistant aux huiles']},
-  mi12:{c:['Bacs de rétention et absorbants','Balisage zones dangereuses','Signalétique sol glissant','Éclairage renforcé poste'],i:['Chaussures S3 antidérapantes','Gants nitrile résistant aux huiles']},
-  mi13:{c:['Capots et protecteurs machine fermés','Balisage zones dangereuses'],i:['Lunettes de protection','Écran facial','Vêtement de travail ajusté']},
-  mi14:{c:['Capots et protecteurs machine fermés','Bacs de rétention et absorbants'],i:['Lunettes de protection','Gants nitrile résistant aux huiles','Chaussures S3 antidérapantes']},
   // DÉMOLITION
   d1:{c:['Filets et bâches anti-projection','Balisage périmètre étendu','Aspersion eau (réduction poussières)'],i:['Casque renforcé','Masque FFP3 poussières/amiante','Lunettes-masque intégral','Combinaison jetable type 5']},
   d2:{c:['Étaiement des structures','Clôture sécurisée','Balisage périmètre étendu'],i:['Casque renforcé','Chaussures S3 anti-perforation','Gants anti-coupure et anti-vibrations']},
@@ -1645,13 +1639,7 @@ const EPI_COL={
     {id:'mi5',name:'Risque chimique (lubrifiants, liquides de refroidissement)',sev:'medium',causes:['Contact cutané avec huiles de coupe','Inhalation de brouillards d\'huile'],consequences:['Dermatoses professionnelles','Cancer cutané (huiles minérales non raffinées)'],solutions:['Gants nitrile résistant aux huiles','Crème de protection cutanée','Aspirer les brouillards d\'huile','Suivi dermatologique annuel']},
     {id:'mi6',name:'Blessure par heurt ou chute de pièce lors du démontage',sev:'high',causes:['Pièce lourde mal soutenue lors du dévissage','Tension résiduelle dans les assemblages','Mauvaise coordination entre opérateurs','Utilisation d\'outil inadapté (arrache-roulement, extracteur)'],consequences:['Fractures des membres supérieurs / doigts','Contusions, écrasement des pieds','Blessures oculaires par projection'],solutions:['Soutenir systématiquement la pièce avant le dernier point de fixation','Dépressuriser et vérifier l\'absence d\'énergie résiduelle','Utiliser des extracteurs et outillages adaptés','Port de gants anti-coupure EN 388, chaussures S3, lunettes EN 166','Travailler à deux pour les pièces > 15 kg','Briefing opérateur sur l\'ordre de démontage']},
     {id:'mi7',name:'Coupures et lacérations sur arêtes vives',sev:'medium',causes:['Arêtes vives de tôles, engrenages, ailettes','Manipulation de pièces usinées sans gants','Débris métalliques tranchants post-découpe'],consequences:['Plaies profondes des mains et avant-bras','Risque tétanos, infection'],solutions:['Gants anti-coupure niveau D (EN 388) obligatoires','Ébavurer les pièces avant manipulation','Récipient rigide pour les débris tranchants','Formation aux gestes de manipulation sécurisés']},
-    {id:'mi8',name:'Chute de charge lors du dépose / repose d\'équipement',sev:'high',causes:['Équipement lourd mal équilibré sur le moyen de levage','Point de levage non identifié ou inadapté','Sangle ou élingue sous-dimensionnée'],consequences:['Écrasement de l\'opérateur ou d\'un collègue','Dommage matériel grave','Dommage sur infrastructure'],solutions:['Identifier les points de levage (anneau fileté, œillet)','Calculer la masse avant levage (plaque signalétique)','Utiliser palans, potences ou engins certifiés','Zone d\'exclusion pendant la manœuvre','Chef de manœuvre unique désigné']},,
-    {id:'mi9',name:'Inhalation de brouillards d\'huile et d\'aérosols de fluide de coupe (rectifieuse)',sev:'medium',causes:['Aspiration / extraction du banc arrêtée, en panne ou sous-dimensionnée','Filtre à brouillard colmaté ou saturé','Ouverture du capot de la rectifieuse avant décantation du brouillard','Fluide de coupe vieilli, contaminé ou projeté à haute pression'],consequences:['Irritation des voies respiratoires, toux, bronchite chronique','Asthme professionnel, pneumopathie d\'hypersensibilité','Dermatoses liées au contact répété avec l\'huile'],solutions:['Vérifier que l\'aspiration fonctionne (débit, dépression) avant toute intervention','Attendre la décantation du brouillard avant d\'ouvrir les capots','Remplacer les filtres selon la périodicité du fabricant','Port d\'un masque adapté aux aérosols huileux (FFP3 ou demi-masque P3)','Faire contrôler régulièrement les performances de l\'installation d\'aspiration']},
-    {id:'mi10',name:'Incendie ou explosion du système d\'aspiration / filtre à brouillard d\'huile',sev:'high',causes:['Accumulation d\'huile et de poussières dans les gaines et le caisson de filtration','Étincelles de rectification ou travaux par point chaud à proximité du filtre','Huile de coupe pure (non aqueuse) inflammable','Échauffement d\'un ventilateur ou d\'un moteur d\'aspiration encrassé'],consequences:['Départ de feu dans le caisson de filtration','Propagation de l\'incendie par les gaines','Explosion d\'aérosol d\'huile, brûlures graves'],solutions:['Nettoyer régulièrement gaines, caisson et séparateur de brouillard','Permis de feu pour tout travail par point chaud près de l\'installation','Extincteur adapté (CO2 ou poudre) à proximité immédiate du banc','Vérifier les dispositifs de détection et de coupure d\'urgence','Consigner l\'aspiration et la machine avant ouverture du caisson']},
-    {id:'mi11',name:'Chute de plain-pied sur sol souillé d\'huile',sev:'medium',causes:['Fuite de fluide de coupe sur la rectifieuse ou son bac de rétention','Projection ou débordement d\'huile lors d\'une intervention','Vidange ou changement de filtre sans protection du sol'],consequences:['Entorses, fractures, traumatismes','Chute sur la machine ou sur une pièce en rotation'],solutions:['Placer un bac de rétention et des absorbants avant l\'intervention','Nettoyer immédiatement toute trace d\'huile au sol','Signaler la zone glissante (panneau, balisage)','Chaussures de sécurité S3 antidérapantes']},
-    {id:'mi12',name:'Glissade / chute de plain-pied sur sol glissant (huile, eau, liquide)',sev:'medium',causes:['Fuite d\'huile, de fluide de coupe ou de liquide de refroidissement','Eau au sol (nettoyage, fuite, condensation, intempéries)','Projection ou débordement de liquide lors d\'une intervention, d\'une vidange ou d\'un changement de filtre','Sol non protégé, bac de rétention saturé, flaque non signalée'],consequences:['Entorses, fractures, traumatismes crâniens','Chute sur une machine, un outil ou une pièce en mouvement','Chute avec une charge ou un outil à la main'],solutions:['Placer un bac de rétention et des absorbants avant toute intervention','Nettoyer immédiatement toute trace d\'huile, d\'eau ou de liquide','Signaler la zone glissante (panneau « sol glissant », balisage)','Chaussures de sécurité S3 antidérapantes (semelle adaptée aux huiles)','Garder les cheminements dégagés, éviter les câbles et flexibles en travers','Réparer rapidement la cause de la fuite']},
-    {id:'mi13',name:'Éclatement de meule et projection de fragments / pièce (rectifieuse)',sev:'high',causes:['Meule fissurée, usée ou inadaptée à la vitesse de la broche','Montage ou équilibrage incorrect après changement de meule','Choc de la meule contre la pièce ou le plateau','Pièce mal bridée sur le plateau magnétique','Capot de protection ouvert ou retiré'],consequences:['Blessures graves voire mortelles par projection de fragments','Traumatisme crânien ou oculaire','Destruction de la machine'],solutions:['Contrôler visuellement et au son la meule avant montage','Respecter la vitesse maximale marquée sur la meule','Faire monter la meule par du personnel formé et la laisser tourner à vide capot fermé','Ne jamais utiliser la machine capot ouvert ou sécurité neutralisée','Vérifier le bridage de la pièce avant lancement','Écran facial et lunettes de protection pour les opérations de dressage']},
-    {id:'mi14',name:'Projection de fluide de coupe ou d\'huile sous pression',sev:'medium',causes:['Buse d\'arrosage mal orientée ou flexible endommagé','Ouverture du capot pendant la circulation du fluide','Fluide projeté à haute pression lors d\'un réglage ou d\'une purge'],consequences:['Projection oculaire ou cutanée','Irritation, brûlure si fluide chaud','Sol souillé et risque de glissade'],solutions:['Couper l\'arrosage avant d\'ouvrir le capot','Vérifier l\'état des flexibles et des buses','Lunettes ou écran de protection pour les réglages','Consigner le circuit avant intervention']},
+    {id:'mi8',name:'Chute de charge lors du dépose / repose d\'équipement',sev:'high',causes:['Équipement lourd mal équilibré sur le moyen de levage','Point de levage non identifié ou inadapté','Sangle ou élingue sous-dimensionnée'],consequences:['Écrasement de l\'opérateur ou d\'un collègue','Dommage matériel grave','Dommage sur infrastructure'],solutions:['Identifier les points de levage (anneau fileté, œillet)','Calculer la masse avant levage (plaque signalétique)','Utiliser palans, potences ou engins certifiés','Zone d\'exclusion pendant la manœuvre','Chef de manœuvre unique désigné']},
   ],
   'Travaux de démolition':[
     {id:'d1',name:'Effondrement de structure ou de plancher',sev:'high',causes:['Structure affaiblie non étayée','Démolition désordonnée sans plan'],consequences:['Ensevelissement mortel','Blessures multiples graves'],solutions:['Diagnostic structurel complet (bureau d\'études)','Plan de démolition progressif (haut vers bas)','Étayer les structures adjacentes','Surveiller les signaux de déstabilisation']},
@@ -3134,21 +3122,6 @@ const AI_KW={
     {s:5,w:['levage piece','poser piece','depose lourde','deplacer equipement'],r:['mi8','m1','m4']},
     {s:4,w:['palan','potence','palan chaine','anneau levage','point levage'],r:['mi8','m1']},
     {s:4,w:['elingue piece','sangles machine','soulever moteur','sortir pompe'],r:['mi8','m1']},
-    // ── Rectifieuse / huile / aspiration (kwId fixe : ne décale pas les ids de synchronisation) ──
-    {kwId:'kw_builtin_mi_rectifieuse',s:5,w:['rectifieuse','rectification','banc de rectification','banc rectifieuse','rectifier','meule rectification'],r:['mi1','mi9','mi10','mi11']},
-    {kwId:'kw_builtin_mi_huile_coupe',s:5,w:['huile de coupe','huile entiere','fluide de coupe','liquide de coupe','lubrifiant de coupe','emulsion','brouillard huile','aerosol huile'],r:['mi9','mi5','mi11']},
-    {kwId:'kw_builtin_mi_aspiration',s:5,w:['aspiration','aspirateur industriel','extraction air','captage','depoussiereur','filtre a brouillard','separateur de brouillard','gaine aspiration','centrale aspiration','filtre aspiration'],r:['mi9','mi10']},
-    {kwId:'kw_builtin_mi_fuite_huile',s:4,w:['fuite huile','huile au sol','bac de retention','vidange banc'],r:['mi11','mi5']},
-    {kwId:'kw_builtin_mi_glissade',s:5,w:['glissade','glissant','sol glissant','sol mouille','sol gras','flaque','flaque huile','eau au sol','liquide au sol','liquide','ruissellement','inondation','fuite eau','nettoyage sol','nettoyage haute pression','lavage'],r:['mi12']},
-    // ── Mots-clés génériques huile / aspiration / hydraulique / fuite / glissade ──
-    {kwId:'kw_builtin_mi_gen_huile',s:3,w:['huile','huileux','huileuse','graisse'],r:['mi5','mi11','mi12']},
-    {kwId:'kw_builtin_mi_gen_aspirer',s:4,w:['aspirer','aspirateur','extraction','extracteur','hotte','ventilation'],r:['mi9','mi10']},
-    {kwId:'kw_builtin_mi_gen_hydraulique',s:3,w:['hydraulique','flexible hydraulique','centrale hydraulique','groupe hydraulique'],r:['mi2','mi12','mi14']},
-    {kwId:'kw_builtin_mi_gen_fluide',s:3,w:['fluide','refroidissement','arrosage'],r:['mi5','mi12','mi14']},
-    {kwId:'kw_builtin_mi_gen_fuite',s:3,w:['fuite','fuites','suintement','goutte','egouttement'],r:['mi11','mi12']},
-    {kwId:'kw_builtin_mi_gen_brouillard',s:4,w:['brouillard','aerosol','vapeur huile','fumee huile'],r:['mi9','mi10']},
-    {kwId:'kw_builtin_mi_gen_glisse',s:5,w:['glisse','glisser','derapage','deraper'],r:['mi12']},
-    {kwId:'kw_builtin_mi_meule',s:5,w:['meule','eclatement meule','rupture meule','changement de meule','dressage meule','dressage diamant','equilibrage meule','vitesse maximale meule','plateau magnetique','piece ejectee'],r:['mi13','mi1','mi6']},
   ],
   'Travaux de démolition':[
     {s:5,w:['demolition','deconstruction','desamiantage'],r:['d1','d2']},
@@ -3390,21 +3363,14 @@ function detectStepRisks(stepId, text, autoSelect){
     .sort((a,b)=>b[1]-a[1])
     .map(([id])=>id)
     .filter(id=>{
-      for(const t of typesSet){
-        const risksForType = Array.isArray(RISKS[t]) ? RISKS[t] : [];
-        // Une entrée vide/mal formée ne doit pas interrompre la détection.
-        if(risksForType.some(r=>r && r.id===id)) return true;
-      }
+      for(const t of typesSet){ if((RISKS[t]||[]).find(r=>r.id===id)) return true; }
       return false;
     })
     .slice(0,8);
 
-  // Fallback : si types détectés mais aucun risque scoré, prendre les premiers risques valides de ces types
+  // Fallback : si types détectés mais aucun risque scoré, prendre les premiers risques de ces types
   if(!detectedRisks.length && detectedTypes.length){
-    detectedRisks=detectedTypes.flatMap(t=>{
-      const risksForType = Array.isArray(RISKS[t]) ? RISKS[t] : [];
-      return risksForType.filter(r=>r && r.id).slice(0,3).map(r=>r.id);
-    }).slice(0,8);
+    detectedRisks=detectedTypes.flatMap(t=>(RISKS[t]||[]).slice(0,3).map(r=>r.id)).slice(0,8);
   }
 
   if(!detectedRisks.length && !detectedTypes.length){
@@ -8221,7 +8187,6 @@ async function syncKeywordsToDB() {
   Object.entries(AI_KW).forEach(([type, rules]) => {
     (rules||[]).forEach(rule => {
       if(rule._customId || rule._dbId) return; // déjà en DB
-      if(rule.kwId){ rulesToSync.push({ id: rule.kwId, type, w: rule.w||[], r: rule.r||[], s: rule.s||3 }); return; }
       const kwId = 'kw_builtin_' + type.replace(/[^a-z0-9]/gi,'_') + '_' + idx++;
       rulesToSync.push({ id: kwId, type, w: rule.w||[], r: rule.r||[], s: rule.s||3 });
     });
@@ -8326,13 +8291,6 @@ async function reloadRisksIntoEngine() {
   try {
     const risks = await api('GET', '/data/risks');
     if (!risks || !risks.length) return;
-
-    // Nettoyer les listes locales avant fusion : une entrée invalide ne doit pas
-    // faire échouer les recherches du moteur de détection.
-    Object.keys(RISKS).forEach(type => {
-      if (!Array.isArray(RISKS[type])) RISKS[type] = [];
-      else RISKS[type] = RISKS[type].filter(item => item && typeof item === 'object' && item.id);
-    });
 
     const processedTypes = new Set();
     risks.forEach(r => {
