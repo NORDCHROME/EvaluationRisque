@@ -3390,14 +3390,21 @@ function detectStepRisks(stepId, text, autoSelect){
     .sort((a,b)=>b[1]-a[1])
     .map(([id])=>id)
     .filter(id=>{
-      for(const t of typesSet){ if((RISKS[t]||[]).find(r=>r.id===id)) return true; }
+      for(const t of typesSet){
+        const risksForType = Array.isArray(RISKS[t]) ? RISKS[t] : [];
+        // Une entrée vide/mal formée ne doit pas interrompre la détection.
+        if(risksForType.some(r=>r && r.id===id)) return true;
+      }
       return false;
     })
     .slice(0,8);
 
-  // Fallback : si types détectés mais aucun risque scoré, prendre les premiers risques de ces types
+  // Fallback : si types détectés mais aucun risque scoré, prendre les premiers risques valides de ces types
   if(!detectedRisks.length && detectedTypes.length){
-    detectedRisks=detectedTypes.flatMap(t=>(RISKS[t]||[]).slice(0,3).map(r=>r.id)).slice(0,8);
+    detectedRisks=detectedTypes.flatMap(t=>{
+      const risksForType = Array.isArray(RISKS[t]) ? RISKS[t] : [];
+      return risksForType.filter(r=>r && r.id).slice(0,3).map(r=>r.id);
+    }).slice(0,8);
   }
 
   if(!detectedRisks.length && !detectedTypes.length){
@@ -8319,6 +8326,13 @@ async function reloadRisksIntoEngine() {
   try {
     const risks = await api('GET', '/data/risks');
     if (!risks || !risks.length) return;
+
+    // Nettoyer les listes locales avant fusion : une entrée invalide ne doit pas
+    // faire échouer les recherches du moteur de détection.
+    Object.keys(RISKS).forEach(type => {
+      if (!Array.isArray(RISKS[type])) RISKS[type] = [];
+      else RISKS[type] = RISKS[type].filter(item => item && typeof item === 'object' && item.id);
+    });
 
     const processedTypes = new Set();
     risks.forEach(r => {
